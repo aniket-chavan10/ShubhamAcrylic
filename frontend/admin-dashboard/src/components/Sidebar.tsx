@@ -12,9 +12,8 @@ const menu = [
   { label: "Dashboard", to: "/" },
   { label: "Product Management", to: "/products" },
   { label: "Review Management", to: "/reviews" },
-  { label: "Content Management", to: "/content" },
-  { label: "Order Tracking", to: "/orders" },
-  { label: "Analytics", to: "/analytics" },
+  { label: "Enquiry Management", to: "/enquiry-management" },
+
 ];
 
 const Sidebar: FC = () => {
