@@ -1,0 +1,13 @@
+{
+    "name": "frontend-root",
+    "private": true,
+    "workspaces": [
+        "public-frontend",
+        "admin-dashboard"
+    ],
+    "scripts": {
+        "start:public": "npm run dev --workspace=public-frontend",
+        "start:admin": "npm run dev --workspace=admin-dashboard",
+        "dev": "echo 'Please run \"npm run start:public\" or \"npm run start:admin\"'"
+    }
+}

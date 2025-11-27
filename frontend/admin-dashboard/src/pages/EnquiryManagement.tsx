@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
-import { fetchEnquiries } from "../services/enquiryService";
+import { fetchEnquiries, markEnquiryResolved, deleteEnquiry } from "../services/enquiryService";
 
 interface Enquiry {
   _id: string;
@@ -120,8 +120,13 @@ const EnquiryManagement: React.FC = () => {
                   {/* Mark Resolved button */}
                   {selectedEnquiry.status === "pending" && (
                     <button
-                      onClick={() => {
-                        // Your code to mark resolved goes here
+                      onClick={async () => {
+                        try {
+                          await markEnquiryResolved(selectedEnquiry._id);
+                          handleMarkResolved(selectedEnquiry._id);
+                        } catch (err: any) {
+                          alert(err.message);
+                        }
                       }}
                       className="flex-1 px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
                     >
@@ -131,8 +136,16 @@ const EnquiryManagement: React.FC = () => {
 
                   {/* Delete button */}
                   <button
-                    onClick={() => {
-                      // Your code to delete enquiry goes here
+                    onClick={async () => {
+                      if (window.confirm("Are you sure you want to delete this enquiry?")) {
+                        try {
+                          await deleteEnquiry(selectedEnquiry._id);
+                          setEnquiries((prev) => prev.filter((e) => e._id !== selectedEnquiry._id));
+                          setSelectedEnquiry(null);
+                        } catch (err: any) {
+                          alert(err.message);
+                        }
+                      }
                     }}
                     className="flex-1 px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition"
                   >

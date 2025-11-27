@@ -13,6 +13,7 @@ const menu = [
   { label: "Product Management", to: "/products" },
   { label: "Review Management", to: "/reviews" },
   { label: "Enquiry Management", to: "/enquiry-management" },
+  { label: "Banner Management", to: "/banners" },
 
 ];
 
@@ -35,10 +36,9 @@ const Sidebar: FC = () => {
               <Link
                 to={item.to}
                 className={`flex items-center gap-4 px-6 py-3 rounded-xl transition-all duration-150 
-                  ${
-                    location.pathname === item.to
-                      ? "bg-blue-500/90 text-white shadow-lg font-semibold scale-105"
-                      : "text-gray-700 hover:bg-blue-100 hover:text-blue-700"
+                  ${location.pathname === item.to
+                    ? "bg-blue-500/90 text-white shadow-lg font-semibold scale-105"
+                    : "text-gray-700 hover:bg-blue-100 hover:text-blue-700"
                   }
                 `}
               >

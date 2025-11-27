@@ -8,7 +8,10 @@ const mongoose = require('mongoose');
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'], // Allow Vite defaults and standard React port
+  credentials: true
+}));
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true }));
 
@@ -31,6 +34,9 @@ app.use('/api/products', productRoutes);
 
 const enquiryRoutes = require("./routes/enquiryRoutes");
 app.use("/api/enquiries", enquiryRoutes);
+
+const bannerRoutes = require("./routes/bannerRoutes");
+app.use("/api/banners", bannerRoutes);
 
 
 app.use((err, req, res, next) => {
