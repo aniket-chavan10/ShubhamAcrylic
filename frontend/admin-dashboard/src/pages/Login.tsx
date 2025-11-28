@@ -35,7 +35,6 @@ const Login = () => {
         {/* Brand/Logo Accent */}
         <div className="flex flex-col items-center mb-7">
           <div className="bg-blue-600 w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-2xl mb-2 shadow">
-            {/* Brand Initial or Icon */}
             A
           </div>
           <h2 className="text-3xl font-bold text-blue-800 mb-0 tracking-tight">Admin Login</h2>

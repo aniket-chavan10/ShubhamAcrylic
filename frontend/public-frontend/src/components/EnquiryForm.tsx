@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createEnquiry } from '../services/api';
+import { Mail, Phone, MessageSquare, Send } from 'lucide-react';
 
 const EnquiryForm = () => {
     const [formData, setFormData] = useState({
@@ -8,120 +9,132 @@ const EnquiryForm = () => {
         mobileNo: '',
         message: ''
     });
-    const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+    const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+    const validateForm = () => {
+        const newErrors: Record<string, string> = {};
+        if (!formData.name.trim()) newErrors.name = 'Name is required';
+        if (!formData.email.trim()) newErrors.email = 'Email is required';
+        else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
+        if (!formData.mobileNo.trim()) newErrors.mobileNo = 'Mobile number is required';
+        else if (!/^\d{10}$/.test(formData.mobileNo)) newErrors.mobileNo = 'Enter valid 10-digit number';
+        if (!formData.message.trim()) newErrors.message = 'Message is required';
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setStatus('submitting');
+        if (!validateForm()) return;
+
+        setStatus('loading');
         try {
             await createEnquiry(formData);
             setStatus('success');
             setFormData({ name: '', email: '', mobileNo: '', message: '' });
+            setTimeout(() => setStatus('idle'), 3000);
         } catch (error) {
-            console.error(error);
             setStatus('error');
+            setTimeout(() => setStatus('idle'), 3000);
         }
     };
 
     return (
-        <section id="contact" className="py-16 bg-white">
-            <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-12">
-                    <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">Contact Us</h2>
-                    <p className="mt-4 text-lg text-gray-600">Have a question or need a custom quote? Reach out to us!</p>
+        <section id="contact" className="py-12 bg-white border-t border-gray-200">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-8">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-2">Get in Touch</h2>
+                    <p className="text-gray-600">Have questions? We'd love to hear from you.</p>
                 </div>
 
-                <div className="bg-gray-50 rounded-2xl shadow-lg p-8">
-                    {status === 'success' ? (
-                        <div className="text-center py-12">
-                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-                                <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                            </div>
-                            <h3 className="text-lg font-medium text-gray-900">Message Sent!</h3>
-                            <p className="mt-2 text-gray-600">Thank you for your enquiry. We will get back to you shortly.</p>
-                            <button
-                                onClick={() => setStatus('idle')}
-                                className="mt-6 text-blue-600 hover:text-blue-800 font-medium"
-                            >
-                                Send another message
-                            </button>
+                {status === 'success' && (
+                    <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded">
+                        Thank you! We'll get back to you soon.
+                    </div>
+                )}
+                {status === 'error' && (
+                    <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
+                        Something went wrong. Please try again.
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="bg-gray-50 rounded-xl p-6 shadow-sm">
+                    <div className="grid md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">Name</label>
+                            <input
+                                type="text"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900"
+                                placeholder="Your name"
+                            />
+                            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
                         </div>
-                    ) : (
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                                <div>
-                                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        id="name"
-                                        required
-                                        value={formData.name}
-                                        onChange={handleChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
-                                        placeholder="Your Name"
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor="mobileNo" className="block text-sm font-medium text-gray-700">Mobile Number</label>
-                                    <input
-                                        type="tel"
-                                        name="mobileNo"
-                                        id="mobileNo"
-                                        required
-                                        value={formData.mobileNo}
-                                        onChange={handleChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
-                                        placeholder="Your Mobile Number"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-                                <input
-                                    type="email"
-                                    name="email"
-                                    id="email"
-                                    required
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
-                                    placeholder="you@example.com"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="message" className="block text-sm font-medium text-gray-700">Message</label>
-                                <textarea
-                                    name="message"
-                                    id="message"
-                                    rows={4}
-                                    required
-                                    value={formData.message}
-                                    onChange={handleChange}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
-                                    placeholder="Tell us about your requirements..."
-                                />
-                            </div>
-                            <div>
-                                <button
-                                    type="submit"
-                                    disabled={status === 'submitting'}
-                                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
-                                >
-                                    {status === 'submitting' ? 'Sending...' : 'Send Message'}
-                                </button>
-                            </div>
-                            {status === 'error' && (
-                                <p className="text-red-500 text-sm text-center">Failed to send message. Please try again.</p>
-                            )}
-                        </form>
-                    )}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+                            <input
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900"
+                                placeholder="your@email.com"
+                            />
+                            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                        </div>
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Mobile Number</label>
+                        <input
+                            type="tel"
+                            value={formData.mobileNo}
+                            onChange={(e) => setFormData({ ...formData, mobileNo: e.target.value })}
+                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900"
+                            placeholder="10-digit mobile number"
+                        />
+                        {errors.mobileNo && <p className="text-red-500 text-xs mt-1">{errors.mobileNo}</p>}
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Message</label>
+                        <textarea
+                            value={formData.message}
+                            onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                            rows={3}
+                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900"
+                            placeholder="How can we help you?"
+                        />
+                        {errors.message && <p className="text-red-500 text-xs mt-1">{errors.message}</p>}
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={status === 'loading'}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        <Send size={18} />
+                        {status === 'loading' ? 'Sending...' : 'Send Message'}
+                    </button>
+                </form>
+
+                <div className="mt-8 grid md:grid-cols-3 gap-4 text-center">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                        <Phone className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                        <p className="text-sm font-semibold text-gray-900">Phone</p>
+                        <p className="text-sm text-gray-600">+91 98765 43210</p>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                        <Mail className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                        <p className="text-sm font-semibold text-gray-900">Email</p>
+                        <p className="text-sm text-gray-600">info@shubham.com</p>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                        <MessageSquare className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                        <p className="text-sm font-semibold text-gray-900">Support</p>
+                        <p className="text-sm text-gray-600">Mon-Sat, 9AM-6PM</p>
+                    </div>
                 </div>
             </div>
         </section>

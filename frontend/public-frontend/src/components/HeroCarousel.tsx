@@ -20,8 +20,11 @@ const HeroCarousel = () => {
 
     if (banners.length === 0) {
         return (
-            <div className="bg-gray-200 h-64 md:h-96 flex items-center justify-center text-gray-500">
-                <p>Welcome to Shubham Acrylic</p>
+            <div className="relative h-96 bg-gradient-to-r from-blue-600 to-blue-800 flex items-center justify-center">
+                <div className="text-center px-4">
+                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">Welcome to Shubham Acrylic</h1>
+                    <p className="text-xl text-blue-100">Premium Acrylic Solutions</p>
+                </div>
             </div>
         );
     }
@@ -35,39 +38,38 @@ const HeroCarousel = () => {
                 infiniteLoop={true}
                 showStatus={false}
                 interval={5000}
-                className="shadow-xl"
             >
                 {banners.map((banner) => (
-                    <div key={banner._id} className="relative h-64 md:h-[500px]">
+                    <div key={banner._id} className="relative h-96 md:h-[500px]">
                         <img
                             src={banner.imageUrl}
                             alt={banner.title}
                             className="w-full h-full object-cover"
                         />
-                        {(banner.title || banner.subtitle) && (
-                            <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                                <div className="text-center text-white px-4">
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/30 flex items-center">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                                <div className="max-w-2xl">
                                     {banner.title && (
-                                        <h2 className="text-3xl md:text-5xl font-bold mb-4 drop-shadow-lg">
+                                        <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 drop-shadow-lg">
                                             {banner.title}
-                                        </h2>
+                                        </h1>
                                     )}
                                     {banner.subtitle && (
-                                        <p className="text-lg md:text-2xl mb-8 drop-shadow-md">
+                                        <p className="text-xl md:text-2xl text-gray-100 mb-8 drop-shadow-md">
                                             {banner.subtitle}
                                         </p>
                                     )}
                                     {banner.link && (
                                         <a
                                             href={banner.link}
-                                            className="inline-block bg-yellow-500 text-black font-bold py-3 px-8 rounded-full hover:bg-yellow-400 transition transform hover:scale-105"
+                                            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg shadow-xl transition-all transform hover:scale-105"
                                         >
-                                            Explore Now
+                                            Explore Products
                                         </a>
                                     )}
                                 </div>
                             </div>
-                        )}
+                        </div>
                     </div>
                 ))}
             </Carousel>

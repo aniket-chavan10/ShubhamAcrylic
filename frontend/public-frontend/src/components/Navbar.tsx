@@ -1,114 +1,66 @@
 import { useState } from 'react';
-import { Search, ShoppingCart, Menu, X, User } from 'lucide-react';
+import { Phone, Mail, Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Navbar = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     return (
-        <nav className="bg-slate-900 text-white sticky top-0 z-50 shadow-md">
-            {/* Top Bar */}
+        <nav className="bg-white shadow-md sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16 gap-4">
+                <div className="flex justify-between items-center h-20">
                     {/* Logo */}
-                    <div className="flex-shrink-0 flex items-center">
-                        <Link to="/" className="text-2xl font-bold text-white tracking-tight">
-                            Shubham<span className="text-yellow-500">Acrylic</span>
-                        </Link>
+                    <Link to="/" className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+                            S
+                        </div>
+                        <div>
+                            <span className="font-bold text-2xl text-gray-900 block leading-none">Shubham</span>
+                            <span className="text-sm text-blue-600 font-medium">Acrylic Solutions</span>
+                        </div>
+                    </Link>
+
+                    {/* Desktop Navigation */}
+                    <div className="hidden md:flex items-center space-x-8">
+                        <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">Home</Link>
+                        <a href="#products" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">Products</a>
+                        <a href="#about" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">About</a>
+                        <a href="#contact" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">Contact</a>
                     </div>
 
-                    {/* Search Bar (Desktop) */}
-                    <div className="hidden md:flex flex-1 max-w-2xl mx-4">
-                        <div className="relative w-full flex">
-                            <select className="bg-gray-100 text-gray-700 text-sm rounded-l-md px-2 border-r border-gray-300 focus:outline-none">
-                                <option>All</option>
-                                <option>Acrylic Sheets</option>
-                                <option>Furniture</option>
-                                <option>Decor</option>
-                            </select>
-                            <input
-                                type="text"
-                                className="w-full px-4 py-2 text-gray-900 focus:outline-none"
-                                placeholder="Search for products..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                            <button className="bg-yellow-500 hover:bg-yellow-400 text-slate-900 px-4 rounded-r-md flex items-center justify-center">
-                                <Search size={20} />
-                            </button>
+                    {/* Contact Info */}
+                    <div className="hidden lg:flex items-center space-x-6 text-sm">
+                        <div className="flex items-center gap-2 text-gray-600">
+                            <Phone size={16} className="text-blue-600" />
+                            <span className="font-medium">+91 98765 43210</span>
                         </div>
-                    </div>
-
-                    {/* Right Icons */}
-                    <div className="hidden md:flex items-center space-x-6">
-                        <div className="flex flex-col leading-tight cursor-pointer hover:text-yellow-500">
-                            <span className="text-xs text-gray-300">Hello, Sign in</span>
-                            <span className="font-bold text-sm flex items-center gap-1">
-                                Account <User size={14} />
-                            </span>
-                        </div>
-                        <div className="flex flex-col leading-tight cursor-pointer hover:text-yellow-500">
-                            <span className="text-xs text-gray-300">Returns</span>
-                            <span className="font-bold text-sm">& Orders</span>
-                        </div>
-                        <div className="flex items-center gap-1 cursor-pointer hover:text-yellow-500">
-                            <div className="relative">
-                                <ShoppingCart size={28} />
-                                <span className="absolute -top-1 -right-1 bg-yellow-500 text-slate-900 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                                    0
-                                </span>
-                            </div>
-                            <span className="font-bold text-sm mt-2">Cart</span>
+                        <div className="flex items-center gap-2 text-gray-600">
+                            <Mail size={16} className="text-blue-600" />
+                            <span className="font-medium">info@shubham.com</span>
                         </div>
                     </div>
 
                     {/* Mobile Menu Button */}
-                    <div className="md:hidden flex items-center">
-                        <button
-                            onClick={() => setIsOpen(!isOpen)}
-                            className="text-gray-300 hover:text-white focus:outline-none"
-                        >
-                            {isOpen ? <X size={24} /> : <Menu size={24} />}
-                        </button>
-                    </div>
+                    <button
+                        className="md:hidden text-gray-700"
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    >
+                        {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                    </button>
                 </div>
             </div>
 
-            {/* Mobile Search & Menu */}
-            {isOpen && (
-                <div className="md:hidden bg-slate-800 pb-4 px-4">
-                    <div className="py-2">
-                        <div className="flex">
-                            <input
-                                type="text"
-                                className="w-full px-4 py-2 rounded-l-md text-gray-900 focus:outline-none"
-                                placeholder="Search..."
-                            />
-                            <button className="bg-yellow-500 text-slate-900 px-4 rounded-r-md">
-                                <Search size={20} />
-                            </button>
-                        </div>
-                    </div>
-                    <div className="space-y-2 mt-2">
-                        <Link to="/" className="block text-gray-300 hover:text-white py-2">Home</Link>
-                        <a href="#products" className="block text-gray-300 hover:text-white py-2">Products</a>
-                        <a href="#contact" className="block text-gray-300 hover:text-white py-2">Contact Us</a>
+            {/* Mobile Menu */}
+            {isMobileMenuOpen && (
+                <div className="md:hidden bg-gray-50 border-t">
+                    <div className="px-4 py-4 space-y-3">
+                        <Link to="/" className="block py-2 text-gray-700 font-medium hover:text-blue-600">Home</Link>
+                        <a href="#products" className="block py-2 text-gray-700 font-medium hover:text-blue-600">Products</a>
+                        <a href="#about" className="block py-2 text-gray-700 font-medium hover:text-blue-600">About</a>
+                        <a href="#contact" className="block py-2 text-gray-700 font-medium hover:text-blue-600">Contact</a>
                     </div>
                 </div>
             )}
-
-            {/* Secondary Nav (Categories) */}
-            <div className="bg-slate-800 text-white text-sm py-2 px-4 hidden md:flex gap-6 overflow-x-auto">
-                <button className="flex items-center gap-1 font-bold hover:text-yellow-500">
-                    <Menu size={16} /> All
-                </button>
-                <a href="#" className="hover:text-yellow-500 whitespace-nowrap">Today's Deals</a>
-                <a href="#" className="hover:text-yellow-500 whitespace-nowrap">Customer Service</a>
-                <a href="#" className="hover:text-yellow-500 whitespace-nowrap">Registry</a>
-                <a href="#" className="hover:text-yellow-500 whitespace-nowrap">Gift Cards</a>
-                <a href="#" className="hover:text-yellow-500 whitespace-nowrap">Sell</a>
-            </div>
         </nav>
     );
 };

@@ -1,22 +1,21 @@
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import HeroCarousel from './components/HeroCarousel';
+import Features from './components/Features';
 import ProductGrid from './components/ProductGrid';
-import EnquiryForm from './components/EnquiryForm';
 import Footer from './components/Footer';
 import ProductDetails from './pages/ProductDetails';
+import EnquiryForm from './components/EnquiryForm';
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={
-        <div className="min-h-screen bg-gray-50 font-sans">
+        <div className="min-h-screen bg-white font-sans">
           <Navbar />
           <main>
             <HeroCarousel />
-            <div className="-mt-16 relative z-10 px-4">
-              {/* Overlap effect for carousel */}
-            </div>
+            <Features />
             <ProductGrid />
             <EnquiryForm />
           </main>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
-import { fetchBanners, addBanner, updateBanner, deleteBanner } from "../services/bannerService";
+import * as bannerService from "../services/bannerService";
 
 const ManageBanners = () => {
     const [banners, setBanners] = useState<any[]>([]);
@@ -25,7 +25,7 @@ const ManageBanners = () => {
     const loadBanners = async () => {
         try {
             setLoading(true);
-            const data = await fetchBanners();
+            const data = await bannerService.fetchBanners();
             setBanners(data);
         } catch (err: any) {
             setError(err.message);
@@ -82,9 +82,9 @@ const ManageBanners = () => {
             }
 
             if (editingBanner) {
-                await updateBanner(editingBanner._id, formData);
+                await bannerService.updateBanner(editingBanner._id, formData);
             } else {
-                await addBanner(formData);
+                await bannerService.addBanner(formData);
             }
 
             setIsFormOpen(false);
@@ -97,11 +97,27 @@ const ManageBanners = () => {
     const handleDelete = async (id: string) => {
         if (window.confirm("Are you sure you want to delete this banner?")) {
             try {
-                await deleteBanner(id);
+                await bannerService.deleteBanner(id);
                 loadBanners();
             } catch (err: any) {
                 alert(err.message);
             }
+        }
+    };
+
+    const handleToggleActive = async (banner: any) => {
+        try {
+            const formData = new FormData();
+            formData.append("title", banner.title);
+            formData.append("subtitle", banner.subtitle);
+            formData.append("link", banner.link || "");
+            formData.append("order", banner.order.toString());
+            formData.append("isActive", (!banner.isActive).toString());
+
+            await bannerService.updateBanner(banner._id, formData);
+            loadBanners();
+        } catch (err: any) {
+            alert("Failed to toggle banner status: " + err.message);
         }
     };
 
@@ -254,9 +270,17 @@ const ManageBanners = () => {
                                 <div className="p-4">
                                     <h3 className="font-bold text-gray-900 truncate">{banner.title || "No Title"}</h3>
                                     <p className="text-sm text-gray-500 truncate">{banner.subtitle || "No Subtitle"}</p>
-                                    <div className="mt-3 flex justify-between items-center text-xs text-gray-400">
-                                        <span>Order: {banner.order}</span>
-                                        <span>{new Date(banner.createdAt).toLocaleDateString()}</span>
+                                    <div className="mt-3 flex justify-between items-center text-xs">
+                                        <span className="text-gray-400">Order: {banner.order}</span>
+                                        <button
+                                            onClick={() => handleToggleActive(banner)}
+                                            className={`px-3 py-1 rounded-full text-xs font-semibold transition ${banner.isActive
+                                                    ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                                }`}
+                                        >
+                                            {banner.isActive ? 'Deactivate' : 'Activate'}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
