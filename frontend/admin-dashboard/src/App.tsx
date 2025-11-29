@@ -5,6 +5,7 @@ import ManageProducts from './pages/ManageProducts';
 import EnquiryManagement from './pages/EnquiryManagement';
 import ManageBanners from './pages/ManageBanners';
 import ReviewManagement from './pages/ReviewManagement';
+import CategoryManagement from './pages/CategoryManagement';
 
 function App() {
         return (
@@ -13,6 +14,7 @@ function App() {
                                 <Route path="/login" element={<Login />} />
                                 <Route path="/" element={<Dashboard />} />
                                 <Route path="/products" element={<ManageProducts />} />
+                                <Route path="/categories" element={<CategoryManagement />} />
                                 <Route path="/enquiry-management" element={<EnquiryManagement />} />
                                 <Route path="/banners" element={<ManageBanners />} />
                                 <Route path="/reviews" element={<ReviewManagement />} />

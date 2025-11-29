@@ -1,17 +1,13 @@
 import { useState, useEffect } from "react";
-import { fetchProducts, addProduct, updateProduct } from "../services/productService";
+import { fetchProducts, addProduct, updateProduct, deleteProduct } from "../services/productService";
 import AdminLayout from "../components/AdminLayout";
 import ProductForm from "../components/ProductForm";
 import ProductTable from "../components/ProductTable";
-
-const tabs = [
-  { label: "Add / Edit Product", value: "add" },
-  { label: "View Products", value: "view" },
-];
+import { Plus } from "lucide-react";
 
 const ManageProducts = () => {
   const [products, setProducts] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<string>("view");
+  const [viewMode, setViewMode] = useState<"list" | "form">("list");
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -65,14 +61,12 @@ const ManageProducts = () => {
             tags: parsedTags,
             name: p.name?.trim(),
             description: p.description?.trim(),
-            category: p.category?.trim(),
+            category: typeof p.category === 'object' ? p.category : p.category?.trim(),
             materialType: p.materialType?.trim(),
             size: p.size?.trim(),
             color: p.color?.trim(),
           };
         });
-
-
 
         setProducts(cleanedProducts);
         setLoading(false);
@@ -84,24 +78,28 @@ const ManageProducts = () => {
     loadProducts();
   }, []);
 
-
-
-
-  const handleTabSwitch = (tab: string) => {
-    setActiveTab(tab);
-    if (tab === "add" && editingProduct == null) {
-      setEditingProduct(null);
-    }
+  const handleAddNew = () => {
+    setEditingProduct(null);
+    setViewMode("form");
   };
 
   const handleEdit = (product: any) => {
     setEditingProduct(product);
-    setActiveTab("add");
+    setViewMode("form");
   };
 
-  const handleDelete = (id: string) => {
-    // For now local delete - ideally call API to delete as well
-    setProducts((prev) => prev.filter((p) => p._id !== id));
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this product?")) {
+      return;
+    }
+
+    try {
+      await deleteProduct(id);
+      setProducts((prev) => prev.filter((p) => p._id !== id));
+      alert("Product deleted successfully!");
+    } catch (err: any) {
+      alert("Failed to delete product: " + err.message);
+    }
   };
 
   const handleFormSubmit = async (form: any) => {
@@ -116,7 +114,7 @@ const ManageProducts = () => {
         setProducts((prev) => [added, ...prev]);
       }
       setEditingProduct(null);
-      setActiveTab("view");
+      setViewMode("list");
     } catch (err: any) {
       alert(`Error: ${err.message}`);
     }
@@ -124,35 +122,29 @@ const ManageProducts = () => {
 
   return (
     <AdminLayout>
-      <div className="flex items-center gap-3 mb-4">
-        <span className="inline-block w-1 h-8 rounded-full bg-blue-600"></span>
-        <h2 className="text-3xl font-bold text-blue-900 tracking-tight">Manage Products</h2>
-      </div>
-      <div className="w-full max-w-7xl pb-16 min-h-[75vh]">
-        {/* Tabs */}
-        <div className="flex flex-row gap-2 mb-5 items-center">
-          {tabs.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => handleTabSwitch(tab.value)}
-              className={`
-                px-6 py-2 rounded-t-xl font-semibold transition-all
-                border-b-2
-                ${activeTab === tab.value
-                  ? "bg-white text-blue-700 border-blue-600 shadow"
-                  : "bg-gray-50 text-gray-500 border-transparent hover:bg-blue-50"}
-              `}
-            >
-              {tab.label}
-            </button>
-          ))}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <span className="inline-block w-1 h-8 rounded-full bg-blue-600"></span>
+          <h2 className="text-3xl font-bold text-blue-900 tracking-tight">Manage Products</h2>
         </div>
-        {/* Card Content */}
+
+        {viewMode === "list" && (
+          <button
+            onClick={handleAddNew}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-lg hover:shadow-blue-200 active:scale-95"
+          >
+            <Plus size={20} />
+            Add New Product
+          </button>
+        )}
+      </div>
+
+      <div className="w-full max-w-7xl pb-16 min-h-[75vh]">
         <div className="bg-white rounded-3xl shadow-2xl px-10 py-12">
           <div className="flex items-center gap-3 mb-8">
             <span className="inline-block w-1 h-8 rounded-full bg-blue-600"></span>
-            <h2 className="text-3xl font-bold text-blue-900 tracking-tight">
-              {activeTab === "add"
+            <h2 className="text-2xl font-bold text-blue-900 tracking-tight">
+              {viewMode === "form"
                 ? editingProduct
                   ? "Edit Product"
                   : "Add New Product"
@@ -163,18 +155,19 @@ const ManageProducts = () => {
           {loading && <p>Loading products...</p>}
           {error && <p className="text-red-600">Error: {error}</p>}
 
-          {activeTab === "add" && (
+          {viewMode === "form" && (
             <ProductForm
               initialValues={editingProduct}
               onSubmit={handleFormSubmit}
               mode={editingProduct ? "edit" : "add"}
               onCancel={() => {
                 setEditingProduct(null);
-                setActiveTab("view");
+                setViewMode("list");
               }}
             />
           )}
-          {activeTab === "view" && (
+
+          {viewMode === "list" && (
             <ProductTable
               products={products}
               onEdit={handleEdit}

@@ -1,13 +1,7 @@
+import { fetchWithAuth } from "../utils/apiUtils";
+
 export async function fetchProductStats() {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("User not authenticated");
-
-  const res = await fetch("http://localhost:5000/api/products/stats", {
-    headers: {
-      "Authorization": `Bearer ${token}`
-    },
-  });
-
+  const res = await fetchWithAuth("/products/stats");
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.message || "Failed to fetch product stats");
@@ -15,18 +9,8 @@ export async function fetchProductStats() {
   return await res.json();
 }
 
-
-// api/products.ts (your service methods file)
 export async function fetchProducts() {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("User not authenticated");
-
-  const res = await fetch("http://localhost:5000/api/products", {
-    headers: {
-      "Authorization": `Bearer ${token}`
-    },
-  });
-
+  const res = await fetchWithAuth("/products");
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.message || "Failed to fetch products");
@@ -35,15 +19,8 @@ export async function fetchProducts() {
 }
 
 export async function addProduct(formData: FormData) {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("User not authenticated");
-
-  const res = await fetch("http://localhost:5000/api/products", {
+  const res = await fetchWithAuth("/products", {
     method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      // 'Content-Type' is set automatically by browser for FormData
-    },
     body: formData,
   });
 
@@ -55,23 +32,35 @@ export async function addProduct(formData: FormData) {
   return await res.json();
 }
 
-
 export async function updateProduct(id: string, productData: any) {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("User not authenticated");
+  // If productData is FormData, pass it directly. If object, stringify it.
+  // But wait, the original code stringified it. Let's check if it handles file uploads in update.
+  // The original updateProduct used JSON.stringify(productData).
+  // But wait, if we want to support image update, we might need FormData.
+  // Let's stick to original behavior for now, but use fetchWithAuth.
 
-  const res = await fetch(`http://localhost:5000/api/products/${id}`, {
+  const isFormData = productData instanceof FormData;
+
+  const res = await fetchWithAuth(`/products/${id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
-    },
-    body: JSON.stringify(productData),
+    body: isFormData ? productData : JSON.stringify(productData),
   });
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.message || "Failed to update product");
+  }
+  return await res.json();
+}
+
+export async function deleteProduct(id: string) {
+  const res = await fetchWithAuth(`/products/${id}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to delete product");
   }
   return await res.json();
 }

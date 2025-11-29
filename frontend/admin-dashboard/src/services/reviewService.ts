@@ -1,23 +1,19 @@
-import axios from 'axios';
+import { fetchWithAuth } from "../utils/apiUtils";
 
-const API_URL = 'http://localhost:5000/api';
-
-const api = axios.create({
-    baseURL: API_URL,
-    headers: {
-        'Content-Type': 'application/json'
+export const getAllReviews = async () => {
+    const res = await fetchWithAuth('/reviews/all');
+    if (!res.ok) {
+        throw new Error('Failed to fetch reviews');
     }
-});
+    return await res.json();
+};
 
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+export const deleteReview = async (reviewId: string) => {
+    const res = await fetchWithAuth(`/reviews/${reviewId}`, {
+        method: 'DELETE'
+    });
+    if (!res.ok) {
+        throw new Error('Failed to delete review');
     }
-    return config;
-});
-
-// Reviews
-export const getAllReviews = () => api.get('/reviews/all');
-export const deleteReview = (reviewId: string) => api.delete(`/reviews/${reviewId}`);
+    return await res.json();
+};

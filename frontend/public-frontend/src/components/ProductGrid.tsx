@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getProducts } from '../services/api';
+import { getProducts, getCategories } from '../services/api';
 import ProductCard from './ProductCard';
 import { Product } from '../types';
 
@@ -8,19 +8,26 @@ const ProductGrid = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [filter, setFilter] = useState('All');
-    const filters = ['All', 'Acrylic Sheets', 'Furniture', 'Decor'];
+    const [filters, setFilters] = useState<string[]>(['All']);
 
     useEffect(() => {
-        const fetchProducts = async () => {
+        const fetchData = async () => {
             try {
-                const data = await getProducts();
-                if (Array.isArray(data)) {
-                    setProducts(data);
-                } else if (data && Array.isArray(data.products)) {
-                    setProducts(data.products);
+                const [productsData, categoriesData] = await Promise.all([
+                    getProducts(),
+                    getCategories()
+                ]);
+
+                if (Array.isArray(productsData)) {
+                    setProducts(productsData);
+                } else if (productsData && Array.isArray(productsData.products)) {
+                    setProducts(productsData.products);
                 } else {
                     setProducts([]);
-                    console.error("Unexpected API response format:", data);
+                }
+
+                if (Array.isArray(categoriesData)) {
+                    setFilters(['All', ...categoriesData.map((c: any) => c.name)]);
                 }
             } catch (err) {
                 setError('Failed to load products.');
@@ -30,12 +37,15 @@ const ProductGrid = () => {
             }
         };
 
-        fetchProducts();
+        fetchData();
     }, []);
 
     const filteredProducts = filter === 'All'
         ? products
-        : products.filter(p => p.category === filter);
+        : products.filter(p => {
+            const catName = typeof p.category === 'object' ? p.category.name : p.category;
+            return catName === filter;
+        });
 
     if (loading) return (
         <div className="flex justify-center items-center h-64">
@@ -60,8 +70,8 @@ const ProductGrid = () => {
                                 key={f}
                                 onClick={() => setFilter(f)}
                                 className={`px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 focus:outline-none ${filter === f
-                                        ? 'bg-blue-600 !text-white shadow-lg hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-500'
-                                        : 'bg-white !text-gray-900 hover:bg-gray-100 border-2 border-gray-300 active:bg-gray-200 active:border-gray-400 focus:ring-2 focus:ring-gray-400'
+                                    ? 'bg-blue-600 !text-white shadow-lg hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-500'
+                                    : 'bg-white !text-gray-900 hover:bg-gray-100 border-2 border-gray-300 active:bg-gray-200 active:border-gray-400 focus:ring-2 focus:ring-gray-400'
                                     }`}
                             >
                                 {f}

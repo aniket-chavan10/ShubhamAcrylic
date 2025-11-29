@@ -1,14 +1,9 @@
-const API_BASE = "http://localhost:5000/api/enquiries";
+import { fetchWithAuth } from "../utils/apiUtils";
+
+const API_BASE = "/enquiries";
 
 export async function fetchEnquiries(page = 1, limit = 10) {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("User not authenticated");
-
-  const res = await fetch(`${API_BASE}?page=${page}&limit=${limit}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const res = await fetchWithAuth(`${API_BASE}?page=${page}&limit=${limit}`);
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
@@ -23,8 +18,8 @@ export async function createEnquiry(formData: {
   mobileNo?: string;
   message: string;
 }) {
-  // No token assumed required for submitting Contact Us form; add if needed
-  const res = await fetch(API_BASE, {
+  // Public endpoint, use regular fetch
+  const res = await fetch(`http://localhost:5000/api${API_BASE}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -40,14 +35,7 @@ export async function createEnquiry(formData: {
 }
 
 export async function fetchPendingEnquiryCount() {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("User not authenticated");
-
-  const res = await fetch(`${API_BASE}/pending-count`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const res = await fetchWithAuth(`${API_BASE}/pending-count`);
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
@@ -56,16 +44,9 @@ export async function fetchPendingEnquiryCount() {
   return await res.json();
 }
 
-
 export async function deleteEnquiry(id: string) {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("User not authenticated");
-
-  const res = await fetch(`${API_BASE}/${id}`, {
+  const res = await fetchWithAuth(`${API_BASE}/${id}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
   });
 
   if (!res.ok) {
@@ -77,15 +58,8 @@ export async function deleteEnquiry(id: string) {
 
 // New: Mark enquiry as resolved/read by ID
 export async function markEnquiryResolved(id: string) {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("User not authenticated");
-
-  const res = await fetch(`${API_BASE}/${id}/resolve`, {
+  const res = await fetchWithAuth(`${API_BASE}/${id}/resolve`, {
     method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
   });
 
   if (!res.ok) {

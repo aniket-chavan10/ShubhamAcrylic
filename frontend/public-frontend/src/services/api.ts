@@ -19,4 +19,9 @@ export const createEnquiry = async (enquiryData: any) => {
     return response.data;
 };
 
+export const getCategories = async () => {
+    const response = await api.get('/categories');
+    return response.data;
+};
+
 export default api;

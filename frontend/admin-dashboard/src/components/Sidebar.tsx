@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 const menu = [
   { label: "Dashboard", to: "/" },
   { label: "Product Management", to: "/products" },
+  { label: "Category Management", to: "/categories" },
   { label: "Review Management", to: "/reviews" },
   { label: "Enquiry Management", to: "/enquiry-management" },
   { label: "Banner Management", to: "/banners" },

@@ -43,8 +43,12 @@ const ProductDetails = () => {
                 // Fetch related products (same category)
                 const productsRes = await api.get('/products');
                 const allProducts = Array.isArray(productsRes.data) ? productsRes.data : productsRes.data.products;
+                const currentCategoryName = typeof productRes.data.category === 'object' ? productRes.data.category.name : productRes.data.category;
                 const related = allProducts
-                    .filter((p: Product) => p.category === productRes.data.category && p._id !== id)
+                    .filter((p: Product) => {
+                        const pCategoryName = typeof p.category === 'object' ? (p.category as any).name : p.category;
+                        return pCategoryName === currentCategoryName && p._id !== id;
+                    })
                     .slice(0, 4);
                 setRelatedProducts(related);
 
@@ -81,7 +85,7 @@ const ProductDetails = () => {
     };
 
     if (loading) return (
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen w-full flex items-center justify-center">
             <div className="relative w-20 h-20">
                 <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-200 rounded-full animate-ping"></div>
                 <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
@@ -123,7 +127,9 @@ const ProductDetails = () => {
                     {/* Info */}
                     <div className="md:w-3/5 space-y-6">
                         <div>
-                            <span className="text-sm text-blue-600 font-semibold uppercase">{product.category}</span>
+                            <span className="text-sm text-blue-600 font-semibold uppercase">
+                                {typeof product.category === 'object' ? (product.category as any).name : product.category}
+                            </span>
                             <h1 className="text-4xl font-bold text-gray-900 mt-2">{product.name}</h1>
                         </div>
 

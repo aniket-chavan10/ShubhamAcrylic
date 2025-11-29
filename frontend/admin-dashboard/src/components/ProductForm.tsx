@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getAllCategories } from "../services/categoryService";
 
 const emptyForm = {
   name: "",
@@ -14,8 +15,6 @@ const emptyForm = {
   imageUrl: "", // No default image URL
 };
 
-
-
 const ProductForm = ({
   initialValues,
   onSubmit,
@@ -30,41 +29,60 @@ const ProductForm = ({
   const [form, setForm] = useState<any>(emptyForm);
   const [preview, setPreview] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
 
-useEffect(() => {
-  if (initialValues) {
-    let tagsString = "";
-
-    if (Array.isArray(initialValues.tags)) {
-      tagsString = initialValues.tags.join(", ");
-    } else if (typeof initialValues.tags === "string") {
+  useEffect(() => {
+    const loadCategories = async () => {
       try {
-        const parsed = JSON.parse(initialValues.tags);
-        if (Array.isArray(parsed)) {
-          tagsString = parsed.join(", ");
-        } else {
-          tagsString = initialValues.tags;
-        }
-      } catch {
-        tagsString = initialValues.tags; // Could be plain string already
+        const data = await getAllCategories();
+        setCategories(data);
+      } catch (err) {
+        console.error("Failed to load categories", err);
       }
-    }
+    };
+    loadCategories();
+  }, []);
 
-    setForm({ ...initialValues, tags: tagsString });
-    setPreview(initialValues.imageUrl || "");
-  } else {
-    setForm(emptyForm);
-    setPreview("");
-  }
-}, [initialValues]);
+  useEffect(() => {
+    if (initialValues) {
+      let tagsString = "";
+
+      if (Array.isArray(initialValues.tags)) {
+        tagsString = initialValues.tags.join(", ");
+      } else if (typeof initialValues.tags === "string") {
+        try {
+          const parsed = JSON.parse(initialValues.tags);
+          if (Array.isArray(parsed)) {
+            tagsString = parsed.join(", ");
+          } else {
+            tagsString = initialValues.tags;
+          }
+        } catch {
+          tagsString = initialValues.tags; // Could be plain string already
+        }
+      }
+
+      setForm({
+        ...initialValues,
+        tags: tagsString,
+        category: typeof initialValues.category === 'object' ? initialValues.category._id : initialValues.category
+      });
+      setPreview(initialValues.imageUrl || "");
+    } else {
+      setForm(emptyForm);
+      setPreview("");
+    }
+  }, [initialValues]);
 
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
   };
+
+  // ... (rest of image handling and submit logic remains same until return)
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -136,14 +154,20 @@ useEffect(() => {
           </div>
           <div>
             <label className="block mb-1 text-xs font-semibold text-gray-700">Category *</label>
-            <input
+            <select
               name="category"
-              type="text"
               value={form.category}
               onChange={handleChange}
               required
-              className="border border-gray-300 rounded-lg w-full px-3 py-2"
-            />
+              className="border border-gray-300 rounded-lg w-full px-3 py-2 focus:ring-blue-400 focus:outline-none text-gray-700 transition bg-white"
+            >
+              <option value="">Select Category</option>
+              {categories.map((cat) => (
+                <option key={cat._id} value={cat._id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -268,8 +292,8 @@ useEffect(() => {
               type="submit"
               disabled={submitting}
               className={`flex-1 py-3 rounded-xl font-bold shadow-lg transition text-center ${submitting
-                  ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
+                ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                : "bg-blue-600 text-white hover:bg-blue-700"
                 }`}
             >
               {submitting ? (mode === "edit" ? "Updating..." : "Adding...") : (mode === "edit" ? "Update Product" : "Add Product")}

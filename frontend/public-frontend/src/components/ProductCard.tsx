@@ -17,7 +17,9 @@ const ProductCard = ({ product }: ProductCardProps) => {
             </Link>
 
             <div className="p-5 flex flex-col flex-1">
-                <span className="text-xs text-blue-600 font-semibold uppercase tracking-wide mb-2">{product.category}</span>
+                <span className="text-xs text-blue-600 font-semibold uppercase tracking-wide mb-2">
+                    {typeof product.category === 'object' ? product.category.name : product.category}
+                </span>
                 <Link to={`/product/${product._id}`}>
                     <h3 className="font-bold text-gray-900 text-lg mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">{product.name}</h3>
                 </Link>

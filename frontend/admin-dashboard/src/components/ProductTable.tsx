@@ -12,13 +12,18 @@ const ProductTable = ({
   // Defensive fallback to empty array if products is falsy or not an array
   const safeProducts = Array.isArray(products) ? products : [];
 
-  const categories = ["All", ...Array.from(new Set(safeProducts.map((p) => p.category)))];
+  const categories = ["All", ...Array.from(new Set(safeProducts.map((p) =>
+    typeof p.category === 'object' ? p.category?.name : p.category
+  )))];
   const [activeTab, setActiveTab] = useState<string>("All");
 
   const filteredProducts =
     activeTab === "All"
       ? safeProducts
-      : safeProducts.filter((p) => p.category === activeTab);
+      : safeProducts.filter((p) => {
+        const catName = typeof p.category === 'object' ? p.category?.name : p.category;
+        return catName === activeTab;
+      });
 
   const normalizeTags = (tags: any): string[] => {
     if (!tags) return [];
@@ -101,7 +106,9 @@ const ProductTable = ({
                       {product.materialType}, {product.size}
                     </div>
                   </td>
-                  <td className="py-2 px-3">{product.category}</td>
+                  <td className="py-2 px-3">
+                    {typeof product.category === 'object' ? product.category?.name : product.category}
+                  </td>
                   <td className="py-2 px-3">
                     <span className="text-blue-600 font-bold">₹{product.price}</span>
                   </td>

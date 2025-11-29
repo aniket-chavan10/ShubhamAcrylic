@@ -27,11 +27,19 @@ const ReviewManagement = () => {
 
     const fetchReviews = async () => {
         try {
+            console.log('Fetching reviews...');
             const response = await reviewService.getAllReviews();
-            setReviews(response.data);
+            console.log('Review response:', response);
+
+            // Handle different response formats
+            const reviewsData = response.data || response || [];
+            console.log('Reviews data:', reviewsData);
+
+            setReviews(Array.isArray(reviewsData) ? reviewsData : []);
             setLoading(false);
-        } catch (err) {
-            setError('Failed to load reviews');
+        } catch (err: any) {
+            console.error('Review fetch error:', err);
+            setError(`Failed to load reviews: ${err.message}`);
             setLoading(false);
         }
     };

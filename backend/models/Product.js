@@ -4,7 +4,7 @@ const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: String,
   price: { type: Number, required: true },
-  category: String,
+  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   materialType: String,   // e.g., acrylic, other materials
   size: String,           // e.g., dimensions or size description
   color: String,          // color of the product

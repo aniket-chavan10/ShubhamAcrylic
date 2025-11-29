@@ -1,14 +1,9 @@
-const API_BASE = "http://localhost:5000/api/banners";
+import { fetchWithAuth } from "../utils/apiUtils";
+
+const API_BASE = "/banners";
 
 export async function fetchBanners() {
-    const token = localStorage.getItem("token");
-    if (!token) throw new Error("User not authenticated");
-
-    const res = await fetch(API_BASE, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    });
+    const res = await fetchWithAuth(API_BASE);
 
     if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -18,14 +13,8 @@ export async function fetchBanners() {
 }
 
 export async function addBanner(formData: FormData) {
-    const token = localStorage.getItem("token");
-    if (!token) throw new Error("User not authenticated");
-
-    const res = await fetch(API_BASE, {
+    const res = await fetchWithAuth(API_BASE, {
         method: "POST",
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
         body: formData,
     });
 
@@ -37,14 +26,8 @@ export async function addBanner(formData: FormData) {
 }
 
 export async function updateBanner(id: string, formData: FormData) {
-    const token = localStorage.getItem("token");
-    if (!token) throw new Error("User not authenticated");
-
-    const res = await fetch(`${API_BASE}/${id}`, {
+    const res = await fetchWithAuth(`${API_BASE}/${id}`, {
         method: "PUT",
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
         body: formData,
     });
 
@@ -56,14 +39,8 @@ export async function updateBanner(id: string, formData: FormData) {
 }
 
 export async function deleteBanner(id: string) {
-    const token = localStorage.getItem("token");
-    if (!token) throw new Error("User not authenticated");
-
-    const res = await fetch(`${API_BASE}/${id}`, {
+    const res = await fetchWithAuth(`${API_BASE}/${id}`, {
         method: "DELETE",
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
     });
 
     if (!res.ok) {
