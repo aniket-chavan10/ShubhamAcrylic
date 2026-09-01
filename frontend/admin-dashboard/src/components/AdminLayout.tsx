@@ -30,7 +30,7 @@ const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
         {/* Header with Profile Dropdown */}
         <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10 px-8 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-800">Shubham Tees Admin Dashboard</h1>
 
             {/* Profile Dropdown */}
             <div className="relative" ref={dropdownRef}>
@@ -39,7 +39,7 @@ const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
                 className="flex items-center gap-2 focus:outline-none group"
               >
                 {/* Circular Avatar */}
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-md group-hover:shadow-lg transition-shadow">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-md group-hover:shadow-lg transition-shadow">
                   A
                 </div>
                 <ChevronDown
@@ -52,13 +52,12 @@ const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
                   <div className="px-4 py-3 border-b border-gray-100">
                     <p className="text-sm font-semibold text-gray-800">Admin User</p>
-                    <p className="text-xs text-gray-500">admin@acrylia.com</p>
+                    <p className="text-xs text-gray-500">admin@shubhamtees.com</p>
                   </div>
 
                   <button
                     onClick={() => {
                       setIsDropdownOpen(false);
-                      // Navigate to profile page (to be implemented)
                       alert('Profile page - Coming soon!');
                     }}
                     className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
@@ -70,7 +69,6 @@ const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
                   <button
                     onClick={() => {
                       setIsDropdownOpen(false);
-                      // Navigate to settings page (to be implemented)
                       alert('Settings page - Coming soon!');
                     }}
                     className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"

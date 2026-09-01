@@ -165,7 +165,7 @@ const CategoryManagement = () => {
                                         onChange={(e) => handleNameChange(e.target.value)}
                                         required
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                        placeholder="e.g., Acrylic Sheets"
+                                        placeholder="e.g., Graphic Tees"
                                     />
                                 </div>
                                 <div>
@@ -177,7 +177,7 @@ const CategoryManagement = () => {
                                         value={formData.slug}
                                         onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50"
-                                        placeholder="acrylic-sheets"
+                                        placeholder="graphic-tees"
                                     />
                                 </div>
                             </div>

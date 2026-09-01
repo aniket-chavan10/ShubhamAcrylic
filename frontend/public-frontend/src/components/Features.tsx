@@ -1,11 +1,11 @@
-import { Truck, ShieldCheck, RefreshCcw, TrendingUp } from 'lucide-react';
+import { Truck, ShieldCheck, RefreshCcw, Sparkles } from 'lucide-react';
 
 const Features = () => {
     const features = [
-        { icon: <Truck size={24} />, title: "Free Shipping", desc: "On all orders over ₹5000" },
-        { icon: <ShieldCheck size={24} />, title: "Secure Payment", desc: "100% protected transactions" },
-        { icon: <RefreshCcw size={24} />, title: "Easy Returns", desc: "Hassle-free return policy" },
-        { icon: <TrendingUp size={24} />, title: "Premium Quality", desc: "Hand-picked acrylic materials" },
+        { icon: <Truck size={24} />, title: "Free Shipping", desc: "On all orders over ₹999" },
+        { icon: <ShieldCheck size={24} />, title: "Secure Payment", desc: "100% protected checkout" },
+        { icon: <RefreshCcw size={24} />, title: "7-Day Easy Returns", desc: "Hassle-free replacement policy" },
+        { icon: <Sparkles size={24} />, title: "100% Premium Cotton", desc: "Super combed & bio-washed fabric" },
     ];
 
     return (

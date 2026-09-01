@@ -245,7 +245,7 @@ const ProductForm = ({
               type="text"
               value={form.tags}
               onChange={handleChange}
-              placeholder="modern, acrylic, wardrobe"
+              placeholder="graphic, oversized, cotton"
               className="border border-gray-300 rounded-lg w-full px-3 py-2"
             />
           </div>

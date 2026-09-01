@@ -20,10 +20,10 @@ const HeroCarousel = () => {
 
     if (banners.length === 0) {
         return (
-            <div className="relative h-96 bg-gradient-to-r from-blue-600 to-blue-800 flex items-center justify-center">
+            <div className="relative h-96 bg-gradient-to-r from-indigo-700 to-indigo-900 flex items-center justify-center">
                 <div className="text-center px-4">
-                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">Welcome to Shubham Acrylic</h1>
-                    <p className="text-xl text-blue-100">Premium Acrylic Solutions</p>
+                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">Welcome to Shubham Tees</h1>
+                    <p className="text-xl text-indigo-100">Premium T-Shirts & Custom Apparel</p>
                 </div>
             </div>
         );
@@ -46,8 +46,8 @@ const HeroCarousel = () => {
                             alt={banner.title}
                             className="w-full h-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/30 flex items-center">
-                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/75 to-black/30 flex items-center">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full text-left">
                                 <div className="max-w-2xl">
                                     {banner.title && (
                                         <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 drop-shadow-lg">
@@ -62,9 +62,9 @@ const HeroCarousel = () => {
                                     {banner.link && (
                                         <a
                                             href={banner.link}
-                                            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg shadow-xl transition-all transform hover:scale-105"
+                                            className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-lg shadow-xl transition-all transform hover:scale-105"
                                         >
-                                            Explore Products
+                                            Shop Collection
                                         </a>
                                     )}
                                 </div>

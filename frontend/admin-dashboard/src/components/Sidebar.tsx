@@ -16,10 +16,10 @@ const Sidebar: FC = () => {
     <aside className="w-64 min-h-screen sticky left-0 top-0 flex flex-col bg-white/80 backdrop-blur-xl shadow-xl rounded-r-3xl py-8 px-2">
       {/* Branding */}
       <div className="flex items-center gap-2 mb-8 px-6">
-        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shadow-lg text-2xl">
-          A
+        <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-lg text-2xl">
+          S
         </div>
-        <span className="text-2xl font-extrabold tracking-wide text-gray-800">ACRYLIA</span>
+        <span className="text-xl font-extrabold tracking-wide text-gray-800">SHUBHAM TEES</span>
       </div>
       {/* Menu */}
       <nav className="flex-1">
@@ -30,8 +30,8 @@ const Sidebar: FC = () => {
                 to={item.to}
                 className={`flex items-center gap-4 px-6 py-3 rounded-xl transition-all duration-150 
                   ${location.pathname === item.to
-                    ? "bg-blue-500/90 text-white shadow-lg font-semibold scale-105"
-                    : "text-gray-700 hover:bg-blue-100 hover:text-blue-700"
+                    ? "bg-indigo-600 text-white shadow-lg font-semibold scale-105"
+                    : "text-gray-700 hover:bg-indigo-100 hover:text-indigo-700"
                   }
                 `}
               >
@@ -43,7 +43,7 @@ const Sidebar: FC = () => {
       </nav>
       {/* Footer */}
       <div className="mt-10 px-6">
-        <div className="text-xs text-gray-400 text-center opacity-70">© 2025 Acrylia</div>
+        <div className="text-xs text-gray-400 text-center opacity-70">© 2026 Shubham Tees</div>
       </div>
     </aside>
   );

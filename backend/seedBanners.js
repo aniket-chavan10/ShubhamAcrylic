@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-require('dotenv').config({ path: './backend/.env' });
+require('dotenv').config();
 const Banner = require('./models/Banner');
 
 const seedBanners = async () => {
@@ -9,26 +9,26 @@ const seedBanners = async () => {
 
         const dummyBanners = [
             {
-                title: 'Premium Acrylic Sheets',
-                subtitle: 'High quality, durable and crystal clear',
-                imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=1200',
-                link: '/products',
+                title: 'Trendy Graphic Tees Collection',
+                subtitle: 'Express yourself with 100% organic cotton printed t-shirts',
+                imageUrl: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&q=80&w=1200',
+                link: '#products',
                 isActive: true,
                 order: 1
             },
             {
-                title: 'Modern Furniture Collection',
-                subtitle: 'Transform your space with elegant acrylic furniture',
-                imageUrl: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=1200',
-                link: '/products',
+                title: 'Urban Streetwear Oversized Drop',
+                subtitle: 'Heavyweight 240 GSM tees designed for modern relaxed comfort',
+                imageUrl: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&q=80&w=1200',
+                link: '#products',
                 isActive: true,
                 order: 2
             },
             {
-                title: 'Custom Decor Solutions',
-                subtitle: 'Bespoke designs for your unique needs',
-                imageUrl: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&q=80&w=1200',
-                link: '/enquiry',
+                title: 'Custom Printed Apparel',
+                subtitle: 'Personalized designs, high definition prints, and bulk options',
+                imageUrl: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&q=80&w=1200',
+                link: '#products',
                 isActive: true,
                 order: 3
             }
@@ -40,7 +40,7 @@ const seedBanners = async () => {
 
         // Insert new banners
         await Banner.insertMany(dummyBanners);
-        console.log('Added dummy banners');
+        console.log('Added T-shirt promotional banners');
 
         process.exit(0);
     } catch (error) {
