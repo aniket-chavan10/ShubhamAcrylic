@@ -8,6 +8,8 @@ const menu = [
   { label: "Review Management", to: "/reviews" },
   { label: "Enquiry Management", to: "/enquiry-management" },
   { label: "Banner Management", to: "/banners" },
+  { label: "Site Settings", to: "/site-settings" },
+  { label: "My Profile", to: "/profile" },
 ];
 
 const Sidebar: FC = () => {

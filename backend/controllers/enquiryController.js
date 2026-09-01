@@ -1,84 +1,104 @@
-const Enquiry = require("../models/Enquiry");
+const Enquiry = require('../models/Enquiry');
+const Product = require('../models/Product');
 
 // Get paginated enquiries
 exports.getEnquiries = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
 
-    const skip = (page - 1) * limit;
-    const total = await Enquiry.countDocuments();
-    const enquiries = await Enquiry.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    const { count, rows } = await Enquiry.findAndCountAll({
+      order: [['createdAt', 'DESC']],
+      limit,
+      offset,
+    });
 
     res.json({
-      total,
+      total: count,
       page,
-      pages: Math.ceil(total / limit),
-      enquiries,
+      pages: Math.ceil(count / limit),
+      enquiries: rows,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// Create a new enquiry from Contact Us form
+// Create a general enquiry (from Contact page)
 exports.createEnquiry = async (req, res) => {
   try {
-    const { name, email, message ,mobileNo} = req.body;
+    const { name, email, message, mobileNo } = req.body;
     if (!name || !email || !message) {
-      return res.status(400).json({ message: "Name, email, mobileNo and message are required" });
+      return res.status(400).json({ message: 'Name, email and message are required' });
     }
-
-    const newEnquiry = new Enquiry({
+    const newEnquiry = await Enquiry.create({
       name,
       email,
+      mobileNo,
       message,
-      mobileNo
+      enquiryType: 'general',
     });
-
-    const savedEnquiry = await newEnquiry.save();
-    res.status(201).json(savedEnquiry);
+    res.status(201).json(newEnquiry);
   } catch (err) {
-    console.error("Error creating enquiry:", err.stack || err);
-    res.status(400).json({ message: err.message, error: err });
+    console.error('createEnquiry error:', err);
+    res.status(400).json({ message: err.message });
   }
 };
 
-// Get count of pending enquiries for navbar notification
+// Create a product-specific enquiry
+exports.createProductEnquiry = async (req, res) => {
+  try {
+    const { name, email, message, mobileNo, productId, productCode, productName } = req.body;
+    if (!name || !email || !message || !mobileNo) {
+      return res.status(400).json({ message: 'Name, email, mobile and message are required' });
+    }
+
+    const newEnquiry = await Enquiry.create({
+      name,
+      email,
+      mobileNo,
+      message,
+      productId: productId ? parseInt(productId) : null,
+      productCode: productCode || null,
+      productName: productName || null,
+      enquiryType: 'product',
+    });
+    res.status(201).json(newEnquiry);
+  } catch (err) {
+    console.error('createProductEnquiry error:', err);
+    res.status(400).json({ message: err.message });
+  }
+};
+
+// Get count of pending enquiries
 exports.getPendingCount = async (req, res) => {
   try {
-    const count = await Enquiry.countDocuments({ status: "pending" });
+    const count = await Enquiry.count({ where: { status: 'pending' } });
     res.json({ pendingCount: count });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-
 // Delete an enquiry by ID
 exports.deleteEnquiry = async (req, res) => {
   try {
-    const id = req.params.id;
-    const deleted = await Enquiry.findByIdAndDelete(id);
-    if (!deleted) return res.status(404).json({ message: "Enquiry not found" });
-    res.json({ message: "Enquiry deleted successfully" });
+    const enquiry = await Enquiry.findByPk(req.params.id);
+    if (!enquiry) return res.status(404).json({ message: 'Enquiry not found' });
+    await enquiry.destroy();
+    res.json({ message: 'Enquiry deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// Mark enquiry as read/resolved by ID
+// Mark enquiry as resolved
 exports.markEnquiryResolved = async (req, res) => {
   try {
-    const id = req.params.id;
-    const enquiry = await Enquiry.findById(id);
-    if (!enquiry) return res.status(404).json({ message: "Enquiry not found" });
-
-    enquiry.status = "resolved";
-    await enquiry.save();
+    const enquiry = await Enquiry.findByPk(req.params.id);
+    if (!enquiry) return res.status(404).json({ message: 'Enquiry not found' });
+    await enquiry.update({ status: 'resolved' });
     res.json(enquiry);
   } catch (err) {
     res.status(500).json({ message: err.message });

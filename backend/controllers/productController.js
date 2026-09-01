@@ -1,225 +1,384 @@
-const Product = require("../models/Product");
-const Category = require("../models/Category");
+const { Op } = require('sequelize');
+const sequelize = require('../config/database');
+const Product = require('../models/Product');
+const Category = require('../models/Category');
+const ProductImage = require('../models/ProductImage');
 
+// ── Helper: generate unique product code ─────────────────────────────────────
+async function generateProductCode() {
+  const last = await Product.findOne({
+    where: { productCode: { [Op.like]: 'ST-%' } },
+    order: [['id', 'DESC']],
+  });
+  let nextNum = 1;
+  if (last && last.productCode) {
+    const parts = last.productCode.split('-');
+    const num = parseInt(parts[parts.length - 1]);
+    if (!isNaN(num)) nextNum = num + 1;
+  }
+  return `ST-${String(nextNum).padStart(4, '0')}`;
+}
+
+// ── Helper: build local image URL ────────────────────────────────────────────
+function getImageUrl(file) {
+  if (!file) return null;
+  // If it already has a URL (e.g. from seed), return as-is
+  if (file.imageUrl) return file.imageUrl;
+  // Local disk upload
+  return `/uploads/products/${file.filename}`;
+}
+
+// ── Helper: build product JSON response ──────────────────────────────────────
+function formatProduct(product) {
+  const p = product.toJSON();
+  if (p.images) {
+    p.images = p.images.sort((a, b) => a.imageOrder - b.imageOrder);
+    p.imageUrl = p.images.find(img => img.isMain)?.imageUrl || p.images[0]?.imageUrl || null;
+  } else {
+    p.imageUrl = null;
+  }
+  return p;
+}
+
+// ── Helper: parse jersey fields from body ─────────────────────────────────────
+function parseJerseyFields(body) {
+  let { availableSizes } = body;
+  if (typeof availableSizes === 'string') {
+    try { availableSizes = JSON.parse(availableSizes); }
+    catch { availableSizes = availableSizes.split(',').map(s => s.trim()).filter(Boolean); }
+  }
+  if (!Array.isArray(availableSizes)) availableSizes = [];
+  return { availableSizes };
+}
+
+// ── GET /products ─────────────────────────────────────────────────────────────
 exports.getProducts = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
+    const offset = (page - 1) * limit;
 
-    const skip = (page - 1) * limit;
-    const total = await Product.countDocuments();
-    const products = await Product.find()
-      .populate('category', 'name slug')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    const { count, rows } = await Product.findAndCountAll({
+      include: [
+        { model: Category, as: 'category', attributes: ['id', 'name', 'slug'] },
+        { model: ProductImage, as: 'images', attributes: ['id', 'imageUrl', 'imageOrder', 'isMain'] },
+      ],
+      order: [['createdAt', 'DESC']],
+      limit,
+      offset,
+    });
 
     res.json({
-      total,
+      total: count,
       page,
-      pages: Math.ceil(total / limit),
-      products,
+      pages: Math.ceil(count / limit),
+      products: rows.map(formatProduct),
     });
   } catch (err) {
+    console.error('getProducts error:', err);
     res.status(500).json({ message: err.message });
   }
 };
 
-// Get a product by ID
+// ── GET /products/:id ─────────────────────────────────────────────────────────
 exports.getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate('category', 'name slug');
-    if (!product) return res.status(404).json({ message: "Product not found" });
-    res.json(product);
+    const product = await Product.findByPk(req.params.id, {
+      include: [
+        { model: Category, as: 'category', attributes: ['id', 'name', 'slug'] },
+        { model: ProductImage, as: 'images', attributes: ['id', 'imageUrl', 'imageOrder', 'isMain'] },
+      ],
+    });
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+    res.json(formatProduct(product));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
+// ── POST /products ────────────────────────────────────────────────────────────
 exports.createProduct = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     let {
-      name,
-      description,
-      price,
-      category,
-      materialType,
-      size,
-      color,
-      weight,
-      stockQuantity,
-      tags,
+      name, description, price, category,
+      color, stockQuantity, tags,
+      sportType, fabric, gender, fitType, isCustomizable,
     } = req.body;
 
-    if (tags) {
-      tags =
-        typeof tags === "string"
-          ? tags.split(",").map((tag) => tag.trim())
-          : tags;
-    } else {
-      tags = [];
-    }
-    const imageUrl = req.file ? (req.file.secure_url || req.file.path) : undefined;
+    // Parse jersey fields
+    const { availableSizes } = parseJerseyFields(req.body);
 
-    // If category is a name, find or create it (optional fallback, but better to send ID)
-    // For now assume ID is sent, or if name is sent, try to find it
-    if (category && !category.match(/^[0-9a-fA-F]{24}$/)) {
-      const catObj = await Category.findOne({ name: category });
-      if (catObj) category = catObj._id;
-      // If not found, it will fail validation or we could create it. 
-      // Let's stick to ID for now as frontend will send ID.
+    // Parse tags
+    if (typeof tags === 'string') {
+      try { tags = JSON.parse(tags); } catch { tags = tags.split(',').map(t => t.trim()).filter(Boolean); }
+    }
+    if (!Array.isArray(tags)) tags = [];
+
+    // Resolve category
+    let categoryId = null;
+    if (category) {
+      if (!isNaN(parseInt(category))) {
+        categoryId = parseInt(category);
+      } else {
+        const cat = await Category.findOne({ where: { name: category } });
+        if (cat) categoryId = cat.id;
+      }
     }
 
-    const newProduct = new Product({
+    const productCode = await generateProductCode();
+
+    const newProduct = await Product.create({
+      productCode,
       name,
       description,
-      price,
-      category,
-      materialType,
-      size,
+      price: parseFloat(price),
+      categoryId,
       color,
-      weight,
-      stockQuantity,
+      stockQuantity: stockQuantity ? parseInt(stockQuantity) : 0,
       tags,
-      imageUrl,
-    });
+      sportType: sportType || null,
+      fabric: fabric || null,
+      availableSizes,
+      gender: gender || null,
+      fitType: fitType || null,
+      isCustomizable: isCustomizable === 'true' || isCustomizable === true,
+    }, { transaction: t });
 
-    const savedProduct = await newProduct.save();
-    res.status(201).json(savedProduct);
-  } catch (err) {
-    console.error("Error creating product:", err.stack || err);
-    res.status(400).json({ message: err.message, error: err });
-  }
-};
-
-exports.updateProduct = async (req, res) => {
-  try {
-    const updateData = { ...req.body };
-    if (req.file) {
-      updateData.imageUrl = req.file.path; // New image URL
+    // Handle uploaded images
+    const files = req.files || (req.file ? [req.file] : []);
+    if (files.length > 0) {
+      const imageRecords = files.map((file, index) => ({
+        productId: newProduct.id,
+        imageUrl: getImageUrl(file),
+        imageOrder: index,
+        isMain: index === 0,
+      }));
+      await ProductImage.bulkCreate(imageRecords, { transaction: t });
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
-    ).populate('category', 'name slug');
-    if (!updatedProduct)
-      return res.status(404).json({ message: "Product not found" });
+    await t.commit();
 
-    res.json(updatedProduct);
+    const saved = await Product.findByPk(newProduct.id, {
+      include: [
+        { model: Category, as: 'category', attributes: ['id', 'name', 'slug'] },
+        { model: ProductImage, as: 'images' },
+      ],
+    });
+    res.status(201).json(formatProduct(saved));
   } catch (err) {
+    await t.rollback();
+    console.error('createProduct error:', err.stack || err);
     res.status(400).json({ message: err.message });
   }
 };
 
-// Delete a product
-exports.deleteProduct = async (req, res) => {
+// ── PUT /products/:id ─────────────────────────────────────────────────────────
+exports.updateProduct = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
-    const deletedProduct = await Product.findByIdAndDelete(req.params.id);
-    if (!deletedProduct)
-      return res.status(404).json({ message: "Product not found" });
-    res.json({ message: "Product deleted" });
+    const product = await Product.findByPk(req.params.id);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+
+    let {
+      name, description, price, category,
+      color, stockQuantity, tags, removeImageIds,
+      sportType, fabric, gender, fitType, isCustomizable,
+    } = req.body;
+
+    const { availableSizes } = parseJerseyFields(req.body);
+
+    // Parse tags
+    if (typeof tags === 'string') {
+      try { tags = JSON.parse(tags); } catch { tags = tags.split(',').map(t => t.trim()).filter(Boolean); }
+    }
+
+    // Resolve category
+    let categoryId = product.categoryId;
+    if (category !== undefined) {
+      if (!isNaN(parseInt(category))) {
+        categoryId = parseInt(category);
+      } else if (category) {
+        const cat = await Category.findOne({ where: { name: category } });
+        if (cat) categoryId = cat.id;
+      }
+    }
+
+    await product.update({
+      name: name ?? product.name,
+      description: description ?? product.description,
+      price: price !== undefined ? parseFloat(price) : product.price,
+      categoryId,
+      color: color ?? product.color,
+      stockQuantity: stockQuantity !== undefined ? parseInt(stockQuantity) : product.stockQuantity,
+      ...(Array.isArray(tags) ? { tags } : {}),
+      sportType: sportType !== undefined ? sportType : product.sportType,
+      fabric: fabric !== undefined ? fabric : product.fabric,
+      availableSizes: availableSizes.length > 0 ? availableSizes : product.availableSizes,
+      gender: gender !== undefined ? gender : product.gender,
+      fitType: fitType !== undefined ? fitType : product.fitType,
+      isCustomizable: isCustomizable !== undefined
+        ? (isCustomizable === 'true' || isCustomizable === true)
+        : product.isCustomizable,
+    }, { transaction: t });
+
+    // Remove images if requested
+    if (removeImageIds) {
+      const ids = typeof removeImageIds === 'string'
+        ? removeImageIds.split(',').map(Number)
+        : Array.isArray(removeImageIds) ? removeImageIds.map(Number) : [];
+      if (ids.length > 0) {
+        await ProductImage.destroy({ where: { id: ids, productId: product.id }, transaction: t });
+      }
+    }
+
+    // Add new uploaded images
+    const files = req.files || (req.file ? [req.file] : []);
+    if (files.length > 0) {
+      const existingCount = await ProductImage.count({ where: { productId: product.id } });
+      const imageRecords = files.map((file, index) => ({
+        productId: product.id,
+        imageUrl: getImageUrl(file),
+        imageOrder: existingCount + index,
+        isMain: existingCount === 0 && index === 0,
+      }));
+      await ProductImage.bulkCreate(imageRecords, { transaction: t });
+    }
+
+    await t.commit();
+
+    const updated = await Product.findByPk(product.id, {
+      include: [
+        { model: Category, as: 'category', attributes: ['id', 'name', 'slug'] },
+        { model: ProductImage, as: 'images' },
+      ],
+    });
+    res.json(formatProduct(updated));
   } catch (err) {
+    await t.rollback();
+    console.error('updateProduct error:', err);
+    res.status(400).json({ message: err.message });
+  }
+};
+
+// ── DELETE /products/:id ──────────────────────────────────────────────────────
+exports.deleteProduct = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const product = await Product.findByPk(req.params.id);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+
+    await ProductImage.destroy({ where: { productId: product.id }, transaction: t });
+    await product.destroy({ transaction: t });
+    await t.commit();
+    res.json({ message: 'Product deleted' });
+  } catch (err) {
+    await t.rollback();
     res.status(500).json({ message: err.message });
   }
 };
 
+// ── GET /products/search ──────────────────────────────────────────────────────
 exports.searchProducts = async (req, res) => {
   try {
-    const query = req.query.query || "";
+    const query = req.query.query || '';
+    const categories = await Category.findAll({ where: { name: { [Op.like]: `%${query}%` } } });
+    const categoryIds = categories.map(c => c.id);
 
-    // Find categories matching the query
-    const categories = await Category.find({ name: { $regex: query, $options: "i" } });
-    const categoryIds = categories.map(c => c._id);
-
-    // Search by name, category ID, or tags
-    const products = await Product.find({
-      $or: [
-        { name: { $regex: query, $options: "i" } },
-        { category: { $in: categoryIds } },
-        { tags: { $regex: query, $options: "i" } },
+    const products = await Product.findAll({
+      where: {
+        [Op.or]: [
+          { name: { [Op.like]: `%${query}%` } },
+          { tags: { [Op.like]: `%${query}%` } },
+          ...(categoryIds.length > 0 ? [{ categoryId: { [Op.in]: categoryIds } }] : []),
+        ],
+      },
+      include: [
+        { model: Category, as: 'category', attributes: ['id', 'name', 'slug'] },
+        { model: ProductImage, as: 'images' },
       ],
-    }).populate('category', 'name slug');
-    res.json(products);
+    });
+    res.json(products.map(formatProduct));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
+// ── GET /products/advanced-search ─────────────────────────────────────────────
 exports.advancedSearchProducts = async (req, res) => {
   try {
-    const { query, category, materialType, minPrice, maxPrice, color, tags } =
-      req.query;
-    const filter = {};
+    const { query, category, sportType, minPrice, maxPrice, gender, tags } = req.query;
+    const where = {};
 
     if (query) {
-      const categories = await Category.find({ name: { $regex: query, $options: "i" } });
-      const categoryIds = categories.map(c => c._id);
-
-      filter.$or = [
-        { name: { $regex: query, $options: "i" } },
-        { description: { $regex: query, $options: "i" } },
-        { category: { $in: categoryIds } },
-        { tags: { $regex: query, $options: "i" } },
+      const cats = await Category.findAll({ where: { name: { [Op.like]: `%${query}%` } } });
+      const catIds = cats.map(c => c.id);
+      where[Op.or] = [
+        { name: { [Op.like]: `%${query}%` } },
+        { description: { [Op.like]: `%${query}%` } },
+        { tags: { [Op.like]: `%${query}%` } },
+        ...(catIds.length > 0 ? [{ categoryId: { [Op.in]: catIds } }] : []),
       ];
     }
 
     if (category) {
-      // If category is ID
-      if (category.match(/^[0-9a-fA-F]{24}$/)) {
-        filter.category = category;
+      if (!isNaN(parseInt(category))) {
+        where.categoryId = parseInt(category);
       } else {
-        // If category is name/slug
-        const catObj = await Category.findOne({ $or: [{ name: category }, { slug: category }] });
-        if (catObj) filter.category = catObj._id;
+        const cat = await Category.findOne({ where: { [Op.or]: [{ name: category }, { slug: category }] } });
+        if (cat) where.categoryId = cat.id;
       }
     }
 
-    if (materialType) filter.materialType = materialType;
-    if (color) filter.color = color;
-    if (minPrice) filter.price = { ...filter.price, $gte: Number(minPrice) };
-    if (maxPrice) filter.price = { ...filter.price, $lte: Number(maxPrice) };
-    if (tags) filter.tags = { $all: tags.split(",").map((tag) => tag.trim()) };
+    if (sportType) where.sportType = sportType;
+    if (gender) where.gender = gender;
+    if (minPrice || maxPrice) {
+      where.price = {};
+      if (minPrice) where.price[Op.gte] = parseFloat(minPrice);
+      if (maxPrice) where.price[Op.lte] = parseFloat(maxPrice);
+    }
+    if (tags) {
+      const tagList = tags.split(',').map(t => t.trim());
+      where[Op.and] = where[Op.and] || [];
+      tagList.forEach(tag => {
+        where[Op.and].push({ tags: { [Op.like]: `%${tag}%` } });
+      });
+    }
 
-    const products = await Product.find(filter)
-      .sort({ createdAt: -1 })
-      .populate('category', 'name slug');
-    res.json(products);
+    const products = await Product.findAll({
+      where,
+      include: [
+        { model: Category, as: 'category', attributes: ['id', 'name', 'slug'] },
+        { model: ProductImage, as: 'images' },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+    res.json(products.map(formatProduct));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-
-// Get product counts (total and by category)
+// ── GET /products/stats ───────────────────────────────────────────────────────
 exports.getProductStats = async (req, res) => {
   try {
-    // Get total count
-    const total = await Product.countDocuments();
+    const total = await Product.count();
 
-    // Aggregate category counts
-    const categoryCounts = await Product.aggregate([
-      { $group: { _id: "$category", count: { $sum: 1 } } }
-    ]);
-
-    // Populate category names
-    const categories = {};
-    for (const c of categoryCounts) {
-      if (c._id) {
-        const cat = await Category.findById(c._id);
-        if (cat) {
-          categories[cat.name] = c.count;
-        } else {
-          categories[String(c._id)] = c.count;
-        }
-      }
-    }
-
-    res.json({
-      total,
-      categories
+    const rows = await Product.findAll({
+      attributes: ['categoryId', [sequelize.fn('COUNT', sequelize.col('Product.id')), 'count']],
+      include: [{ model: Category, as: 'category', attributes: ['name'] }],
+      group: ['categoryId', 'category.id'],
+      raw: true,
+      nest: true,
     });
+
+    const categories = {};
+    rows.forEach(row => {
+      const name = row['category.name'] || row.category?.name || String(row.categoryId);
+      categories[name] = parseInt(row.count);
+    });
+
+    res.json({ total, categories });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

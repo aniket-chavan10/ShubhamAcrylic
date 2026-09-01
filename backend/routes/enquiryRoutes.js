@@ -1,11 +1,16 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const enquiryController = require("../controllers/enquiryController");
+const enquiryController = require('../controllers/enquiryController');
+const authMiddleware = require('../middleware/authMiddleware');
 
-router.get("/", enquiryController.getEnquiries);
-router.post("/", enquiryController.createEnquiry);
-router.get("/pending-count", enquiryController.getPendingCount);
-router.delete("/:id", enquiryController.deleteEnquiry);
-router.patch("/:id/resolve", enquiryController.markEnquiryResolved);
+// Admin routes
+router.get('/', authMiddleware, enquiryController.getEnquiries);
+router.get('/pending-count', authMiddleware, enquiryController.getPendingCount);
+router.delete('/:id', authMiddleware, enquiryController.deleteEnquiry);
+router.patch('/:id/resolve', authMiddleware, enquiryController.markEnquiryResolved);
+
+// Public routes
+router.post('/', enquiryController.createEnquiry);
+router.post('/product', enquiryController.createProductEnquiry);
 
 module.exports = router;

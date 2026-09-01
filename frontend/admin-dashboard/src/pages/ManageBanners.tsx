@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
 import * as bannerService from "../services/bannerService";
+import { getImageUrl } from "../utils/imageUtils";
 
 const ManageBanners = () => {
     const [banners, setBanners] = useState<any[]>([]);
@@ -82,7 +83,7 @@ const ManageBanners = () => {
             }
 
             if (editingBanner) {
-                await bannerService.updateBanner(editingBanner._id, formData);
+                await bannerService.updateBanner(editingBanner.id || editingBanner._id, formData);
             } else {
                 await bannerService.addBanner(formData);
             }
@@ -108,13 +109,13 @@ const ManageBanners = () => {
     const handleToggleActive = async (banner: any) => {
         try {
             const formData = new FormData();
-            formData.append("title", banner.title);
-            formData.append("subtitle", banner.subtitle);
+            formData.append("title", banner.title || "");
+            formData.append("subtitle", banner.subtitle || "");
             formData.append("link", banner.link || "");
             formData.append("order", banner.order.toString());
             formData.append("isActive", (!banner.isActive).toString());
 
-            await bannerService.updateBanner(banner._id, formData);
+            await bannerService.updateBanner(banner.id || banner._id, formData);
             loadBanners();
         } catch (err: any) {
             alert("Failed to toggle banner status: " + err.message);
@@ -209,7 +210,7 @@ const ManageBanners = () => {
                                 />
                                 {preview && (
                                     <div className="mt-4">
-                                        <img src={preview} alt="Preview" className="w-full h-48 object-cover rounded-lg border border-gray-200" />
+                                        <img src={getImageUrl(preview)} alt="Preview" className="w-full h-48 object-cover rounded-lg border border-gray-200" />
                                     </div>
                                 )}
                             </div>
@@ -244,9 +245,9 @@ const ManageBanners = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
                         {banners.map((banner) => (
-                            <div key={banner._id} className="bg-gray-50 rounded-xl overflow-hidden shadow-sm border border-gray-100 group">
+                            <div key={banner.id || banner._id} className="bg-gray-50 rounded-xl overflow-hidden shadow-sm border border-gray-100 group">
                                 <div className="relative h-48">
-                                    <img src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover" />
+                                    <img src={getImageUrl(banner.imageUrl)} alt={banner.title} className="w-full h-full object-cover" />
                                     <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={() => handleEdit(banner)}
@@ -255,7 +256,7 @@ const ManageBanners = () => {
                                             ✎
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(banner._id)}
+                                            onClick={() => handleDelete(banner.id || banner._id)}
                                             className="p-2 bg-white rounded-full shadow-md text-red-600 hover:text-red-800"
                                         >
                                             🗑

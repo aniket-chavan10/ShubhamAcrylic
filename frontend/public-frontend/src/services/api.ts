@@ -20,8 +20,26 @@ export const createEnquiry = async (enquiryData: any) => {
     return response.data;
 };
 
+export const createProductEnquiry = async (enquiryData: {
+    name: string;
+    email: string;
+    mobileNo: string;
+    message: string;
+    productId: number;
+    productCode: string;
+    productName: string;
+}) => {
+    const response = await api.post('/enquiries/product', enquiryData);
+    return response.data;
+};
+
 export const getCategories = async () => {
     const response = await api.get('/categories');
+    return response.data;
+};
+
+export const getSiteSettings = async () => {
+    const response = await api.get('/settings');
     return response.data;
 };
 

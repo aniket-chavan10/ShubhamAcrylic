@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
 import { fetchEnquiries, markEnquiryResolved, deleteEnquiry } from "../services/enquiryService";
-import { Search, Filter, Calendar, CheckCircle, Clock, Trash2, Mail, Phone, User } from "lucide-react";
+import { Search, Filter, Calendar, CheckCircle, Clock, Trash2, Mail, Phone, User, Package, MessageCircle } from "lucide-react";
 
 interface Enquiry {
-  _id: string;
+  id: number;
   name: string;
   mobileNo: string;
   email: string;
   message: string;
   createdAt: string;
   status: "pending" | "resolved";
+  enquiryType: "general" | "product";
+  productCode?: string;
+  productName?: string;
+  productId?: number;
 }
 
 const EnquiryManagement: React.FC = () => {
@@ -20,18 +24,13 @@ const EnquiryManagement: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  // Filter states
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "resolved">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "general" | "product">("all");
   const [dateFilter, setDateFilter] = useState<"all" | "today" | "week" | "month">("all");
 
-  useEffect(() => {
-    loadEnquiries();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [enquiries, searchQuery, statusFilter, dateFilter]);
+  useEffect(() => { loadEnquiries(); }, []);
+  useEffect(() => { applyFilters(); }, [enquiries, searchQuery, statusFilter, typeFilter, dateFilter]);
 
   const loadEnquiries = async () => {
     try {
@@ -49,65 +48,48 @@ const EnquiryManagement: React.FC = () => {
   const applyFilters = () => {
     let filtered = [...enquiries];
 
-    // Search filter
     if (searchQuery) {
-      filtered = filtered.filter(
-        (e) =>
-          e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          e.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          e.mobileNo?.includes(searchQuery)
+      filtered = filtered.filter((e) =>
+        e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.mobileNo?.includes(searchQuery) ||
+        e.productCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.productName?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
-    // Status filter
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((e) => e.status === statusFilter);
-    }
+    if (statusFilter !== "all") filtered = filtered.filter((e) => e.status === statusFilter);
+    if (typeFilter !== "all") filtered = filtered.filter((e) => e.enquiryType === typeFilter);
 
-    // Date filter
     if (dateFilter !== "all") {
       const now = new Date();
       filtered = filtered.filter((e) => {
-        const enquiryDate = new Date(e.createdAt);
-        const diffTime = now.getTime() - enquiryDate.getTime();
-        const diffDays = diffTime / (1000 * 60 * 60 * 24);
-
-        switch (dateFilter) {
-          case "today":
-            return diffDays < 1;
-          case "week":
-            return diffDays < 7;
-          case "month":
-            return diffDays < 30;
-          default:
-            return true;
-        }
+        const diffDays = (now.getTime() - new Date(e.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+        if (dateFilter === "today") return diffDays < 1;
+        if (dateFilter === "week") return diffDays < 7;
+        if (dateFilter === "month") return diffDays < 30;
+        return true;
       });
     }
 
     setFilteredEnquiries(filtered);
   };
 
-  const handleMarkResolved = async (id: string) => {
+  const handleMarkResolved = async (id: number) => {
     try {
-      await markEnquiryResolved(id);
-      setEnquiries((prev) =>
-        prev.map((e) => (e._id === id ? { ...e, status: "resolved" } : e))
-      );
-      if (selectedEnquiry?._id === id) {
-        setSelectedEnquiry({ ...selectedEnquiry, status: "resolved" });
-      }
+      await markEnquiryResolved(String(id));
+      setEnquiries((prev) => prev.map((e) => (e.id === id ? { ...e, status: "resolved" } : e)));
+      if (selectedEnquiry?.id === id) setSelectedEnquiry({ ...selectedEnquiry, status: "resolved" });
     } catch (err: any) {
       alert("Failed to mark as resolved: " + err.message);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (!window.confirm("Are you sure you want to delete this enquiry?")) return;
-
     try {
-      await deleteEnquiry(id);
-      setEnquiries((prev) => prev.filter((e) => e._id !== id));
+      await deleteEnquiry(String(id));
+      setEnquiries((prev) => prev.filter((e) => e.id !== id));
       setSelectedEnquiry(null);
     } catch (err: any) {
       alert("Failed to delete: " + err.message);
@@ -115,6 +97,7 @@ const EnquiryManagement: React.FC = () => {
   };
 
   const pendingCount = enquiries.filter((e) => e.status === "pending").length;
+  const productEnquiryCount = enquiries.filter((e) => e.enquiryType === "product").length;
 
   return (
     <AdminLayout>
@@ -124,66 +107,55 @@ const EnquiryManagement: React.FC = () => {
           <div>
             <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Enquiry Management</h2>
             <p className="text-gray-600 mt-1">
-              {filteredEnquiries.length} enquiries • {pendingCount} pending
+              {filteredEnquiries.length} enquiries • {pendingCount} pending • {productEnquiryCount} product enquiries
             </p>
           </div>
         </div>
 
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Search */}
-            <div className="relative">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="relative md:col-span-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by name, email, phone..."
+                placeholder="Search by name, email, phone, product code..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
 
-            {/* Status Filter */}
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white"
-              >
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none appearance-none bg-white">
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
                 <option value="resolved">Resolved</option>
               </select>
             </div>
 
-            {/* Date Filter */}
+            <div className="relative">
+              <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none appearance-none bg-white">
+                <option value="all">All Types</option>
+                <option value="general">General</option>
+                <option value="product">Product</option>
+              </select>
+            </div>
+
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <select
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value as any)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white"
-              >
+              <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value as any)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none appearance-none bg-white">
                 <option value="all">All Time</option>
                 <option value="today">Today</option>
                 <option value="week">Last 7 Days</option>
                 <option value="month">Last 30 Days</option>
               </select>
             </div>
-
-            {/* Clear Filters */}
-            <button
-              onClick={() => {
-                setSearchQuery("");
-                setStatusFilter("all");
-                setDateFilter("all");
-              }}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
-            >
-              Clear Filters
-            </button>
           </div>
         </div>
 
@@ -201,34 +173,39 @@ const EnquiryManagement: React.FC = () => {
                 <p className="p-8 text-center text-gray-500">No enquiries found.</p>
               )}
               {filteredEnquiries.map((enquiry) => {
-                const isSelected = selectedEnquiry?._id === enquiry._id;
+                const isSelected = selectedEnquiry?.id === enquiry.id;
                 return (
                   <div
-                    key={enquiry._id}
+                    key={enquiry.id}
                     onClick={() => setSelectedEnquiry(enquiry)}
-                    className={`p-4 border-b border-gray-100 cursor-pointer transition ${isSelected
-                        ? "bg-blue-50 border-l-4 border-l-blue-600"
-                        : "hover:bg-gray-50"
-                      }`}
+                    className={`p-4 border-b border-gray-100 cursor-pointer transition ${
+                      isSelected ? "bg-blue-50 border-l-4 border-l-blue-600" : "hover:bg-gray-50"
+                    }`}
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 truncate">{enquiry.name}</p>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className="font-semibold text-gray-900 truncate">{enquiry.name}</p>
+                          {enquiry.enquiryType === "product" && (
+                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full">
+                              <Package size={9} /> Product
+                            </span>
+                          )}
+                        </div>
+                        {enquiry.productCode && (
+                          <p className="text-xs text-orange-600 font-semibold">{enquiry.productCode} • {enquiry.productName}</p>
+                        )}
                         <p className="text-sm text-gray-600 truncate">{enquiry.email}</p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {new Date(enquiry.createdAt).toLocaleDateString()}
-                        </p>
+                        <p className="text-xs text-gray-400 mt-1">{new Date(enquiry.createdAt).toLocaleDateString()}</p>
                       </div>
-                      <div>
+                      <div className="flex-shrink-0">
                         {enquiry.status === "pending" ? (
                           <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
-                            <Clock className="w-3 h-3" />
-                            Pending
+                            <Clock className="w-3 h-3" /> Pending
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                            <CheckCircle className="w-3 h-3" />
-                            Resolved
+                            <CheckCircle className="w-3 h-3" /> Resolved
                           </span>
                         )}
                       </div>
@@ -243,54 +220,51 @@ const EnquiryManagement: React.FC = () => {
           <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             {selectedEnquiry ? (
               <div className="space-y-6">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between flex-wrap gap-3">
                   <h3 className="text-2xl font-bold text-gray-900">Enquiry Details</h3>
-                  {selectedEnquiry.status === "pending" ? (
-                    <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
-                      <Clock className="w-4 h-4" />
-                      Pending
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                      <CheckCircle className="w-4 h-4" />
-                      Resolved
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {selectedEnquiry.enquiryType === "product" && (
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
+                        <Package className="w-4 h-4" /> Product Enquiry
+                      </span>
+                    )}
+                    {selectedEnquiry.status === "pending" ? (
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                        <Clock className="w-4 h-4" /> Pending
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                        <CheckCircle className="w-4 h-4" /> Resolved
+                      </span>
+                    )}
+                  </div>
                 </div>
+
+                {/* Product info (if product enquiry) */}
+                {selectedEnquiry.enquiryType === "product" && selectedEnquiry.productCode && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                    <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-1">Product Enquiry</p>
+                    <p className="font-bold text-gray-900 text-lg">{selectedEnquiry.productName}</p>
+                    <p className="text-sm text-orange-700 font-mono font-bold mt-1">{selectedEnquiry.productCode}</p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1">
-                    <p className="text-sm text-gray-500 flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      Name
-                    </p>
+                    <p className="text-sm text-gray-500 flex items-center gap-2"><User className="w-4 h-4" /> Name</p>
                     <p className="font-semibold text-gray-900">{selectedEnquiry.name}</p>
                   </div>
-
                   <div className="space-y-1">
-                    <p className="text-sm text-gray-500 flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      Email
-                    </p>
+                    <p className="text-sm text-gray-500 flex items-center gap-2"><Mail className="w-4 h-4" /> Email</p>
                     <p className="font-semibold text-gray-900">{selectedEnquiry.email}</p>
                   </div>
-
                   <div className="space-y-1">
-                    <p className="text-sm text-gray-500 flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      Mobile Number
-                    </p>
+                    <p className="text-sm text-gray-500 flex items-center gap-2"><Phone className="w-4 h-4" /> Mobile</p>
                     <p className="font-semibold text-gray-900">{selectedEnquiry.mobileNo || "-"}</p>
                   </div>
-
                   <div className="space-y-1">
-                    <p className="text-sm text-gray-500 flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Received On
-                    </p>
-                    <p className="font-semibold text-gray-900">
-                      {new Date(selectedEnquiry.createdAt).toLocaleString()}
-                    </p>
+                    <p className="text-sm text-gray-500 flex items-center gap-2"><Calendar className="w-4 h-4" /> Received On</p>
+                    <p className="font-semibold text-gray-900">{new Date(selectedEnquiry.createdAt).toLocaleString()}</p>
                   </div>
                 </div>
 
@@ -304,19 +278,17 @@ const EnquiryManagement: React.FC = () => {
                 <div className="flex gap-3 pt-4 border-t border-gray-200">
                   {selectedEnquiry.status === "pending" && (
                     <button
-                      onClick={() => handleMarkResolved(selectedEnquiry._id)}
+                      onClick={() => handleMarkResolved(selectedEnquiry.id)}
                       className="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition flex items-center justify-center gap-2"
                     >
-                      <CheckCircle className="w-5 h-5" />
-                      Mark as Resolved
+                      <CheckCircle className="w-5 h-5" /> Mark as Resolved
                     </button>
                   )}
                   <button
-                    onClick={() => handleDelete(selectedEnquiry._id)}
+                    onClick={() => handleDelete(selectedEnquiry.id)}
                     className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition flex items-center justify-center gap-2"
                   >
-                    <Trash2 className="w-5 h-5" />
-                    Delete
+                    <Trash2 className="w-5 h-5" /> Delete
                   </button>
                 </div>
               </div>

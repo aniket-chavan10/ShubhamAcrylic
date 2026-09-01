@@ -6,6 +6,8 @@ import EnquiryManagement from './pages/EnquiryManagement';
 import ManageBanners from './pages/ManageBanners';
 import ReviewManagement from './pages/ReviewManagement';
 import CategoryManagement from './pages/CategoryManagement';
+import SiteSettings from './pages/SiteSettings';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
         return (
@@ -18,6 +20,8 @@ function App() {
                                 <Route path="/enquiry-management" element={<EnquiryManagement />} />
                                 <Route path="/banners" element={<ManageBanners />} />
                                 <Route path="/reviews" element={<ReviewManagement />} />
+                                <Route path="/site-settings" element={<SiteSettings />} />
+                                <Route path="/profile" element={<ProfilePage />} />
                         </Routes>
                 </BrowserRouter>
         );

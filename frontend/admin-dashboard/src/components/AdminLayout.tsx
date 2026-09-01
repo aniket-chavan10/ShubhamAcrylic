@@ -58,7 +58,7 @@ const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
                   <button
                     onClick={() => {
                       setIsDropdownOpen(false);
-                      alert('Profile page - Coming soon!');
+                      window.location.href = "/profile";
                     }}
                     className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
                   >

@@ -32,13 +32,7 @@ export async function addProduct(formData: FormData) {
   return await res.json();
 }
 
-export async function updateProduct(id: string, productData: any) {
-  // If productData is FormData, pass it directly. If object, stringify it.
-  // But wait, the original code stringified it. Let's check if it handles file uploads in update.
-  // The original updateProduct used JSON.stringify(productData).
-  // But wait, if we want to support image update, we might need FormData.
-  // Let's stick to original behavior for now, but use fetchWithAuth.
-
+export async function updateProduct(id: number | string, productData: any) {
   const isFormData = productData instanceof FormData;
 
   const res = await fetchWithAuth(`/products/${id}`, {
@@ -53,7 +47,7 @@ export async function updateProduct(id: string, productData: any) {
   return await res.json();
 }
 
-export async function deleteProduct(id: string) {
+export async function deleteProduct(id: number | string) {
   const res = await fetchWithAuth(`/products/${id}`, {
     method: "DELETE",
   });

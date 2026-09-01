@@ -1,36 +1,48 @@
-// server.js
-
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
+const sequelize = require('./config/database');
+
+// Import all models (to register them with Sequelize before sync)
+const User = require('./models/User');
+const Category = require('./models/Category');
+const Product = require('./models/Product');
+const ProductImage = require('./models/ProductImage');
+const Banner = require('./models/Banner');
+const Enquiry = require('./models/Enquiry');
+const Review = require('./models/Review');
+const SiteSettings = require('./models/SiteSettings');
+
+// ── Associations ────────────────────────────────────────────────────────────
+Product.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
+Category.hasMany(Product, { foreignKey: 'categoryId' });
+Product.hasMany(ProductImage, { foreignKey: 'productId', as: 'images' });
+ProductImage.belongsTo(Product, { foreignKey: 'productId' });
+Product.hasMany(Review, { foreignKey: 'productId', as: 'reviews' });
+Review.belongsTo(Product, { foreignKey: 'productId' });
+Enquiry.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 
 const app = express();
+const path = require('path');
 
-// Middleware
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
+// ── Middleware ──────────────────────────────────────────────────────────────
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error(err));
+// ── Serve uploaded images locally ─────────────────────────────────────────
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Basic test route
-app.get('/', (req, res) => {
-  res.send('Backend API is running');
-});
-
-// Routes
+// ── Routes ──────────────────────────────────────────────────────────────────
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const enquiryRoutes = require('./routes/enquiryRoutes');
 const bannerRoutes = require('./routes/bannerRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const siteSettingsRoutes = require('./routes/siteSettingsRoutes');
+
+app.get('/', (req, res) => res.send('Backend API is running (MySQL)'));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
@@ -38,15 +50,33 @@ app.use('/api/enquiries', enquiryRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/settings', siteSettingsRoutes);
 
-// Error handling
+// ── Error handling ───────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('Express error:', err.stack || err);
   res.status(500).json({ message: err.message, error: err });
 });
 
-// Start server
+// ── DB Sync + Start ──────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+
+sequelize.sync({ alter: true })
+  .then(async () => {
+    console.log('✅ MySQL connected and tables synced');
+
+    // Seed default site settings if none exist
+    const count = await SiteSettings.count();
+    if (count === 0) {
+      await SiteSettings.create({ companyName: 'Shubham Acrylic' });
+      console.log('✅ Default site settings created');
+    }
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('❌ Failed to connect to MySQL:', err.message);
+    process.exit(1);
+  });

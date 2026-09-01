@@ -88,14 +88,14 @@ const ManageProducts = () => {
     setViewMode("form");
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (!window.confirm("Are you sure you want to delete this product?")) {
       return;
     }
 
     try {
       await deleteProduct(id);
-      setProducts((prev) => prev.filter((p) => p._id !== id));
+      setProducts((prev) => prev.filter((p) => p.id !== id));
       alert("Product deleted successfully!");
     } catch (err: any) {
       alert("Failed to delete product: " + err.message);
@@ -105,9 +105,9 @@ const ManageProducts = () => {
   const handleFormSubmit = async (form: any) => {
     try {
       if (editingProduct) {
-        const updated = await updateProduct(editingProduct._id, form);
+        const updated = await updateProduct(editingProduct.id, form);
         setProducts((prev) =>
-          prev.map((p) => (p._id === updated._id ? updated : p))
+          prev.map((p) => (p.id === updated.id ? updated : p))
         );
       } else {
         const added = await addProduct(form);
