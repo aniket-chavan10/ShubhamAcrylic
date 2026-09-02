@@ -37,6 +37,22 @@ const SiteSettings = sequelize.define('SiteSettings', {
     allowNull: true,
     comment: 'Google Maps embed URL',
   },
+  instagramUrl: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+  },
+  facebookUrl: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+  },
+  twitterUrl: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+  },
+  youtubeUrl: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+  },
 }, {
   tableName: 'site_settings',
   timestamps: true,

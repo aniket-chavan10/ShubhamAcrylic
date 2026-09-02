@@ -32,4 +32,8 @@ export interface SiteSettings {
   phone?: string;
   address?: string;
   googleMapsEmbed?: string;
+  instagramUrl?: string;
+  facebookUrl?: string;
+  twitterUrl?: string;
+  youtubeUrl?: string;
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createEnquiry, createProductEnquiry } from '../services/api';
 import { Mail, Phone, MessageSquare, Send, Package } from 'lucide-react';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 interface EnquiryFormProps {
   // When provided → product enquiry mode
@@ -12,6 +13,10 @@ interface EnquiryFormProps {
 
 const EnquiryForm = ({ productId, productCode, productName, compact = false }: EnquiryFormProps) => {
   const isProductMode = !!(productId && productCode);
+  const { settings } = useSiteSettings();
+
+  const contactPhone = settings?.phone || '';
+  const contactEmail = settings?.email || '';
 
   const [formData, setFormData] = useState({
     name: '',
@@ -69,11 +74,11 @@ const EnquiryForm = ({ productId, productCode, productName, compact = false }: E
   };
 
   return (
-    <section id={isProductMode ? 'product-enquiry' : 'contact'} className={`bg-white ${compact ? 'py-6' : 'py-12 border-t border-gray-200'}`}>
+    <section id={isProductMode ? 'product-enquiry' : 'contact'} className={`bg-white ${compact ? 'py-4 sm:py-6' : 'py-8 sm:py-12 border-t border-gray-200'}`}>
       <div className={`${compact ? '' : 'max-w-5xl mx-auto px-4 sm:px-6 lg:px-8'}`}>
 
         {/* Header */}
-        <div className={`${compact ? 'mb-4' : 'text-center mb-8'}`}>
+        <div className={`${compact ? 'mb-4' : 'text-center mb-6 sm:mb-8'}`}>
           {isProductMode ? (
             <div className="flex items-center gap-3 mb-1">
               <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-200">
@@ -81,10 +86,10 @@ const EnquiryForm = ({ productId, productCode, productName, compact = false }: E
               </span>
             </div>
           ) : null}
-          <h2 className={`font-bold text-gray-900 ${compact ? 'text-xl mb-1' : 'text-3xl mb-2'}`}>
+          <h2 className={`font-bold text-gray-900 ${compact ? 'text-lg sm:text-xl mb-1' : 'text-2xl sm:text-3xl mb-2'}`}>
             {isProductMode ? `Enquire About This Product` : 'Get in Touch'}
           </h2>
-          <p className={`text-gray-500 ${compact ? 'text-sm' : ''}`}>
+          <p className={`text-gray-500 ${compact ? 'text-sm' : 'text-sm sm:text-base'}`}>
             {isProductMode
               ? `Fill the form below and our team will get back to you with pricing and details.`
               : "Have questions? We'd love to hear from you."}
@@ -93,26 +98,26 @@ const EnquiryForm = ({ productId, productCode, productName, compact = false }: E
 
         {/* Status Messages */}
         {status === 'success' && (
-          <div className="mb-4 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded text-sm">
+          <div className="mb-4 p-3 sm:p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded text-sm">
             ✅ Thank you! We'll get back to you soon.
           </div>
         )}
         {status === 'error' && (
-          <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded text-sm">
+          <div className="mb-4 p-3 sm:p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded text-sm">
             Something went wrong. Please try again.
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-gray-50 rounded-xl p-5 shadow-sm space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="bg-gray-50 rounded-xl p-4 sm:p-5 shadow-sm space-y-3 sm:space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Name *</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900 text-sm"
+                className="w-full px-3 py-2.5 sm:py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900 text-base sm:text-sm"
                 placeholder="Your name"
               />
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
@@ -123,7 +128,7 @@ const EnquiryForm = ({ productId, productCode, productName, compact = false }: E
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900 text-sm"
+                className="w-full px-3 py-2.5 sm:py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900 text-base sm:text-sm"
                 placeholder="your@email.com"
               />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
@@ -136,7 +141,7 @@ const EnquiryForm = ({ productId, productCode, productName, compact = false }: E
               type="tel"
               value={formData.mobileNo}
               onChange={(e) => setFormData({ ...formData, mobileNo: e.target.value })}
-              className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900 text-sm"
+              className="w-full px-3 py-2.5 sm:py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900 text-base sm:text-sm"
               placeholder="10-digit mobile number"
             />
             {errors.mobileNo && <p className="text-red-500 text-xs mt-1">{errors.mobileNo}</p>}
@@ -148,7 +153,7 @@ const EnquiryForm = ({ productId, productCode, productName, compact = false }: E
               value={formData.message}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
               rows={compact ? 3 : 4}
-              className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900 text-sm"
+              className="w-full px-3 py-2.5 sm:py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900 text-base sm:text-sm"
               placeholder="How can we help you?"
             />
             {errors.message && <p className="text-red-500 text-xs mt-1">{errors.message}</p>}
@@ -157,7 +162,7 @@ const EnquiryForm = ({ productId, productCode, productName, compact = false }: E
           <button
             type="submit"
             disabled={status === 'loading'}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm min-h-[44px]"
           >
             <Send size={16} />
             {status === 'loading' ? 'Sending...' : isProductMode ? 'Send Product Enquiry' : 'Send Message'}
@@ -165,18 +170,22 @@ const EnquiryForm = ({ productId, productCode, productName, compact = false }: E
         </form>
 
         {/* Contact info – only in general mode */}
-        {!isProductMode && (
-          <div className="mt-8 grid md:grid-cols-3 gap-4 text-center">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <Phone className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-              <p className="text-sm font-semibold text-gray-900">Phone</p>
-              <p className="text-sm text-gray-600">+91 98765 43210</p>
-            </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <Mail className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-              <p className="text-sm font-semibold text-gray-900">Email</p>
-              <p className="text-sm text-gray-600">info@shubham.com</p>
-            </div>
+        {!isProductMode && (contactPhone || contactEmail) && (
+          <div className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
+            {contactPhone && (
+              <a href={`tel:${contactPhone}`} className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <Phone className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-gray-900">Phone</p>
+                <p className="text-sm text-gray-600">{contactPhone}</p>
+              </a>
+            )}
+            {contactEmail && (
+              <a href={`mailto:${contactEmail}`} className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <Mail className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-gray-900">Email</p>
+                <p className="text-sm text-gray-600">{contactEmail}</p>
+              </a>
+            )}
             <div className="p-4 bg-gray-50 rounded-lg">
               <MessageSquare className="w-6 h-6 text-blue-600 mx-auto mb-2" />
               <p className="text-sm font-semibold text-gray-900">Support</p>

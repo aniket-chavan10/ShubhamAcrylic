@@ -1,4 +1,4 @@
-import { fetchWithAuth } from "../utils/apiUtils";
+import { fetchWithAuth, API_URL } from "../utils/apiUtils";
 
 const API_BASE = "/enquiries";
 
@@ -19,7 +19,7 @@ export async function createEnquiry(formData: {
   message: string;
 }) {
   // Public endpoint, use regular fetch
-  const res = await fetch(`http://localhost:5000/api${API_BASE}`, {
+  const res = await fetch(`${API_URL}${API_BASE}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

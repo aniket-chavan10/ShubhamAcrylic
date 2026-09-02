@@ -1,5 +1,4 @@
 // src/components/WhatsAppButton.tsx
-import { MessageCircle } from 'lucide-react';
 
 interface WhatsAppButtonProps {
   phone: string;      // e.g. "919876543210"

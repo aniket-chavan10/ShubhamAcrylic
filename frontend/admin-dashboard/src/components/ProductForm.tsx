@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { getAllCategories } from "../services/categoryService";
 import { X, ImagePlus, Shirt } from "lucide-react";
+import { getImageUrl } from "../utils/imageUtils";
 
 const SPORT_TYPES = ["Football", "Cricket", "Basketball", "Volleyball", "Hockey", "Kabaddi", "Athletics", "Generic"];
 const FABRICS = ["Polyester", "Cotton", "Dri-FIT", "Mesh", "Cotton Blend", "Fleece", "Nylon"];
@@ -85,9 +86,7 @@ const ProductForm = ({
       });
 
       const existingPreviews: ImagePreview[] = (initialValues.images || []).map((img: any) => ({
-        src: img.imageUrl.startsWith("/uploads")
-          ? `http://localhost:5000${img.imageUrl}`
-          : img.imageUrl,
+        src: getImageUrl(img.imageUrl),
         existingId: img.id,
         isMain: img.isMain,
       }));

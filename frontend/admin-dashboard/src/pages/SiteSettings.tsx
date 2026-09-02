@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import AdminLayout from "../components/AdminLayout";
 import { getSiteSettings, updateSiteSettings } from "../services/siteSettingsService";
 import { getImageUrl } from "../utils/imageUtils";
-import { Save, Building2, MessageCircle, Mail, Phone, MapPin, ImagePlus, CheckCircle, AlertCircle } from "lucide-react";
+import { Save, Building2, MessageCircle, Mail, Phone, MapPin, ImagePlus, CheckCircle, AlertCircle, Share2 } from "lucide-react";
 
 const SiteSettings: React.FC = () => {
   const [settings, setSettings] = useState({
@@ -13,6 +13,10 @@ const SiteSettings: React.FC = () => {
     address: "",
     googleMapsEmbed: "",
     logoUrl: "",
+    instagramUrl: "",
+    facebookUrl: "",
+    twitterUrl: "",
+    youtubeUrl: "",
   });
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -38,6 +42,10 @@ const SiteSettings: React.FC = () => {
         address: data.address || "",
         googleMapsEmbed: data.googleMapsEmbed || "",
         logoUrl: data.logoUrl || "",
+        instagramUrl: data.instagramUrl || "",
+        facebookUrl: data.facebookUrl || "",
+        twitterUrl: data.twitterUrl || "",
+        youtubeUrl: data.youtubeUrl || "",
       });
       setLogoPreview(getImageUrl(data.logoUrl));
       setLoading(false);
@@ -81,6 +89,10 @@ const SiteSettings: React.FC = () => {
         address: updated.address || "",
         googleMapsEmbed: updated.googleMapsEmbed || "",
         logoUrl: updated.logoUrl || "",
+        instagramUrl: updated.instagramUrl || "",
+        facebookUrl: updated.facebookUrl || "",
+        twitterUrl: updated.twitterUrl || "",
+        youtubeUrl: updated.youtubeUrl || "",
       });
       setLogoPreview(getImageUrl(updated.logoUrl));
       setLogoFile(null);
@@ -240,6 +252,64 @@ const SiteSettings: React.FC = () => {
                   onChange={handleChange}
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                   placeholder="Street, City, State - PIN"
+                />
+              </div>
+            </div>
+          </div>
+
+          <hr className="border-gray-100" />
+
+          {/* Social Media Links */}
+          <div>
+            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <Share2 size={18} className="text-indigo-600" /> Social Media Links
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Instagram URL</label>
+                <input
+                  name="instagramUrl"
+                  type="url"
+                  value={settings.instagramUrl}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                  placeholder="https://instagram.com/yourpage"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Facebook URL</label>
+                <input
+                  name="facebookUrl"
+                  type="url"
+                  value={settings.facebookUrl}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                  placeholder="https://facebook.com/yourpage"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Twitter URL</label>
+                <input
+                  name="twitterUrl"
+                  type="url"
+                  value={settings.twitterUrl}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                  placeholder="https://twitter.com/yourpage"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">YouTube URL</label>
+                <input
+                  name="youtubeUrl"
+                  type="url"
+                  value={settings.youtubeUrl}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                  placeholder="https://youtube.com/@yourchannel"
                 />
               </div>
             </div>

@@ -3,8 +3,11 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import WhatsAppButton from '../components/WhatsAppButton';
 import { Outlet } from 'react-router-dom';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 const MainLayout = () => {
+  const { settings } = useSiteSettings();
+
   return (
     <div className="min-h-screen bg-white font-sans overflow-x-hidden">
       <Navbar />
@@ -12,10 +15,12 @@ const MainLayout = () => {
         <Outlet />
       </main>
       <Footer />
-      <WhatsAppButton
-        phone="919876543210"
-        message="Hi, I would like to know more about your products."
-      />
+      {settings?.whatsappNumber && (
+        <WhatsAppButton
+          phone={settings.whatsappNumber}
+          message="Hi, I would like to know more about your products."
+        />
+      )}
     </div>
   );
 };

@@ -26,7 +26,10 @@ const app = express();
 const path = require('path');
 
 // ── Middleware ──────────────────────────────────────────────────────────────
-app.use(cors({ origin: true, credentials: true }));
+const corsOrigin = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
+  : true; // Allow all origins in development
+app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

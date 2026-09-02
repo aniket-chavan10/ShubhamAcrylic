@@ -19,11 +19,13 @@ async function generateProductCode() {
   return `ST-${String(nextNum).padStart(4, '0')}`;
 }
 
-// ── Helper: build local image URL ────────────────────────────────────────────
+// ── Helper: build image URL (supports S3 + local disk) ──────────────────────
 function getImageUrl(file) {
   if (!file) return null;
   // If it already has a URL (e.g. from seed), return as-is
   if (file.imageUrl) return file.imageUrl;
+  // S3 upload → multer-s3 sets `location` to the full S3 URL
+  if (file.location) return file.location;
   // Local disk upload
   return `/uploads/products/${file.filename}`;
 }

@@ -27,7 +27,7 @@ exports.getAllBanners = async (req, res) => {
 exports.createBanner = async (req, res) => {
   try {
     const { title, subtitle, link, isActive, order } = req.body;
-    const imageUrl = req.file ? `/uploads/products/${req.file.filename}` : undefined;
+    const imageUrl = req.file ? (req.file.location || `/uploads/products/${req.file.filename}`) : undefined;
 
     if (!imageUrl) return res.status(400).json({ message: 'Image is required' });
 
@@ -52,7 +52,7 @@ exports.updateBanner = async (req, res) => {
     if (!banner) return res.status(404).json({ message: 'Banner not found' });
 
     const updateData = { ...req.body };
-    if (req.file) updateData.imageUrl = `/uploads/products/${req.file.filename}`;
+    if (req.file) updateData.imageUrl = req.file.location || `/uploads/products/${req.file.filename}`;
     if (typeof updateData.isActive === 'string') {
       updateData.isActive = updateData.isActive === 'true';
     }

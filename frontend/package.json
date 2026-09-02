@@ -8,6 +8,8 @@
     "scripts": {
         "start:public": "npm run dev --workspace=public-frontend",
         "start:admin": "npm run dev --workspace=admin-dashboard",
+        "build:public": "npm run build --workspace=public-frontend",
+        "build:admin": "npm run build --workspace=admin-dashboard",
         "dev": "echo 'Please run \"npm run start:public\" or \"npm run start:admin\"'"
     }
 }

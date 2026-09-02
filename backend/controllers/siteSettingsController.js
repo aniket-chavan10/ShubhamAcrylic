@@ -23,8 +23,16 @@ exports.updateSettings = async (req, res) => {
       settings = await SiteSettings.create({ companyName: 'Shubham Tees' });
     }
 
-    const { companyName, whatsappNumber, email, phone, address, googleMapsEmbed } = req.body;
-    const logoUrl = req.file ? `/uploads/products/${req.file.filename}` : undefined;
+    const {
+      companyName, whatsappNumber, email, phone, address, googleMapsEmbed,
+      instagramUrl, facebookUrl, twitterUrl, youtubeUrl,
+    } = req.body;
+
+    // Support both S3 uploads (file.location) and local disk (file.filename)
+    let logoUrl;
+    if (req.file) {
+      logoUrl = req.file.location || `/uploads/products/${req.file.filename}`;
+    }
 
     await settings.update({
       companyName: companyName !== undefined ? companyName : settings.companyName,
@@ -33,6 +41,10 @@ exports.updateSettings = async (req, res) => {
       phone: phone !== undefined ? phone : settings.phone,
       address: address !== undefined ? address : settings.address,
       googleMapsEmbed: googleMapsEmbed !== undefined ? googleMapsEmbed : settings.googleMapsEmbed,
+      instagramUrl: instagramUrl !== undefined ? instagramUrl : settings.instagramUrl,
+      facebookUrl: facebookUrl !== undefined ? facebookUrl : settings.facebookUrl,
+      twitterUrl: twitterUrl !== undefined ? twitterUrl : settings.twitterUrl,
+      youtubeUrl: youtubeUrl !== undefined ? youtubeUrl : settings.youtubeUrl,
       ...(logoUrl ? { logoUrl } : {}),
     });
 
@@ -42,3 +54,4 @@ exports.updateSettings = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+
