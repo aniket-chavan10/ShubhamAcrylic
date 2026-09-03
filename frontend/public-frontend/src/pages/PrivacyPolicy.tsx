@@ -7,7 +7,7 @@ const PrivacyPolicy = () => {
           Privacy Policy
         </h1>
         <p className="text-sm text-slate-600 mb-6">
-          This page explains how Creative Finishes collects and uses basic
+          This page explains how Astitva Creations collects and uses basic
           enquiry details from visitors to this website.
         </p>
 
@@ -30,7 +30,7 @@ const PrivacyPolicy = () => {
           <p>
             If you would like your contact information to be updated or removed
             from our records, please email{' '}
-            <span className="font-medium">info@shubham.com</span>.
+            <span className="font-medium">info@astitvacreations.com</span>.
           </p>
         </section>
       </div>

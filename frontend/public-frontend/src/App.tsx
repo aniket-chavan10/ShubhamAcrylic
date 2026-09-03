@@ -2,7 +2,6 @@ import { Routes, Route } from 'react-router-dom';
 import { SiteSettingsProvider } from './context/SiteSettingsContext';
 import Navbar from './components/Navbar';
 import HeroCarousel from './components/HeroCarousel';
-import Features from './components/Features';
 import CategorySection from './components/CategorySection';
 import ProductGrid from './components/ProductGrid';
 import AboutSection from './components/AboutSection';
@@ -20,7 +19,6 @@ function HomePage() {
         <div id="home">
           <HeroCarousel />
         </div>
-        <Features />
         <CategorySection />
         <ProductGrid />
         <AboutSection />

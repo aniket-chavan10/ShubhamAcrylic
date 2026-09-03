@@ -1,0 +1,89 @@
+name: CI/CD Pipeline - Astitva Creations
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # ── JOB 1: Build & Verify (CI) ─────────────────────────────────────────────
+  build-and-verify:
+    name: Build & Verify Codebase
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Build Public Frontend
+        run: |
+          cd frontend/public-frontend
+          npm ci || npm install
+          npm run build
+
+      - name: Build Admin Dashboard
+        run: |
+          cd frontend/admin-dashboard
+          npm ci || npm install
+          npm run build
+
+      - name: Verify Backend Dependencies
+        run: |
+          cd backend
+          npm ci || npm install
+
+  # ── JOB 2: Deploy to AWS EC2 (CD) ──────────────────────────────────────────
+  deploy-to-ec2:
+    name: Deploy to AWS EC2
+    needs: build-and-verify
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            echo "🚀 Starting deployment on AWS EC2..."
+            
+            # Navigate to project directory
+            cd /var/www/ShubhamAcrylic
+            
+            # Pull latest changes from GitHub
+            git pull origin main
+            
+            # Update & restart backend
+            cd /var/www/ShubhamAcrylic/backend
+            npm install --production
+            pm2 restart astitva-backend || pm2 start server.js --name "astitva-backend"
+            
+            # Rebuild Public Frontend
+            cd /var/www/ShubhamAcrylic/frontend/public-frontend
+            npm install
+            npm run build
+            
+            # Rebuild Admin Dashboard
+            cd /var/www/ShubhamAcrylic/frontend/admin-dashboard
+            npm install
+            npm run build
+            
+            # Reload Nginx web server
+            sudo systemctl reload nginx
+            
+            echo "✅ Deployment completed successfully!"

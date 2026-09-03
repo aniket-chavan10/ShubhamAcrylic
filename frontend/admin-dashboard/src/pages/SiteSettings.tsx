@@ -184,7 +184,7 @@ const SiteSettings: React.FC = () => {
                   onChange={handleChange}
                   required
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
-                  placeholder="e.g. Shubham Tees"
+                  placeholder="e.g. Astitva Creations"
                 />
               </div>
             </div>

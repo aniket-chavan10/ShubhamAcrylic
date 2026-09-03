@@ -9,7 +9,7 @@ const Navbar = () => {
     const location = useLocation();
     const { settings, getLogoUrl } = useSiteSettings();
 
-    const companyName = settings?.companyName || 'Shubham Acrylic';
+    const companyName = settings?.companyName || 'Astitva Creations';
     const phone = settings?.phone || '';
     const email = settings?.email || '';
     const logoUrl = getLogoUrl();

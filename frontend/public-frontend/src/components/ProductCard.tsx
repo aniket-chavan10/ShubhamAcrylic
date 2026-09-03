@@ -1,15 +1,17 @@
 import { Product } from '../types';
 import { Link } from 'react-router-dom';
 import { Package } from 'lucide-react';
+import { getImageUrl } from '../utils/imageUtils';
 
 interface ProductCardProps {
     product: Product;
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
-    const imageUrl = product.imageUrl
+    const rawUrl = product.imageUrl
         || product.images?.[0]?.imageUrl
-        || 'https://via.placeholder.com/300';
+        || '';
+    const imageUrl = getImageUrl(rawUrl) || 'https://via.placeholder.com/300';
 
     return (
         <div className="group bg-white rounded-xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 h-full flex flex-col border border-gray-200">

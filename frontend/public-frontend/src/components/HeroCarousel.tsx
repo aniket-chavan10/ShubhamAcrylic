@@ -3,12 +3,13 @@ import { Carousel } from 'react-responsive-carousel';
 import "react-responsive-carousel/lib/styles/carousel.min.css";
 import api from '../services/api';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { getImageUrl } from '../utils/imageUtils';
 
 const HeroCarousel = () => {
     const [banners, setBanners] = useState<any[]>([]);
     const { settings } = useSiteSettings();
 
-    const companyName = settings?.companyName || 'Shubham Acrylic';
+    const companyName = settings?.companyName || 'Astitva Creations';
 
     useEffect(() => {
         const loadBanners = async () => {
@@ -29,7 +30,7 @@ const HeroCarousel = () => {
                     <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-white mb-4">
                         Welcome to {companyName}
                     </h1>
-                    <p className="text-lg sm:text-xl text-indigo-100">Premium T-Shirts & Custom Apparel</p>
+                    <p className="text-lg sm:text-xl text-indigo-100">Bespoke Acrylic Signages, Display Stands & Custom Crafts</p>
                 </div>
             </div>
         );
@@ -48,9 +49,9 @@ const HeroCarousel = () => {
                 emulateTouch={true}
             >
                 {banners.map((banner) => (
-                    <div key={banner._id} className="relative h-64 sm:h-80 md:h-[500px]">
+                    <div key={banner.id || banner._id} className="relative h-64 sm:h-80 md:h-[500px]">
                         <img
-                            src={banner.imageUrl}
+                            src={getImageUrl(banner.imageUrl)}
                             alt={banner.title}
                             className="w-full h-full object-cover"
                         />

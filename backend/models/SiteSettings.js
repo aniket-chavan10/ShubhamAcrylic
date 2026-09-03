@@ -9,7 +9,7 @@ const SiteSettings = sequelize.define('SiteSettings', {
   },
   companyName: {
     type: DataTypes.STRING(255),
-    defaultValue: 'Shubham Acrylic',
+    defaultValue: 'Astitva Creations',
   },
   logoUrl: {
     type: DataTypes.TEXT,

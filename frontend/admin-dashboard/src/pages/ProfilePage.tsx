@@ -234,7 +234,7 @@ export default function ProfilePage() {
                   <input
                     type="email"
                     required
-                    placeholder="e.g. client@shubhamtees.com"
+                    placeholder="e.g. client@astitvacreations.com"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"

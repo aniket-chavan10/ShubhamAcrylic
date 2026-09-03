@@ -9,6 +9,7 @@ import WhatsAppButton from '../components/WhatsAppButton';
 import ProductCard from '../components/ProductCard';
 import EnquiryForm from '../components/EnquiryForm';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { getImageUrl } from '../utils/imageUtils';
 
 interface Review {
     id: number;
@@ -143,7 +144,7 @@ const ProductDetails = () => {
                             {/* Main image */}
                             <div className="relative border-2 border-gray-200 rounded-2xl overflow-hidden bg-gray-50 flex items-center justify-center h-72 sm:h-[400px] md:h-[480px] mb-3 group">
                                 <img
-                                    src={images[activeImageIndex]?.imageUrl || 'https://via.placeholder.com/500'}
+                                    src={getImageUrl(images[activeImageIndex]?.imageUrl) || 'https://via.placeholder.com/500'}
                                     alt={`${product.name} - Image ${activeImageIndex + 1}`}
                                     className="max-h-full max-w-full object-contain p-4 sm:p-6 transition-opacity duration-300"
                                 />
@@ -188,7 +189,7 @@ const ProductDetails = () => {
                                             }`}
                                         >
                                             <img
-                                                src={img.imageUrl}
+                                                src={getImageUrl(img.imageUrl)}
                                                 alt={`Thumbnail ${index + 1}`}
                                                 className="w-full h-full object-cover"
                                             />

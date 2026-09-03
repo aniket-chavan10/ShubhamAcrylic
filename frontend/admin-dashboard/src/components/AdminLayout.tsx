@@ -30,7 +30,7 @@ const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
         {/* Header with Profile Dropdown */}
         <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10 px-8 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-800">Shubham Tees Admin Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-800">Astitva Creations Admin Dashboard</h1>
 
             {/* Profile Dropdown */}
             <div className="relative" ref={dropdownRef}>
@@ -52,7 +52,7 @@ const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
                   <div className="px-4 py-3 border-b border-gray-100">
                     <p className="text-sm font-semibold text-gray-800">Admin User</p>
-                    <p className="text-xs text-gray-500">admin@shubhamtees.com</p>
+                    <p className="text-xs text-gray-500">admin@astitvacreations.com</p>
                   </div>
 
                   <button
@@ -69,12 +69,12 @@ const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
                   <button
                     onClick={() => {
                       setIsDropdownOpen(false);
-                      alert('Settings page - Coming soon!');
+                      window.location.href = "/site-settings";
                     }}
                     className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
                   >
                     <Settings className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm text-gray-700">Settings</span>
+                    <span className="text-sm text-gray-700">Site Settings</span>
                   </button>
 
                   <div className="border-t border-gray-100 my-1"></div>

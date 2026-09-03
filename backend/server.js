@@ -71,7 +71,7 @@ sequelize.sync({ alter: true })
     // Seed default site settings if none exist
     const count = await SiteSettings.count();
     if (count === 0) {
-      await SiteSettings.create({ companyName: 'Shubham Acrylic' });
+      await SiteSettings.create({ companyName: 'Astitva Creations' });
       console.log('✅ Default site settings created');
     }
 

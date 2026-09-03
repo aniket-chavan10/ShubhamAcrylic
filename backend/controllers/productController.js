@@ -7,7 +7,7 @@ const ProductImage = require('../models/ProductImage');
 // ── Helper: generate unique product code ─────────────────────────────────────
 async function generateProductCode() {
   const last = await Product.findOne({
-    where: { productCode: { [Op.like]: 'ST-%' } },
+    where: { productCode: { [Op.like]: 'AC-%' } },
     order: [['id', 'DESC']],
   });
   let nextNum = 1;
@@ -16,7 +16,7 @@ async function generateProductCode() {
     const num = parseInt(parts[parts.length - 1]);
     if (!isNaN(num)) nextNum = num + 1;
   }
-  return `ST-${String(nextNum).padStart(4, '0')}`;
+  return `AC-${String(nextNum).padStart(4, '0')}`;
 }
 
 // ── Helper: build image URL (supports S3 + local disk) ──────────────────────

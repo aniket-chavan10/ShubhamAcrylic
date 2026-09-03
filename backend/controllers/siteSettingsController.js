@@ -6,7 +6,7 @@ exports.getSettings = async (req, res) => {
     let settings = await SiteSettings.findOne();
     if (!settings) {
       settings = await SiteSettings.create({
-        companyName: 'Shubham Tees',
+        companyName: 'Astitva Creations',
       });
     }
     res.json(settings);
@@ -20,7 +20,7 @@ exports.updateSettings = async (req, res) => {
   try {
     let settings = await SiteSettings.findOne();
     if (!settings) {
-      settings = await SiteSettings.create({ companyName: 'Shubham Tees' });
+      settings = await SiteSettings.create({ companyName: 'Astitva Creations' });
     }
 
     const {
