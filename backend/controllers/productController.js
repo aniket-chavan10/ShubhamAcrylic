@@ -1,4 +1,6 @@
 const { Op } = require('sequelize');
+const fs = require('fs');
+const path = require('path');
 const sequelize = require('../config/database');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
@@ -267,13 +269,33 @@ exports.updateProduct = async (req, res) => {
 exports.deleteProduct = async (req, res) => {
   const t = await sequelize.transaction();
   try {
-    const product = await Product.findByPk(req.params.id);
+    const product = await Product.findByPk(req.params.id, {
+      include: [{ model: ProductImage, as: 'images' }]
+    });
     if (!product) return res.status(404).json({ message: 'Product not found' });
+
+    // Collect all image URLs for cleanup
+    const imageRecords = product.images || [];
+    const imageUrls = imageRecords.map(img => img.imageUrl).filter(Boolean);
 
     await ProductImage.destroy({ where: { productId: product.id }, transaction: t });
     await product.destroy({ transaction: t });
     await t.commit();
-    res.json({ message: 'Product deleted' });
+
+    // Clean up physical image files from local disk (if stored locally)
+    imageUrls.forEach(url => {
+      if (url && url.startsWith('/uploads/')) {
+        const filePath = path.join(__dirname, '../', url);
+        if (fs.existsSync(filePath)) {
+          fs.unlink(filePath, err => {
+            if (err) console.error('Error deleting local file:', filePath, err);
+            else console.log('🗑️ Deleted local image file from server:', filePath);
+          });
+        }
+      }
+    });
+
+    res.json({ message: 'Product and associated image files deleted successfully' });
   } catch (err) {
     await t.rollback();
     res.status(500).json({ message: err.message });

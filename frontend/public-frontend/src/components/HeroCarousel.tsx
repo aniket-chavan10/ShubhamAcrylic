@@ -49,29 +49,29 @@ const HeroCarousel = () => {
                 emulateTouch={true}
             >
                 {banners.map((banner) => (
-                    <div key={banner.id || banner._id} className="relative h-64 sm:h-80 md:h-[500px]">
+                    <div key={banner.id || banner._id} className="relative h-52 sm:h-80 md:h-[480px]">
                         <img
                             src={getImageUrl(banner.imageUrl)}
                             alt={banner.title}
                             className="w-full h-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/75 to-black/30 flex items-center">
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent flex items-center">
                             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full text-left">
-                                <div className="max-w-2xl">
+                                <div className="max-w-xl">
                                     {banner.title && (
-                                        <h1 className="text-2xl sm:text-4xl md:text-6xl font-bold text-white mb-2 sm:mb-4 drop-shadow-lg">
+                                        <h1 className="text-lg sm:text-3xl md:text-5xl font-extrabold text-white mb-1.5 sm:mb-4 drop-shadow-lg leading-snug">
                                             {banner.title}
                                         </h1>
                                     )}
                                     {banner.subtitle && (
-                                        <p className="text-base sm:text-xl md:text-2xl text-gray-100 mb-4 sm:mb-8 drop-shadow-md">
+                                        <p className="text-xs sm:text-base md:text-xl text-gray-200 mb-3 sm:mb-6 drop-shadow-md line-clamp-2">
                                             {banner.subtitle}
                                         </p>
                                     )}
                                     {banner.link && (
                                         <a
                                             href={banner.link}
-                                            className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-lg shadow-xl transition-all transform hover:scale-105 text-sm sm:text-base"
+                                            className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-4 sm:py-3 sm:px-6 rounded-md sm:rounded-lg shadow-lg transition-all transform hover:scale-105 text-xs sm:text-base"
                                         >
                                             Shop Collection
                                         </a>

@@ -20,47 +20,48 @@ const CategorySection = () => {
         fetchCategories();
     }, []);
 
-    // Placeholder images mapping based on T-Shirt category name
+    // Placeholder images mapping based on T-Shirt & Apparel category name
     const getCategoryImage = (name: string) => {
         const lowerName = name.toLowerCase();
-        if (lowerName.includes('graphic')) return 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&q=80&w=600';
+        if (lowerName.includes('hoodie') || lowerName.includes('sweatshirt')) return 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&q=80&w=600';
+        if (lowerName.includes('graphic') || lowerName.includes('vintage')) return 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&q=80&w=600';
         if (lowerName.includes('oversized')) return 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&q=80&w=600';
         if (lowerName.includes('polo')) return 'https://images.unsplash.com/photo-1625910513413-562725e6488a?auto=format&fit=crop&q=80&w=600';
         if (lowerName.includes('solid') || lowerName.includes('basic')) return 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=600';
-        if (lowerName.includes('custom') || lowerName.includes('print')) return 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&q=80&w=600';
+        if (lowerName.includes('corporate') || lowerName.includes('event') || lowerName.includes('custom')) return 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&q=80&w=600';
         return 'https://images.unsplash.com/photo-1529374255404-311a2a4f1fd9?auto=format&fit=crop&q=80&w=600';
     };
 
     if (loading) return null;
 
     return (
-        <section className="py-20 bg-gray-50">
+        <section className="py-8 sm:py-16 bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-end mb-12">
+                <div className="flex justify-between items-end mb-6 sm:mb-10">
                     <div>
-                        <h2 className="text-3xl font-bold text-gray-900 mb-2">Shop by Category</h2>
-                        <p className="text-gray-500">Explore our wide range of premium t-shirt collections</p>
+                        <h2 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1">Shop by Category</h2>
+                        <p className="text-xs sm:text-sm text-gray-500">Explore our premium t-shirts, hoodies, and apparel</p>
                     </div>
-                    <a href="#products" className="hidden md:flex items-center text-indigo-600 font-semibold hover:text-indigo-700">
-                        View All <ArrowRight size={16} className="ml-1" />
+                    <a href="#products" className="flex items-center text-xs sm:text-sm text-indigo-600 font-semibold hover:text-indigo-700">
+                        View All <ArrowRight size={14} className="ml-1" />
                     </a>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5">
                     {categories.map((cat) => (
-                        <div key={cat._id} className="group relative overflow-hidden rounded-2xl cursor-pointer shadow-sm hover:shadow-xl transition-all duration-300 h-80">
-                            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-colors z-10" />
+                        <div key={cat.id || cat._id} className="group relative overflow-hidden rounded-xl sm:rounded-2xl cursor-pointer shadow-sm hover:shadow-xl transition-all duration-300 h-44 sm:h-56 md:h-64">
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent group-hover:from-black/90 transition-colors z-10" />
                             <img
                                 src={getCategoryImage(cat.name)}
                                 alt={cat.name}
                                 className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                             />
-                            <div className="absolute bottom-0 left-0 p-6 z-20 w-full">
-                                <h3 className="text-white text-xl font-bold mb-1">{cat.name}</h3>
-                                <p className="text-white/90 text-sm flex items-center justify-between">
-                                    {cat.description || 'Premium T-Shirt Line'}
-                                    <span className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center group-hover:bg-white group-hover:text-black transition-colors">
-                                        <ArrowRight size={14} />
+                            <div className="absolute bottom-0 left-0 p-3 sm:p-5 z-20 w-full">
+                                <h3 className="text-white text-sm sm:text-base md:text-lg font-bold mb-1 leading-snug drop-shadow-md">{cat.name}</h3>
+                                <p className="text-white/80 text-[11px] sm:text-xs hidden sm:flex items-center justify-between">
+                                    <span className="line-clamp-1">{cat.description || 'Premium Collection'}</span>
+                                    <span className="w-6 h-6 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center group-hover:bg-white group-hover:text-black transition-colors shrink-0 ml-1">
+                                        <ArrowRight size={12} />
                                     </span>
                                 </p>
                             </div>
