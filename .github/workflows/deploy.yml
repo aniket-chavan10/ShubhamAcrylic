@@ -65,23 +65,13 @@ jobs:
             # Navigate to project directory
             cd /var/www/ShubhamAcrylic
             
-            # Pull latest changes from GitHub
+            # Pull latest code and pre-built dist files
             git pull origin main
             
-            # Update & restart backend
+            # Restart backend
             cd /var/www/ShubhamAcrylic/backend
             npm install --production
             pm2 restart astitva-backend || pm2 start server.js --name "astitva-backend"
-            
-            # Rebuild Public Frontend
-            cd /var/www/ShubhamAcrylic/frontend/public-frontend
-            npm install
-            npm run build
-            
-            # Rebuild Admin Dashboard
-            cd /var/www/ShubhamAcrylic/frontend/admin-dashboard
-            npm install
-            npm run build
             
             # Reload Nginx web server
             sudo systemctl reload nginx
