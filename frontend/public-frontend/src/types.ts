@@ -36,4 +36,18 @@ export interface SiteSettings {
   facebookUrl?: string;
   twitterUrl?: string;
   youtubeUrl?: string;
+
+  aboutSubtitle?: string;
+  aboutTitle?: string;
+  aboutDescription?: string;
+  aboutImage1?: string;
+  aboutImage2?: string;
+  feature1Title?: string;
+  feature1Desc?: string;
+  feature2Title?: string;
+  feature2Desc?: string;
+  feature3Title?: string;
+  feature3Desc?: string;
+  feature4Title?: string;
+  feature4Desc?: string;
 }

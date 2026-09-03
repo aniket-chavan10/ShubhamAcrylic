@@ -262,62 +262,65 @@ const CategoryManagement = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    categories.map((category) => (
-                                        <tr key={category._id} className="hover:bg-gray-50 transition">
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <Folder className="w-5 h-5 text-blue-600" />
-                                                    <span className="font-semibold text-gray-900">{category.name}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <code className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                                                    {category.slug}
-                                                </code>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <p className="text-sm text-gray-600 line-clamp-2">
-                                                    {category.description || "-"}
-                                                </p>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <button
-                                                    onClick={() => handleToggleStatus(category._id)}
-                                                    className="flex items-center gap-1"
-                                                >
-                                                    {category.isActive ? (
-                                                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                                                            <CheckCircle className="w-3 h-3" />
-                                                            Active
-                                                        </span>
-                                                    ) : (
-                                                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
-                                                            <XCircle className="w-3 h-3" />
-                                                            Inactive
-                                                        </span>
-                                                    )}
-                                                </button>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex gap-2">
+                                    categories.map((category) => {
+                                        const catId = (category as any).id || category._id;
+                                        return (
+                                            <tr key={catId} className="hover:bg-gray-50 transition">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <Folder className="w-5 h-5 text-blue-600" />
+                                                        <span className="font-semibold text-gray-900">{category.name}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <code className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                                                        {category.slug}
+                                                    </code>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <p className="text-sm text-gray-600 line-clamp-2">
+                                                        {category.description || "-"}
+                                                    </p>
+                                                </td>
+                                                <td className="px-6 py-4">
                                                     <button
-                                                        onClick={() => handleEdit(category)}
-                                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                                                        title="Edit category"
+                                                        onClick={() => handleToggleStatus(catId)}
+                                                        className="flex items-center gap-1"
                                                     >
-                                                        <Edit2 className="w-4 h-4" />
+                                                        {category.isActive ? (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                                                                <CheckCircle className="w-3 h-3" />
+                                                                Active
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+                                                                <XCircle className="w-3 h-3" />
+                                                                Inactive
+                                                            </span>
+                                                        )}
                                                     </button>
-                                                    <button
-                                                        onClick={() => handleDelete(category._id)}
-                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                                                        title="Delete category"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleEdit(category)}
+                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                                            title="Edit category"
+                                                        >
+                                                            <Edit2 className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(catId)}
+                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                            title="Delete category"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>

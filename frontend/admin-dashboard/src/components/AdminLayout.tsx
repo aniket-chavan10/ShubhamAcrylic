@@ -11,6 +11,31 @@ const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
     window.location.href = "/login";
   };
 
+  // Inactivity Auto-Logout Timer (15 minutes threshold)
+  useEffect(() => {
+    const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes
+    let timeoutId: any;
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        alert("Your admin session has expired due to 15 minutes of inactivity. Please log in again.");
+        localStorage.removeItem("token");
+        window.location.href = "/login?reason=inactivity";
+      }, INACTIVITY_TIMEOUT);
+    };
+
+    const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+
+    resetTimer(); // Start timer on mount
+
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, []);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
