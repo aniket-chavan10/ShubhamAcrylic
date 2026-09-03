@@ -25,7 +25,7 @@ const seedDatabase = async () => {
     await sequelize.authenticate();
     console.log('Connected to MySQL database for seeding T-Shirt & Apparel data.');
 
-    await sequelize.sync({ alter: false });
+    await sequelize.sync({ alter: true });
 
     // 1. Site Settings
     console.log('Seeding Site Settings...');

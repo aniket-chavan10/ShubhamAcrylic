@@ -90,13 +90,8 @@ exports.deleteCategory = async (req, res) => {
     const category = await Category.findByPk(req.params.id);
     if (!category) return res.status(404).json({ message: 'Category not found' });
 
-    const productsUsingCategory = await Product.count({ where: { categoryId: category.id } });
-    if (productsUsingCategory > 0) {
-      return res.status(400).json({
-        message: `Cannot delete category. ${productsUsingCategory} product(s) are using this category.`,
-        productsCount: productsUsingCategory,
-      });
-    }
+    // Unlink products associated with this category so deletion never fails
+    await Product.update({ categoryId: null }, { where: { categoryId: category.id } });
 
     await category.destroy();
     res.json({ message: 'Category deleted successfully' });
