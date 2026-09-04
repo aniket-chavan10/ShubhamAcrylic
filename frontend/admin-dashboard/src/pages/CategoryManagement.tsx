@@ -1,16 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import AdminLayout from "../components/AdminLayout";
-import { Folder, Plus, Edit2, Trash2, CheckCircle, XCircle, Save, X } from "lucide-react";
+import { Folder, Plus, Edit2, Trash2, CheckCircle, XCircle, Save, X, Image as ImageIcon } from "lucide-react";
 import * as categoryService from "../services/categoryService";
+import { getImageUrl } from "../utils/imageUtils";
 
 interface Category {
-    _id: string;
+    id?: string | number;
+    _id?: string;
     name: string;
     slug: string;
     description: string;
+    imageUrl?: string;
     isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 const CategoryManagement = () => {
@@ -22,8 +25,13 @@ const CategoryManagement = () => {
         name: "",
         slug: "",
         description: "",
+        imageUrl: "",
         isActive: true,
     });
+
+    const [imagePreview, setImagePreview] = useState<string>("");
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         loadCategories();
@@ -41,14 +49,33 @@ const CategoryManagement = () => {
         }
     };
 
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImageFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setImagePreview(reader.result as string);
+        reader.readAsDataURL(file);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            if (editingCategory) {
-                await categoryService.updateCategory(editingCategory._id, formData);
+            const payload = new FormData();
+            payload.append("name", formData.name);
+            payload.append("slug", formData.slug);
+            payload.append("description", formData.description);
+            payload.append("isActive", String(formData.isActive));
+            if (formData.imageUrl && !imageFile) payload.append("imageUrl", formData.imageUrl);
+            if (imageFile) payload.append("image", imageFile);
+
+            const catId = editingCategory ? (editingCategory.id || editingCategory._id) : null;
+
+            if (catId) {
+                await categoryService.updateCategory(String(catId), payload);
                 alert("Category updated successfully!");
             } else {
-                await categoryService.createCategory(formData);
+                await categoryService.createCategory(payload);
                 alert("Category created successfully!");
             }
             resetForm();
@@ -63,17 +90,20 @@ const CategoryManagement = () => {
         setFormData({
             name: category.name,
             slug: category.slug,
-            description: category.description,
+            description: category.description || "",
+            imageUrl: category.imageUrl || "",
             isActive: category.isActive,
         });
+        setImagePreview(category.imageUrl ? getImageUrl(category.imageUrl) : "");
+        setImageFile(null);
         setIsEditing(true);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm("Are you sure you want to delete this category?")) return;
+    const handleDelete = async (id: string | number) => {
+        if (!window.confirm("Are you sure you want to delete this category? Associated products will be unlinked.")) return;
 
         try {
-            await categoryService.deleteCategory(id);
+            await categoryService.deleteCategory(String(id));
             alert("Category deleted successfully!");
             loadCategories();
         } catch (error: any) {
@@ -81,9 +111,9 @@ const CategoryManagement = () => {
         }
     };
 
-    const handleToggleStatus = async (id: string) => {
+    const handleToggleStatus = async (id: string | number) => {
         try {
-            await categoryService.toggleCategoryStatus(id);
+            await categoryService.toggleCategoryStatus(String(id));
             loadCategories();
         } catch (error: any) {
             alert(error.message);
@@ -95,13 +125,15 @@ const CategoryManagement = () => {
             name: "",
             slug: "",
             description: "",
+            imageUrl: "",
             isActive: true,
         });
+        setImagePreview("");
+        setImageFile(null);
         setEditingCategory(null);
         setIsEditing(false);
     };
 
-    // Auto-generate slug from name
     const handleNameChange = (name: string) => {
         setFormData({
             ...formData,
@@ -127,20 +159,23 @@ const CategoryManagement = () => {
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Category Management</h2>
-                        <p className="text-gray-600 mt-1">Organize your products with flexible categories</p>
+                        <p className="text-gray-600 mt-1">Manage categories, images, and homepage layout</p>
                     </div>
                     <button
-                        onClick={() => setIsEditing(!isEditing)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+                        onClick={() => {
+                            if (isEditing) resetForm();
+                            else setIsEditing(true);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold text-sm"
                     >
                         {isEditing ? (
                             <>
-                                <X className="w-5 h-5" />
+                                <X className="w-4 h-4" />
                                 Cancel
                             </>
                         ) : (
                             <>
-                                <Plus className="w-5 h-5" />
+                                <Plus className="w-4 h-4" />
                                 Add Category
                             </>
                         )}
@@ -164,8 +199,8 @@ const CategoryManagement = () => {
                                         value={formData.name}
                                         onChange={(e) => handleNameChange(e.target.value)}
                                         required
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                        placeholder="e.g., Graphic Tees"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                        placeholder="e.g., Oversized T-Shirts"
                                     />
                                 </div>
                                 <div>
@@ -176,11 +211,48 @@ const CategoryManagement = () => {
                                         type="text"
                                         value={formData.slug}
                                         onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50"
-                                        placeholder="graphic-tees"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 text-sm"
+                                        placeholder="oversized-t-shirts"
                                     />
                                 </div>
                             </div>
+
+                            {/* Category Image Upload */}
+                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+                                <label className="block text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                                    <ImageIcon size={16} className="text-blue-600" /> Category Cover Image (Upload or Paste URL)
+                                </label>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-20 h-20 rounded-lg border border-gray-300 bg-white overflow-hidden flex items-center justify-center shrink-0">
+                                        {imagePreview ? (
+                                            <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="text-[10px] text-gray-400">No Image</span>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 space-y-2">
+                                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 font-semibold rounded-lg text-xs hover:bg-blue-100 transition"
+                                        >
+                                            Upload Image File
+                                        </button>
+                                        <input
+                                            type="text"
+                                            value={formData.imageUrl}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, imageUrl: e.target.value });
+                                                setImagePreview(e.target.value);
+                                            }}
+                                            className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-xs outline-none bg-white"
+                                            placeholder="Or paste image URL (e.g. https://...)"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Description
@@ -188,8 +260,8 @@ const CategoryManagement = () => {
                                 <textarea
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    rows={3}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                    rows={2}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                                     placeholder="Brief description of this category..."
                                 />
                             </div>
@@ -208,15 +280,15 @@ const CategoryManagement = () => {
                             <div className="flex gap-3 pt-2">
                                 <button
                                     type="submit"
-                                    className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+                                    className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold text-sm"
                                 >
-                                    <Save className="w-5 h-5" />
+                                    <Save className="w-4 h-4" />
                                     {editingCategory ? "Update Category" : "Create Category"}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={resetForm}
-                                    className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-semibold"
+                                    className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-semibold text-sm"
                                 >
                                     Cancel
                                 </button>
@@ -237,6 +309,9 @@ const CategoryManagement = () => {
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Cover Image
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Name
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -256,7 +331,7 @@ const CategoryManagement = () => {
                             <tbody className="divide-y divide-gray-200">
                                 {categories.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                                             <Folder className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                                             <p>No categories yet. Create your first category to get started!</p>
                                         </td>
@@ -267,8 +342,16 @@ const CategoryManagement = () => {
                                         return (
                                             <tr key={catId} className="hover:bg-gray-50 transition">
                                                 <td className="px-6 py-4">
+                                                    <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
+                                                        {category.imageUrl ? (
+                                                            <img src={getImageUrl(category.imageUrl)} alt={category.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <Folder className="w-5 h-5 text-gray-400" />
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
                                                     <div className="flex items-center gap-2">
-                                                        <Folder className="w-5 h-5 text-blue-600" />
                                                         <span className="font-semibold text-gray-900">{category.name}</span>
                                                     </div>
                                                 </td>
@@ -284,7 +367,7 @@ const CategoryManagement = () => {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <button
-                                                        onClick={() => handleToggleStatus(catId)}
+                                                        onClick={() => handleToggleStatus(catId!)}
                                                         className="flex items-center gap-1"
                                                     >
                                                         {category.isActive ? (
@@ -310,7 +393,7 @@ const CategoryManagement = () => {
                                                             <Edit2 className="w-4 h-4" />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDelete(catId)}
+                                                            onClick={() => handleDelete(catId!)}
                                                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                                                             title="Delete category"
                                                         >

@@ -18,15 +18,11 @@ export async function getCategoryById(id: string) {
     return await res.json();
 }
 
-export async function createCategory(categoryData: {
-    name: string;
-    slug?: string;
-    description?: string;
-    isActive?: boolean;
-}) {
+export async function createCategory(categoryData: any) {
+    const isFormData = categoryData instanceof FormData;
     const res = await fetchWithAuth("/categories", {
         method: "POST",
-        body: JSON.stringify(categoryData),
+        body: isFormData ? categoryData : JSON.stringify(categoryData),
     });
 
     if (!res.ok) {
@@ -36,18 +32,11 @@ export async function createCategory(categoryData: {
     return await res.json();
 }
 
-export async function updateCategory(
-    id: string,
-    categoryData: {
-        name?: string;
-        slug?: string;
-        description?: string;
-        isActive?: boolean;
-    }
-) {
+export async function updateCategory(id: string, categoryData: any) {
+    const isFormData = categoryData instanceof FormData;
     const res = await fetchWithAuth(`/categories/${id}`, {
         method: "PUT",
-        body: JSON.stringify(categoryData),
+        body: isFormData ? categoryData : JSON.stringify(categoryData),
     });
 
     if (!res.ok) {

@@ -44,6 +44,11 @@ exports.createCategory = async (req, res) => {
     const existing = await Category.findOne({ where: { name } });
     if (existing) return res.status(400).json({ message: 'Category with this name already exists' });
 
+    let imageUrl = req.body.imageUrl || null;
+    if (req.file) {
+      imageUrl = req.file.location || `/uploads/products/${req.file.filename}`;
+    }
+
     // Auto-generate slug if not provided
     const finalSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
@@ -51,7 +56,8 @@ exports.createCategory = async (req, res) => {
       name,
       slug: finalSlug,
       description,
-      isActive: isActive !== undefined ? isActive : true,
+      imageUrl,
+      isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : true,
     });
     res.status(201).json(category);
   } catch (error) {
@@ -71,11 +77,17 @@ exports.updateCategory = async (req, res) => {
       if (existing) return res.status(400).json({ message: 'Category with this name already exists' });
     }
 
+    let imageUrl = req.body.imageUrl;
+    if (req.file) {
+      imageUrl = req.file.location || `/uploads/products/${req.file.filename}`;
+    }
+
     await category.update({
       name: name ?? category.name,
       slug: slug ?? category.slug,
       description: description !== undefined ? description : category.description,
-      isActive: isActive !== undefined ? isActive : category.isActive,
+      imageUrl: imageUrl !== undefined ? imageUrl : category.imageUrl,
+      isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : category.isActive,
     });
 
     res.json(category);

@@ -21,6 +21,10 @@ const Category = sequelize.define('Category', {
     type: DataTypes.TEXT,
     defaultValue: '',
   },
+  imageUrl: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,

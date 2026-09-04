@@ -31,11 +31,11 @@ if (process.env.AWS_S3_BUCKET && process.env.AWS_ACCESS_KEY_ID) {
       }),
       limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
       fileFilter: (req, file, cb) => {
-        const allowed = /jpeg|jpg|png|webp/;
+        const allowed = /jpeg|jpg|png|webp|svg/;
         const ext = allowed.test(path.extname(file.originalname).toLowerCase());
-        const mime = allowed.test(file.mimetype);
-        if (ext && mime) cb(null, true);
-        else cb(new Error('Only image files (jpg, jpeg, png, webp) are allowed!'), false);
+        const mime = allowed.test(file.mimetype) || file.mimetype === 'image/svg+xml';
+        if (ext || mime) cb(null, true);
+        else cb(new Error('Only image files (jpg, jpeg, png, webp, svg) are allowed!'), false);
       },
     });
 
@@ -64,11 +64,11 @@ const localUpload = multer({
   storage: localStorage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|webp/;
+    const allowed = /jpeg|jpg|png|webp|svg/;
     const ext = allowed.test(path.extname(file.originalname).toLowerCase());
-    const mime = allowed.test(file.mimetype);
-    if (ext && mime) cb(null, true);
-    else cb(new Error('Only image files (jpg, jpeg, png, webp) are allowed!'), false);
+    const mime = allowed.test(file.mimetype) || file.mimetype === 'image/svg+xml';
+    if (ext || mime) cb(null, true);
+    else cb(new Error('Only image files (jpg, jpeg, png, webp, svg) are allowed!'), false);
   },
 });
 

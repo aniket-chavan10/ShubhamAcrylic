@@ -52,11 +52,29 @@ const ProductGrid = () => {
         fetchData();
     }, []);
 
+    // Listen to custom event when user clicks a category in CategorySection
+    useEffect(() => {
+        const handleSelectCategory = (e: Event) => {
+            const customEvent = e as CustomEvent<string>;
+            if (customEvent.detail) {
+                setFilter(customEvent.detail);
+            }
+        };
+        window.addEventListener('selectCategory', handleSelectCategory);
+        return () => window.removeEventListener('selectCategory', handleSelectCategory);
+    }, []);
+
     const filteredProducts = filter === 'All'
         ? products
         : products.filter(p => {
-            const catName = typeof p.category === 'object' ? p.category.name : p.category;
-            return catName === filter;
+            const pCatName = typeof p.category === 'object' && p.category?.name
+                ? p.category.name
+                : (typeof p.category === 'string' ? p.category : '');
+
+            const cleanPCat = pCatName.trim().toLowerCase();
+            const cleanFilter = filter.trim().toLowerCase();
+
+            return cleanPCat === cleanFilter || cleanPCat.includes(cleanFilter) || cleanFilter.includes(cleanPCat);
         });
 
     if (loading) return (
