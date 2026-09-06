@@ -7,7 +7,7 @@ const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     window.location.href = "/login";
   };
 
@@ -20,7 +20,7 @@ const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         alert("Your admin session has expired due to 15 minutes of inactivity. Please log in again.");
-        localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
         window.location.href = "/login?reason=inactivity";
       }, INACTIVITY_TIMEOUT);
     };

@@ -1,7 +1,7 @@
 export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) {
         window.location.href = "/login";
         throw new Error("User not authenticated");
@@ -26,7 +26,7 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     const response = await fetch(`${API_URL}${endpoint}`, config);
 
     if (response.status === 401) {
-        localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
         window.location.href = "/login";
         throw new Error("Session expired. Please login again.");
     }

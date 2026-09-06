@@ -7,7 +7,7 @@ const ProtectedRoute: FC<{ children: ReactNode }> = ({ children }) => {
 
     useEffect(() => {
         const checkAuth = async () => {
-            const token = localStorage.getItem("token");
+            const token = sessionStorage.getItem("token");
             if (!token) {
                 setIsAuthenticated(false);
                 return;
@@ -24,11 +24,11 @@ const ProtectedRoute: FC<{ children: ReactNode }> = ({ children }) => {
                 if (response.ok) {
                     setIsAuthenticated(true);
                 } else {
-                    localStorage.removeItem("token");
+                    sessionStorage.removeItem("token");
                     setIsAuthenticated(false);
                 }
             } catch (error) {
-                localStorage.removeItem("token");
+                sessionStorage.removeItem("token");
                 setIsAuthenticated(false);
             }
         };

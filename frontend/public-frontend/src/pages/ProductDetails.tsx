@@ -202,7 +202,7 @@ const ProductDetails = () => {
                         {/* Category + Product Code */}
                         <div className="flex flex-wrap items-center gap-2">
                             <span className="text-sm text-blue-600 font-semibold uppercase">
-                                {typeof product.category === 'object' ? product.category.name : product.category}
+                                {product.category && typeof product.category === 'object' ? product.category.name : product.category || 'Uncategorized'}
                             </span>
                             <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-bold px-2.5 py-1 rounded-full border border-gray-200">
                                 <Package size={11} /> {product.productCode}
