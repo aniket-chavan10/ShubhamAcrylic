@@ -30,8 +30,8 @@ const corsOrigin = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
   : true; // Allow all origins in development
 app.use(cors({ origin: corsOrigin, credentials: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // ── Serve uploaded images locally ─────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

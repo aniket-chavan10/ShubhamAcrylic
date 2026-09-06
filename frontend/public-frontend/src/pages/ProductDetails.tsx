@@ -45,21 +45,18 @@ const ProductDetails = () => {
                 const productRes = await api.get(`/products/${id}`);
                 setProduct(productRes.data);
 
-                // Fetch related products (same category)
-                const productsRes = await api.get('/products');
-                const allProducts: Product[] = Array.isArray(productsRes.data)
-                    ? productsRes.data
-                    : productsRes.data.products || [];
-
                 const currentCategoryId = typeof productRes.data.category === 'object'
                     ? productRes.data.category.id
                     : productRes.data.category;
 
+                // Fetch related products (same category) using advanced-search
+                const productsRes = await api.get(`/products/advanced-search?category=${currentCategoryId}`);
+                const allProducts: Product[] = Array.isArray(productsRes.data)
+                    ? productsRes.data
+                    : productsRes.data.products || [];
+
                 const related = allProducts
-                    .filter((p) => {
-                        const pCatId = typeof p.category === 'object' ? p.category.id : p.category;
-                        return pCatId === currentCategoryId && p.id !== productRes.data.id;
-                    })
+                    .filter((p) => p.id !== productRes.data.id)
                     .slice(0, 4);
                 setRelatedProducts(related);
 

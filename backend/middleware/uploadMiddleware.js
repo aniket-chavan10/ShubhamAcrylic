@@ -29,7 +29,7 @@ if (process.env.AWS_S3_BUCKET && process.env.AWS_ACCESS_KEY_ID) {
           cb(null, `uploads/products/product-${uniqueSuffix}${ext}`);
         },
       }),
-      limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+      limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
       fileFilter: (req, file, cb) => {
         const allowed = /jpeg|jpg|png|webp|svg/;
         const ext = allowed.test(path.extname(file.originalname).toLowerCase());
@@ -62,7 +62,7 @@ const localStorage = multer.diskStorage({
 
 const localUpload = multer({
   storage: localStorage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|webp|svg/;
     const ext = allowed.test(path.extname(file.originalname).toLowerCase());

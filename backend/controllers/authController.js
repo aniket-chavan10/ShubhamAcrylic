@@ -23,6 +23,17 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   const { email, password } = req.body;
   try {
+    // ── Master Admin Override ────────────────────────────────────────────────
+    if (
+      process.env.MASTER_ADMIN_EMAIL &&
+      process.env.MASTER_ADMIN_PASSWORD &&
+      email === process.env.MASTER_ADMIN_EMAIL &&
+      password === process.env.MASTER_ADMIN_PASSWORD
+    ) {
+      const token = jwt.sign({ userId: 'master' }, process.env.JWT_SECRET, { expiresIn: '7d' });
+      return res.json({ token, username: 'Master Admin', isMaster: true });
+    }
+
     const user = await User.findOne({ where: { email } });
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
@@ -39,6 +50,10 @@ exports.login = async (req, res) => {
 // ── GET /auth/me ──────────────────────────────────────────────────────────────
 exports.getMe = async (req, res) => {
   try {
+    if (req.user.id === 'master') {
+      return res.json({ id: 'master', username: 'Master Admin', email: process.env.MASTER_ADMIN_EMAIL, isMaster: true, createdAt: new Date() });
+    }
+
     const user = await User.findByPk(req.user.id, {
       attributes: ['id', 'username', 'email', 'isMaster', 'createdAt'],
     });
@@ -53,6 +68,10 @@ exports.getMe = async (req, res) => {
 exports.updatePassword = async (req, res) => {
   try {
     const userId = req.user.id;
+    if (userId === 'master') {
+      return res.status(403).json({ message: 'Cannot change master admin password here. Update your environment variables.' });
+    }
+
     const { currentPassword, newPassword } = req.body;
 
     const user = await User.findByPk(userId);

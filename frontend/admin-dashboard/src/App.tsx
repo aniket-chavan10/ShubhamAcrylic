@@ -8,20 +8,21 @@ import ReviewManagement from './pages/ReviewManagement';
 import CategoryManagement from './pages/CategoryManagement';
 import SiteSettings from './pages/SiteSettings';
 import ProfilePage from './pages/ProfilePage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
         return (
                 <BrowserRouter>
                         <Routes>
                                 <Route path="/login" element={<Login />} />
-                                <Route path="/" element={<Dashboard />} />
-                                <Route path="/products" element={<ManageProducts />} />
-                                <Route path="/categories" element={<CategoryManagement />} />
-                                <Route path="/enquiry-management" element={<EnquiryManagement />} />
-                                <Route path="/banners" element={<ManageBanners />} />
-                                <Route path="/reviews" element={<ReviewManagement />} />
-                                <Route path="/site-settings" element={<SiteSettings />} />
-                                <Route path="/profile" element={<ProfilePage />} />
+                                <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                                <Route path="/products" element={<ProtectedRoute><ManageProducts /></ProtectedRoute>} />
+                                <Route path="/categories" element={<ProtectedRoute><CategoryManagement /></ProtectedRoute>} />
+                                <Route path="/enquiry-management" element={<ProtectedRoute><EnquiryManagement /></ProtectedRoute>} />
+                                <Route path="/banners" element={<ProtectedRoute><ManageBanners /></ProtectedRoute>} />
+                                <Route path="/reviews" element={<ProtectedRoute><ReviewManagement /></ProtectedRoute>} />
+                                <Route path="/site-settings" element={<ProtectedRoute><SiteSettings /></ProtectedRoute>} />
+                                <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
                         </Routes>
                 </BrowserRouter>
         );
