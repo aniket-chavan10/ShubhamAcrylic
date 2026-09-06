@@ -1,9 +1,13 @@
 import { FC, ReactNode, useState, useRef, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import { User, Settings, LogOut, ChevronDown } from "lucide-react";
+import { getSiteSettings } from "../services/siteSettingsService";
+import { getImageUrl } from "../utils/imageUtils";
 
 const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [companyName, setCompanyName] = useState("Astitva Creations");
+  const [logoUrl, setLogoUrl] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = () => {
@@ -48,14 +52,36 @@ const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const data = await getSiteSettings();
+        if (data.companyName) setCompanyName(data.companyName);
+        if (data.logoUrl) setLogoUrl(getImageUrl(data.logoUrl));
+      } catch (err) {
+        console.error("AdminLayout settings error:", err);
+      }
+    };
+    fetchSettings();
+  }, []);
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         {/* Header with Profile Dropdown */}
-        <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10 px-8 py-4">
+        <header className="bg-white/70 backdrop-blur-md shadow-sm border-b border-gray-200 sticky top-0 z-10 px-8 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-800">Astitva Creations Admin Dashboard</h1>
+            <div className="flex items-center gap-3">
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt="Logo"
+                  className="h-8 w-auto object-contain"
+                />
+              ) : null}
+              <h1 className="text-xl font-extrabold text-gray-800 tracking-tight">{companyName} Admin</h1>
+            </div>
 
             {/* Profile Dropdown */}
             <div className="relative" ref={dropdownRef}>

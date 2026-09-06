@@ -105,9 +105,9 @@ const Dashboard = () => {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard Overview</h2>
-          <p className="text-gray-600 mt-1">Welcome back! Here's what's happening with your business.</p>
+        <div className="bg-gradient-to-r from-indigo-900 to-blue-900 rounded-2xl p-8 mb-8 text-white shadow-lg shadow-indigo-900/20">
+          <h2 className="text-3xl font-extrabold tracking-tight mb-2">Welcome back to Astitva Creations!</h2>
+          <p className="text-indigo-100 text-lg opacity-90">Here's what's happening with your business today.</p>
         </div>
 
         {/* Stats Grid */}

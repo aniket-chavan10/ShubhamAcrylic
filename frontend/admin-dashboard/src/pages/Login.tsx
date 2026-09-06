@@ -31,36 +31,44 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-200">
-      <div className="w-full max-w-md rounded-3xl shadow-2xl bg-white p-9 flex flex-col items-center">
+    <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-indigo-950 to-black">
+      
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-indigo-600/20 blur-[120px]"></div>
+        <div className="absolute top-[60%] -right-[10%] w-[40%] h-[60%] rounded-full bg-blue-600/20 blur-[120px]"></div>
+      </div>
+
+      <div className="w-full max-w-md rounded-[2rem] shadow-2xl bg-white/10 backdrop-blur-xl border border-white/20 p-10 flex flex-col items-center relative z-10">
         {/* Brand/Logo Accent */}
-        <div className="flex flex-col items-center mb-7">
-          <div className="bg-blue-600 w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-2xl mb-2 shadow">
+        <div className="flex flex-col items-center mb-8">
+          <div className="bg-gradient-to-tr from-indigo-500 to-blue-400 w-16 h-16 rounded-2xl flex items-center justify-center text-white font-extrabold text-3xl mb-4 shadow-lg shadow-indigo-500/30 ring-4 ring-white/10">
             A
           </div>
-          <h2 className="text-3xl font-bold text-blue-800 mb-0 tracking-tight">Admin Login</h2>
-          <div className="text-sm text-gray-400 mt-1">Sign in to your dashboard</div>
+          <h2 className="text-3xl font-extrabold text-white mb-1 tracking-tight">Astitva Creations</h2>
+          <div className="text-sm text-indigo-200 font-medium tracking-wide uppercase">Admin Portal</div>
         </div>
+        
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6 w-full">
+        <form onSubmit={handleSubmit} className="space-y-5 w-full">
           <div>
-            <label className="block mb-2 font-semibold text-gray-700">Email</label>
+            <label className="block mb-1.5 text-sm font-semibold text-indigo-100">Email Address</label>
             <input
               type="email"
               autoComplete="username"
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-sm bg-gray-50"
+              className="w-full px-5 py-3.5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-sm bg-white/5 text-white placeholder-white/30"
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              placeholder="you@email.com"
+              placeholder="admin@astitvacreations.com"
             />
           </div>
           <div>
-            <label className="block mb-2 font-semibold text-gray-700">Password</label>
+            <label className="block mb-1.5 text-sm font-semibold text-indigo-100">Password</label>
             <input
               type="password"
               autoComplete="current-password"
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-sm bg-gray-50"
+              className="w-full px-5 py-3.5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-sm bg-white/5 text-white placeholder-white/30"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
@@ -68,18 +76,23 @@ const Login = () => {
             />
           </div>
           {error && (
-            <div className="text-red-500 text-center rounded bg-red-50 py-2 mt-1">{error}</div>
+            <div className="text-red-300 text-center text-sm rounded-lg bg-red-900/40 border border-red-500/30 py-3 mt-2 font-medium">
+              {error}
+            </div>
           )}
           <button
             type="submit"
-            className="w-full py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition shadow"
+            className="w-full py-3.5 mt-4 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-xl font-bold text-base hover:from-indigo-400 hover:to-blue-400 transition-all shadow-lg shadow-indigo-500/25 active:scale-[0.98]"
             disabled={loading}
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading ? "Authenticating..." : "Sign In"}
           </button>
         </form>
-        {/* Optional: Footer */}
-        <div className="mt-6 text-xs text-gray-400 text-center opacity-70">© 2025 Acrylia Admin Panel</div>
+        
+        {/* Footer */}
+        <div className="mt-8 text-xs text-indigo-200/60 text-center font-medium">
+          © {new Date().getFullYear()} Astitva Creations. All rights reserved.
+        </div>
       </div>
     </div>
   );
