@@ -1,81 +1,108 @@
-import { FC, useEffect, useState } from "react";
+import { FC } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { getSiteSettings } from "../services/siteSettingsService";
-import { getImageUrl } from "../utils/imageUtils";
+import {
+  FolderTree, Image, LayoutDashboard, LucideIcon, Mail, Package, Receipt, Settings, Shirt, ShoppingBag, Star, User, X,
+} from "lucide-react";
 
-const menu = [
-  { label: "Dashboard", to: "/" },
-  { label: "Product Management", to: "/products" },
-  { label: "Category Management", to: "/categories" },
-  { label: "Review Management", to: "/reviews" },
-  { label: "Enquiry Management", to: "/enquiry-management" },
-  { label: "Banner Management", to: "/banners" },
-  { label: "Site Settings", to: "/site-settings" },
-  { label: "My Profile", to: "/profile" },
+interface MenuItem { label: string; to: string; icon: LucideIcon; match?: string }
+
+const groups: { title: string; items: MenuItem[] }[] = [
+  {
+    title: "Overview",
+    items: [{ label: "Dashboard", to: "/", icon: LayoutDashboard }],
+  },
+  {
+    title: "Sales",
+    items: [
+      { label: "Website Orders", to: "/orders", icon: ShoppingBag },
+      { label: "Invoices", to: "/invoices", icon: Receipt },
+      { label: "Enquiries", to: "/enquiry-management", icon: Mail },
+    ],
+  },
+  {
+    title: "Catalogue",
+    items: [
+      { label: "Design Studio Pricing", to: "/garments", icon: Shirt },
+      { label: "Products", to: "/products", icon: Package },
+      { label: "Categories", to: "/categories", icon: FolderTree },
+      { label: "Reviews", to: "/reviews", icon: Star },
+      { label: "Banners", to: "/banners", icon: Image },
+    ],
+  },
+  {
+    title: "Account",
+    items: [
+      { label: "Site Settings", to: "/site-settings", icon: Settings },
+      { label: "My Profile", to: "/profile", icon: User },
+    ],
+  },
 ];
 
-const Sidebar: FC = () => {
-  const location = useLocation();
-  const [companyName, setCompanyName] = useState("Astitva Creations");
-  const [logoUrl, setLogoUrl] = useState("");
+interface SidebarProps {
+  companyName: string;
+  logoUrl: string;
+  open: boolean;
+  onClose: () => void;
+}
 
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const data = await getSiteSettings();
-        if (data.companyName) setCompanyName(data.companyName);
-        if (data.logoUrl) setLogoUrl(getImageUrl(data.logoUrl));
-      } catch (err) {
-        console.error("Sidebar settings error:", err);
-      }
-    };
-    fetchSettings();
-  }, []);
+const Sidebar: FC<SidebarProps> = ({ companyName, logoUrl, open, onClose }) => {
+  const { pathname } = useLocation();
+  const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`));
 
   return (
-    <aside className="w-64 min-h-screen sticky left-0 top-0 flex flex-col bg-white/80 backdrop-blur-xl shadow-xl rounded-r-3xl py-8 px-2">
-      {/* Branding */}
-      <div className="flex items-center gap-3 mb-8 px-4">
-        {logoUrl ? (
-          <img
-            src={logoUrl}
-            alt="Logo"
-            className="w-10 h-10 rounded-xl object-contain shadow-md border border-gray-100 p-0.5"
-          />
-        ) : (
-          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-lg text-xl shrink-0">
-            {companyName.charAt(0)}
-          </div>
-        )}
-        <span className="text-base font-extrabold tracking-wide text-gray-800 uppercase leading-tight line-clamp-2">
-          {companyName}
-        </span>
-      </div>
-      {/* Menu */}
-      <nav className="flex-1">
-        <ul className="space-y-1">
-          {menu.map((item) => (
-            <li key={item.to}>
-              <Link
-                to={item.to}
-                className={`flex items-center gap-4 px-6 py-3 rounded-xl transition-all duration-150 
-                  ${location.pathname === item.to
-                    ? "bg-indigo-600 text-white shadow-lg font-semibold scale-105"
-                    : "text-gray-700 hover:bg-indigo-100 hover:text-indigo-700"
-                  }
-                `}
-              >
-                <span>{item.label}</span>
-              </Link>
-            </li>
+    <>
+      {open && <div className="fixed inset-0 z-40 bg-ink/50 backdrop-blur-sm lg:hidden" onClick={onClose} />}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-68 flex-col bg-ink text-white transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
+        style={{ width: 272 }}
+      >
+        <div className="flex items-center justify-between gap-3 px-5 py-6">
+          <Link to="/" className="flex min-w-0 items-center gap-3" onClick={onClose}>
+            {logoUrl ? (
+              <img src={logoUrl} alt="" className="h-10 w-10 shrink-0 rounded-xl bg-white object-contain p-0.5" />
+            ) : (
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent font-display text-lg font-extrabold">
+                {companyName.charAt(0)}
+              </span>
+            )}
+            <span className="min-w-0">
+              <span className="block truncate font-display text-[15px] font-extrabold uppercase tracking-tight">{companyName}</span>
+              <span className="block text-[11px] text-white/40">Admin dashboard</span>
+            </span>
+          </Link>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 lg:hidden" aria-label="Close menu">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-6">
+          {groups.map(group => (
+            <div key={group.title}>
+              <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">{group.title}</p>
+              <ul className="space-y-0.5">
+                {group.items.map(({ label, to, icon: Icon }) => {
+                  const active = isActive(to);
+                  return (
+                    <li key={to}>
+                      <Link
+                        to={to}
+                        onClick={onClose}
+                        className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-white text-ink" : "text-white/65 hover:bg-white/[0.07] hover:text-white"}`}
+                      >
+                        <Icon className={`h-[18px] w-[18px] ${active ? "text-accent" : ""}`} />
+                        {label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           ))}
-        </ul>
-      </nav>
-      {/* Footer */}
-      <div className="mt-10 px-6">
-        <div className="text-xs text-gray-400 text-center opacity-70">© 2026 {companyName}</div>
-      </div>
-    </aside>
+        </nav>
+
+        <div className="border-t border-white/10 px-5 py-4 text-[11px] text-white/30">© {new Date().getFullYear()} {companyName}</div>
+      </aside>
+    </>
   );
 };
 

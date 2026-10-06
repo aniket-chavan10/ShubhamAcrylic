@@ -10,12 +10,12 @@ const seedAdmins = async () => {
     const pass1 = await bcrypt.hash('p@sswor1', 10);
     const pass2 = await bcrypt.hash('admin123', 10);
 
-    // 1. admin@shubhamacrylic.com (Username: admin) -> password: p@sswor1
-    let admin1 = await User.findOne({ where: { email: 'admin@shubhamacrylic.com' } });
+    // 1. admin@astitvacreations.shop (Username: admin) -> password: p@sswor1
+    let admin1 = await User.findOne({ where: { email: 'admin@astitvacreations.shop' } });
     if (admin1) {
       await admin1.update({ password: pass1, isMaster: true });
     } else {
-      await User.create({ username: 'admin', email: 'admin@shubhamacrylic.com', password: pass1, isMaster: true });
+      await User.create({ username: 'admin', email: 'admin@astitvacreations.shop', password: pass1, isMaster: true });
     }
 
     // 2. admin@shubhamtees.com (Username: admin_tees) -> password: admin123

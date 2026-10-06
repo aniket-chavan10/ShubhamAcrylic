@@ -8,6 +8,11 @@ import ReviewManagement from './pages/ReviewManagement';
 import CategoryManagement from './pages/CategoryManagement';
 import SiteSettings from './pages/SiteSettings';
 import ProfilePage from './pages/ProfilePage';
+import GarmentManagement from './pages/GarmentManagement';
+import OrderManagement from './pages/OrderManagement';
+import InvoiceList from './pages/InvoiceList';
+import InvoiceEditor from './pages/InvoiceEditor';
+import InvoicePrint from './pages/InvoicePrint';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -16,6 +21,12 @@ function App() {
                         <Routes>
                                 <Route path="/login" element={<Login />} />
                                 <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                                <Route path="/orders" element={<ProtectedRoute><OrderManagement /></ProtectedRoute>} />
+                                <Route path="/invoices" element={<ProtectedRoute><InvoiceList /></ProtectedRoute>} />
+                                <Route path="/invoices/new" element={<ProtectedRoute><InvoiceEditor /></ProtectedRoute>} />
+                                <Route path="/invoices/:id/edit" element={<ProtectedRoute><InvoiceEditor /></ProtectedRoute>} />
+                                <Route path="/invoices/:id/print" element={<ProtectedRoute><InvoicePrint /></ProtectedRoute>} />
+                                <Route path="/garments" element={<ProtectedRoute><GarmentManagement /></ProtectedRoute>} />
                                 <Route path="/products" element={<ProtectedRoute><ManageProducts /></ProtectedRoute>} />
                                 <Route path="/categories" element={<ProtectedRoute><CategoryManagement /></ProtectedRoute>} />
                                 <Route path="/enquiry-management" element={<ProtectedRoute><EnquiryManagement /></ProtectedRoute>} />

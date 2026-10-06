@@ -29,6 +29,7 @@ exports.updateSettings = async (req, res) => {
       aboutSubtitle, aboutTitle, aboutDescription,
       feature1Title, feature1Desc, feature2Title, feature2Desc,
       feature3Title, feature3Desc, feature4Title, feature4Desc,
+      gstin, bankDetails, upiId, invoiceTerms,
     } = req.body;
 
     // Support multiple uploaded files (req.files) or single file (req.file)
@@ -76,6 +77,11 @@ exports.updateSettings = async (req, res) => {
       feature3Desc: feature3Desc !== undefined ? feature3Desc : settings.feature3Desc,
       feature4Title: feature4Title !== undefined ? feature4Title : settings.feature4Title,
       feature4Desc: feature4Desc !== undefined ? feature4Desc : settings.feature4Desc,
+
+      gstin: gstin !== undefined ? gstin : settings.gstin,
+      bankDetails: bankDetails !== undefined ? bankDetails : settings.bankDetails,
+      upiId: upiId !== undefined ? upiId : settings.upiId,
+      invoiceTerms: invoiceTerms !== undefined ? invoiceTerms : settings.invoiceTerms,
 
       ...(logoUrl ? { logoUrl } : {}),
       ...(aboutImage1Url ? { aboutImage1: aboutImage1Url } : {}),

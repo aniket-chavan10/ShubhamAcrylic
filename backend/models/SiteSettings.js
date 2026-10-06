@@ -108,6 +108,25 @@ const SiteSettings = sequelize.define('SiteSettings', {
     type: DataTypes.TEXT,
     defaultValue: 'Bespoke oversized fits, custom embroidery, and corporate branding.',
   },
+  // ── Invoicing ─────────────────────────────────────────────────────────────
+  gstin: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+  },
+  bankDetails: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Free text printed on invoices (bank name, A/C no, IFSC)',
+  },
+  upiId: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+  },
+  invoiceTerms: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    defaultValue: 'Goods once sold will not be taken back.\nCustom printed items cannot be returned or exchanged.\nSubject to local jurisdiction.',
+  },
 }, {
   tableName: 'site_settings',
   timestamps: true,

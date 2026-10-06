@@ -1,151 +1,99 @@
-import { useState } from 'react';
-import { Phone, Mail, Menu, X } from 'lucide-react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
+import { ArrowUpRight, Menu, X } from 'lucide-react';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 
-const Navbar = () => {
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const navigate = useNavigate();
-    const location = useLocation();
+const links = [
+    { to: '/', label: 'Home' },
+    { to: '/shop', label: 'Shop' },
+    { to: '/customize', label: 'Design Studio' },
+    { to: '/about', label: 'About' },
+    { to: '/contact', label: 'Contact' },
+];
+
+export function BrandMark({ light = false }: { light?: boolean }) {
     const { settings, getLogoUrl } = useSiteSettings();
-
     const companyName = settings?.companyName || 'Astitva Creations';
-    const phone = settings?.phone || '';
-    const email = settings?.email || '';
     const logoUrl = getLogoUrl();
+    return (
+        <span className="flex items-center gap-2.5">
+            {logoUrl ? (
+                <img src={logoUrl} alt="" className={`h-9 w-9 rounded-xl object-contain ${light ? 'bg-white p-0.5' : ''}`} />
+            ) : (
+                <span className={`grid h-9 w-9 place-items-center rounded-xl font-display text-lg font-extrabold ${light ? 'bg-white text-ink' : 'bg-ink text-white'}`}>
+                    {companyName.charAt(0)}
+                </span>
+            )}
+            <span className={`font-display text-lg font-extrabold uppercase leading-none tracking-tight ${light ? 'text-white' : 'text-ink'}`}>
+                {companyName}
+            </span>
+        </span>
+    );
+}
 
-    const handleNavClick = (e: React.MouseEvent, sectionId: string) => {
-        e.preventDefault();
-        setIsMobileMenuOpen(false);
+const Navbar = () => {
+    const [open, setOpen] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+    const location = useLocation();
 
-        if (location.pathname !== '/') {
-            navigate('/');
-            setTimeout(() => {
-                const element = document.getElementById(sectionId);
-                if (element) {
-                    element.scrollIntoView({ behavior: 'smooth' });
-                } else {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-            }, 100);
-        } else {
-            const element = document.getElementById(sectionId);
-            if (element) {
-                element.scrollIntoView({ behavior: 'smooth' });
-            } else if (sectionId === 'home') {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        }
-    };
+    useEffect(() => setOpen(false), [location.pathname]);
 
-    const navLinks = [
-        { id: 'home', label: 'Home' },
-        { id: 'products', label: 'Products' },
-        { id: 'about', label: 'About' },
-        { id: 'contact', label: 'Contact' },
-    ];
+    useEffect(() => {
+        const onScroll = () => setScrolled(window.scrollY > 8);
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
 
     return (
-        <nav className="bg-white shadow-md sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-16 sm:h-20">
-                    {/* Logo */}
-                    <Link to="/" onClick={(e) => handleNavClick(e, 'home')} className="flex items-center gap-2 sm:gap-3 shrink-0">
-                        {logoUrl ? (
-                            <img
-                                src={logoUrl}
-                                alt={`${companyName} logo`}
-                                className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-contain shadow-lg"
-                            />
-                        ) : (
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl sm:text-2xl shadow-lg">
-                                {companyName.charAt(0)}
-                            </div>
-                        )}
-                        <div className="min-w-0">
-                            <span className="font-bold text-lg sm:text-2xl text-gray-900 block leading-none truncate max-w-[150px] sm:max-w-[250px]">
-                                {companyName}
-                            </span>
-                        </div>
+        <header className={`sticky top-0 z-50 transition-all duration-300 ${scrolled || open ? 'border-b border-line bg-paper/90 backdrop-blur-xl' : 'bg-paper'}`}>
+            <div className="container-x flex h-16 items-center justify-between sm:h-[72px]">
+                <Link to="/" aria-label="Home"><BrandMark /></Link>
+
+                <nav className="hidden items-center gap-1 md:flex">
+                    {links.map(l => (
+                        <NavLink
+                            key={l.to}
+                            to={l.to}
+                            end={l.to === '/'}
+                            className={({ isActive }) =>
+                                `rounded-full px-4 py-2 text-sm font-medium transition ${isActive ? 'bg-ink/[0.06] text-ink' : 'text-muted hover:text-ink'}`}
+                        >
+                            {l.label}
+                        </NavLink>
+                    ))}
+                </nav>
+
+                <div className="flex items-center gap-2">
+                    <Link to="/customize" className="btn-primary hidden px-5 py-2.5 sm:inline-flex">
+                        Design yours <ArrowUpRight className="h-4 w-4" />
                     </Link>
-
-                    {/* Desktop Navigation */}
-                    <div className="hidden md:flex items-center space-x-6 lg:space-x-8">
-                        {navLinks.map(link => (
-                            <a
-                                key={link.id}
-                                href={`#${link.id}`}
-                                onClick={(e) => handleNavClick(e, link.id)}
-                                className="text-gray-700 hover:text-indigo-600 font-medium transition-colors cursor-pointer text-sm lg:text-base"
-                            >
-                                {link.label}
-                            </a>
-                        ))}
-                    </div>
-
-                    {/* Contact Info - Desktop only */}
-                    <div className="hidden lg:flex items-center space-x-4 xl:space-x-6 text-sm shrink-0">
-                        {phone && (
-                            <a href={`tel:${phone}`} className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors">
-                                <Phone size={16} className="text-indigo-600" />
-                                <span className="font-medium">{phone}</span>
-                            </a>
-                        )}
-                        {email && (
-                            <a href={`mailto:${email}`} className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors">
-                                <Mail size={16} className="text-indigo-600" />
-                                <span className="font-medium">{email}</span>
-                            </a>
-                        )}
-                    </div>
-
-                    {/* Mobile Menu Button */}
                     <button
-                        className="md:hidden text-gray-700 p-2 -mr-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+                        className="grid h-10 w-10 place-items-center rounded-full hover:bg-ink/5 md:hidden"
+                        onClick={() => setOpen(o => !o)}
+                        aria-label={open ? 'Close menu' : 'Open menu'}
+                        aria-expanded={open}
                     >
-                        {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                        {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                     </button>
                 </div>
             </div>
 
-            {/* Mobile Menu */}
-            {isMobileMenuOpen && (
-                <div className="md:hidden bg-gray-50 border-t">
-                    <div className="px-4 py-3 space-y-1">
-                        {navLinks.map(link => (
-                            <a
-                                key={link.id}
-                                href={`#${link.id}`}
-                                onClick={(e) => handleNavClick(e, link.id)}
-                                className="block py-3 px-3 text-gray-700 font-medium hover:text-indigo-600 hover:bg-indigo-50 rounded-lg cursor-pointer transition-colors text-base"
-                            >
-                                {link.label}
-                            </a>
+            {open && (
+                <nav className="container-x animate-fade-up pb-6 md:hidden">
+                    <ul className="divide-y divide-line border-y border-line">
+                        {links.map(l => (
+                            <li key={l.to}>
+                                <NavLink to={l.to} end={l.to === '/'} className={({ isActive }) => `flex items-center justify-between py-4 font-display text-2xl font-bold ${isActive ? 'text-accent' : 'text-ink'}`}>
+                                    {l.label} <ArrowUpRight className="h-5 w-5" />
+                                </NavLink>
+                            </li>
                         ))}
-
-                        {/* Contact info in mobile menu */}
-                        {(phone || email) && (
-                            <div className="border-t border-gray-200 mt-2 pt-3 space-y-2">
-                                {phone && (
-                                    <a href={`tel:${phone}`} className="flex items-center gap-3 py-2 px-3 text-gray-600 hover:text-indigo-600 transition-colors">
-                                        <Phone size={16} className="text-indigo-600 shrink-0" />
-                                        <span className="text-sm font-medium">{phone}</span>
-                                    </a>
-                                )}
-                                {email && (
-                                    <a href={`mailto:${email}`} className="flex items-center gap-3 py-2 px-3 text-gray-600 hover:text-indigo-600 transition-colors">
-                                        <Mail size={16} className="text-indigo-600 shrink-0" />
-                                        <span className="text-sm font-medium">{email}</span>
-                                    </a>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
+                    </ul>
+                    <Link to="/customize" className="btn-accent mt-5 w-full">Start designing</Link>
+                </nav>
             )}
-        </nav>
+        </header>
     );
 };
 

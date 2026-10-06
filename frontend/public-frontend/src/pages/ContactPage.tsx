@@ -1,104 +1,62 @@
-// src/pages/ContactPage.tsx
+import { Mail, MapPin, Phone } from 'lucide-react';
 import EnquiryForm from '../components/EnquiryForm';
-import { MapPin } from 'lucide-react';
-
-const COLORS = {
-  blue: '#2690bc',
-  orange: '#d68835',
-  teal: '#36b2a5',
-  magenta: '#a83a7f',
-};
+import { WhatsAppIcon } from '../components/WhatsAppButton';
+import { useSiteSettings } from '../context/SiteSettingsContext';
+import { waLink } from '../utils/format';
 
 const ContactPage = () => {
+  const { settings } = useSiteSettings();
+  const brand = settings?.companyName || 'Astitva Creations';
+
+  const channels = [
+    settings?.whatsappNumber && {
+      icon: WhatsAppIcon, label: 'WhatsApp', value: 'Chat with our team',
+      href: waLink(settings.whatsappNumber, `Hi ${brand}! I have a question about custom apparel.`),
+    },
+    settings?.phone && { icon: Phone, label: 'Call us', value: settings.phone, href: `tel:${settings.phone}` },
+    settings?.email && { icon: Mail, label: 'Email', value: settings.email, href: `mailto:${settings.email}` },
+  ].filter(Boolean) as { icon: React.ComponentType<{ className?: string }>; label: string; value: string; href: string }[];
+
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* Hero */}
-      <section className="border-b border-slate-200 bg-white/80 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="grid gap-8 md:grid-cols-[1.4fr_1fr] items-center">
-            <div>
-              <p
-                className="text-[11px] font-semibold uppercase tracking-[0.24em] mb-2"
-                style={{ color: COLORS.teal }}
-              >
-                Contact us
-              </p>
-              <h1 className="text-3xl md:text-4xl font-semibold text-slate-900 mb-3">
-                Let&apos;s plan your next acrylic project.
-              </h1>
-              <p className="text-sm md:text-base text-slate-600 leading-relaxed">
-                Share your drawings, sizes or basic idea and the team will help you
-                choose the right sinks, shutters, dots and drawer fronts for your
-                space.
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-slate-900 text-slate-50 p-5 space-y-3">
-              <div className="flex items-center gap-2">
-                <span
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full"
-                  style={{ backgroundColor: COLORS.magenta }}
-                >
-                  <MapPin size={18} className="text-white" />
-                </span>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em]">
-                    Visit our store
-                  </p>
-                  <p className="text-sm text-slate-200">
-                    Your store name, street address, city, state, PIN
-                  </p>
-                </div>
-              </div>
-              <p className="text-xs text-slate-300">
-                Store hours: Mon–Sat, 9:00 AM – 6:00 PM  
-                Call for appointments on large projects or site visits.
-              </p>
-            </div>
-          </div>
+    <>
+      <section className="border-b border-line bg-white">
+        <div className="container-x py-14 sm:py-20">
+          <p className="eyebrow">Contact</p>
+          <h1 className="mt-3 max-w-3xl font-display text-4xl font-extrabold tracking-tight sm:text-6xl">Let's make something people want to wear.</h1>
+          <p className="mt-4 max-w-xl text-muted">Questions, bulk orders or a design you need help with — send us a message and we'll get back to you.</p>
         </div>
       </section>
 
-      {/* Form + Map */}
-      <section className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr] items-start">
-          {/* Reuse your existing form */}
-          <div className="rounded-2xl border border-slate-200 bg-white/90 shadow-sm">
-            <EnquiryForm />
-          </div>
-
-          {/* Map + contact info */}
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
-              <h2 className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-slate-700">
-                Our location
-              </h2>
-              <p className="mb-3 text-sm text-slate-600">
-                Customers and partners can visit our display studio and discuss finishes,
-                sizing and installation details with our team.
-              </p>
-
-              {/* Replace src with your own Google Maps embed URL */}
-              <div className="overflow-hidden rounded-xl border border-slate-200">
-                <iframe
-                  title="Creative Finishes store location"
-                  src="https://www.google.com/maps/embed?pb=YOUR_EMBED_CODE_HERE"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  style={{ border: 0, width: '100%', height: '260px' }}
-                  allowFullScreen
-                />
-              </div>
-
-              <div className="mt-3 text-xs text-slate-500">
-                Paste your own Google Maps embed URL in the <code>src</code> above from
-                Google Maps &gt; Share &gt; Embed a map. [web:124][web:130]
-              </div>
+      <section className="container-x grid gap-10 py-14 lg:grid-cols-5">
+        <div className="space-y-4 lg:col-span-2">
+          {channels.map(({ icon: Icon, label, value, href }) => (
+            <a key={label} href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noreferrer"
+              className="group flex items-center gap-4 rounded-3xl bg-white p-5 ring-1 ring-line transition hover:ring-ink">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-paper transition group-hover:bg-accent group-hover:text-white"><Icon className="h-5 w-5" /></span>
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold uppercase tracking-wider text-muted">{label}</span>
+                <span className="block truncate font-semibold">{value}</span>
+              </span>
+            </a>
+          ))}
+          {settings?.address && (
+            <div className="flex gap-4 rounded-3xl bg-white p-5 ring-1 ring-line">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-paper"><MapPin className="h-5 w-5" /></span>
+              <span>
+                <span className="block text-xs font-semibold uppercase tracking-wider text-muted">Visit</span>
+                <span className="block whitespace-pre-line font-medium">{settings.address}</span>
+              </span>
             </div>
-          </div>
+          )}
+          {settings?.googleMapsEmbed && (
+            <iframe title="Map" src={settings.googleMapsEmbed} className="h-64 w-full rounded-3xl border-0 ring-1 ring-line" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+          )}
+        </div>
+        <div className="lg:col-span-3">
+          <EnquiryForm />
         </div>
       </section>
-    </main>
+    </>
   );
 };
 

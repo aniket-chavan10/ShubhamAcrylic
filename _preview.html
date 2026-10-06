@@ -1,0 +1,3667 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Preview harness</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=Anton&family=Bebas+Neue&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:ital,wght@1,700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/typescript/5.4.5/typescript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style type="text/tailwindcss">
+
+/* ── Design tokens ─────────────────────────────────────────────────────────── */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Bricolage Grotesque", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink: #0e0e0f;
+  --color-ink-soft: #1c1c1e;
+  --color-paper: #f5f3ee;
+  --color-paper-deep: #ebe8e0;
+  --color-line: #e2ded4;
+  --color-muted: #6b6a66;
+  --color-accent: #ff5a1f;
+  --color-accent-dark: #e2470f;
+  --color-accent-soft: #ffe7dc;
+  --color-success: #1f9d55;
+
+  --animate-marquee: marquee 32s linear infinite;
+  --animate-fade-up: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* ── Reusable components ──────────────────────────────────────────────────── */
+@layer components {
+  .container-x {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted;
+  }
+
+  .btn,
+  .btn-primary,
+  .btn-accent,
+  .btn-outline,
+  .btn-ghost-light {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-ink text-white hover:bg-accent;
+  }
+  .btn-accent {
+    @apply bg-accent text-white hover:bg-accent-dark;
+  }
+  .btn-outline {
+    @apply border border-ink/15 bg-white text-ink hover:border-ink;
+  }
+  .btn-ghost-light {
+    @apply border border-white/25 text-white hover:bg-white hover:text-ink;
+  }
+
+  .field {
+    @apply w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink outline-none transition placeholder:text-muted/70 focus:border-ink focus:ring-4 focus:ring-ink/5;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted;
+  }
+
+  .card {
+    @apply rounded-3xl border border-line bg-white;
+  }
+}
+
+/* Hide scrollbar on horizontal chip rows */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+</style></head><body><div id="root"></div>
+<script>
+window.__garments = (() => {
+  const sizes = [{label:'S',extra:0},{label:'M',extra:0},{label:'L',extra:0},{label:'XL',extra:0},{label:'XXL',extra:50},{label:'3XL',extra:100}];
+  return [
+    { id: 1, key: 'hoodie', style: 'hoodie', name: 'Classic Hoodie', tagline: 'Heavyweight fleece, made for your artwork', fabric: '320 GSM Cotton Fleece', basePrice: '500.00', sizes,
+      colors: [{name:'Jet Black',hex:'#141414'},{name:'Off White',hex:'#f3f1ea'},{name:'Grey Melange',hex:'#a3a3a3'},{name:'Navy',hex:'#1f2a44'},{name:'Maroon',hex:'#6d1b2b'},{name:'Bottle Green',hex:'#1e4d3a'}],
+      placements: [
+        { key: 'chest', label: 'Left Chest (over heart)', view: 'front', price: 100, x: 0.56, y: 0.30, w: 0.13, h: 0.11, enabled: true },
+        { key: 'front', label: 'Front / Stomach – Large', view: 'front', price: 300, x: 0.33, y: 0.43, w: 0.34, h: 0.24, enabled: true },
+        { key: 'back', label: 'Full Back', view: 'back', price: 350, x: 0.31, y: 0.36, w: 0.38, h: 0.42, enabled: true }] },
+    { id: 2, key: 'oversized-tee', style: 'oversized-tee', name: 'Oversized Tee', tagline: 'Drop-shoulder, boxy fit, 240 GSM', fabric: '240 GSM Bio-washed Cotton', basePrice: '399.00', sizes,
+      colors: [{name:'Jet Black',hex:'#141414'},{name:'Pure White',hex:'#fafafa'},{name:'Beige',hex:'#d8c7a8'},{name:'Lavender',hex:'#b9a7d6'},{name:'Red',hex:'#c62828'},{name:'Olive',hex:'#5b6236'}],
+      placements: [
+        { key: 'chest', label: 'Left Chest (over heart)', view: 'front', price: 80, x: 0.56, y: 0.27, w: 0.14, h: 0.12, enabled: true },
+        { key: 'front', label: 'Front / Stomach – Large', view: 'front', price: 200, x: 0.33, y: 0.42, w: 0.34, h: 0.36, enabled: true },
+        { key: 'back', label: 'Full Back', view: 'back', price: 250, x: 0.30, y: 0.22, w: 0.40, h: 0.50, enabled: true }] },
+    { id: 3, key: 'polo', style: 'polo', name: 'Polo T-Shirt', tagline: 'Pique cotton, smart and comfortable', fabric: '220 GSM Cotton Pique', basePrice: '449.00', sizes,
+      colors: [{name:'Pure White',hex:'#fafafa'},{name:'Jet Black',hex:'#141414'},{name:'Navy',hex:'#1f2a44'},{name:'Royal Blue',hex:'#2747a3'},{name:'Red',hex:'#c62828'},{name:'Grey Melange',hex:'#a3a3a3'}],
+      placements: [
+        { key: 'chest', label: 'Left Chest (over heart)', view: 'front', price: 100, x: 0.565, y: 0.30, w: 0.12, h: 0.10, enabled: true },
+        { key: 'front', label: 'Front / Stomach – Large', view: 'front', price: 250, x: 0.35, y: 0.44, w: 0.30, h: 0.30, enabled: true },
+        { key: 'back', label: 'Full Back', view: 'back', price: 300, x: 0.32, y: 0.22, w: 0.36, h: 0.44, enabled: true }] },
+  ];
+})();
+window.__start = '/customize/oversized-tee';
+</script>
+<script type="text/plain" data-path="src/App.tsx">
+import { lazy, Suspense } from 'react';
+import { Link, Route, Routes } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
+import { SiteSettingsProvider } from './context/SiteSettingsContext';
+import MainLayout from './components/MainLayout';
+import HomePage from './pages/HomePage';
+import ShopPage from './pages/ShopPage';
+import ProductDetails from './pages/ProductDetails';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsConditions from './pages/TermsConditions';
+
+// fabric.js is only needed in the design studio, so load it on demand
+const CustomizePage = lazy(() => import('./pages/CustomizePage'));
+
+const PageLoader = () => (
+  <div className="grid min-h-[70vh] place-items-center">
+    <Loader2 className="h-8 w-8 animate-spin text-accent" />
+  </div>
+);
+
+const NotFound = () => (
+  <div className="container-x grid min-h-[60vh] place-items-center text-center">
+    <div>
+      <p className="font-display text-8xl font-extrabold text-accent">404</p>
+      <h1 className="mt-2 font-display text-2xl font-bold">This page went out of print.</h1>
+      <Link to="/" className="btn-primary mt-6">Back to home</Link>
+    </div>
+  </div>
+);
+
+function App() {
+  return (
+    <SiteSettingsProvider>
+      <Routes>
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/shop" element={<ShopPage />} />
+          <Route path="/product/:id" element={<ProductDetails />} />
+          <Route path="/customize/:garmentKey?" element={<Suspense fallback={<PageLoader />}><CustomizePage /></Suspense>} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsConditions />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </SiteSettingsProvider>
+  );
+}
+
+export default App;
+</script>
+<script type="text/plain" data-path="src/components/EnquiryForm.tsx">
+import { FormEvent, useState } from 'react';
+import { CheckCircle2, Loader2, Send } from 'lucide-react';
+import { createEnquiry, errorMessage } from '../services/api';
+
+const EMPTY = { name: '', email: '', mobileNo: '', message: '' };
+
+/** General enquiry / bulk order form (Contact page and home page) */
+const EnquiryForm = ({ compact = false }: { compact?: boolean }) => {
+    const [form, setForm] = useState(EMPTY);
+    const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+    const [error, setError] = useState('');
+
+    const update = (key: keyof typeof EMPTY) =>
+        (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm(f => ({ ...f, [key]: e.target.value }));
+
+    const submit = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
+            setError('Please fill in your name, email and message.');
+            return;
+        }
+        if (form.mobileNo.replace(/\D/g, '').length < 10) {
+            setError('Please enter a valid mobile number.');
+            return;
+        }
+        setError('');
+        setStatus('sending');
+        try {
+            await createEnquiry(form);
+            setStatus('sent');
+            setForm(EMPTY);
+        } catch (err) {
+            setError(errorMessage(err));
+            setStatus('idle');
+        }
+    };
+
+    if (status === 'sent') {
+        return (
+            <div className="flex flex-col items-center rounded-3xl bg-white p-10 text-center ring-1 ring-line">
+                <CheckCircle2 className="h-12 w-12 text-success" strokeWidth={1.5} />
+                <h3 className="mt-4 font-display text-2xl font-bold">Message received!</h3>
+                <p className="mt-2 max-w-sm text-sm text-muted">Thanks for reaching out. Our team will get back to you within one working day.</p>
+                <button onClick={() => setStatus('idle')} className="btn-outline mt-6">Send another message</button>
+            </div>
+        );
+    }
+
+    return (
+        <form onSubmit={submit} className="space-y-4 rounded-3xl bg-white p-6 ring-1 ring-line sm:p-8">
+            <div className={`grid gap-4 ${compact ? '' : 'sm:grid-cols-2'}`}>
+                <div>
+                    <label className="label" htmlFor="enq-name">Name</label>
+                    <input id="enq-name" className="field" autoComplete="name" value={form.name} onChange={update('name')} />
+                </div>
+                <div>
+                    <label className="label" htmlFor="enq-phone">Mobile</label>
+                    <input id="enq-phone" className="field" type="tel" autoComplete="tel" value={form.mobileNo} onChange={update('mobileNo')} />
+                </div>
+                <div className={compact ? '' : 'sm:col-span-2'}>
+                    <label className="label" htmlFor="enq-email">Email</label>
+                    <input id="enq-email" className="field" type="email" autoComplete="email" value={form.email} onChange={update('email')} />
+                </div>
+                <div className={compact ? '' : 'sm:col-span-2'}>
+                    <label className="label" htmlFor="enq-msg">What are you looking for?</label>
+                    <textarea id="enq-msg" rows={4} className="field resize-none" value={form.message} onChange={update('message')}
+                        placeholder="e.g. 60 black hoodies with our college logo on the back, needed by 20th…" />
+                </div>
+            </div>
+            {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+            <button type="submit" disabled={status === 'sending'} className="btn-primary w-full sm:w-auto">
+                {status === 'sending' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Send enquiry
+            </button>
+        </form>
+    );
+};
+
+export default EnquiryForm;
+</script>
+<script type="text/plain" data-path="src/components/Footer.tsx">
+import { Link } from 'react-router-dom';
+import { Facebook, Instagram, Mail, MapPin, Phone, Twitter, Youtube } from 'lucide-react';
+import { useSiteSettings } from '../context/SiteSettingsContext';
+import { BrandMark } from './Navbar';
+
+const Footer = () => {
+    const { settings } = useSiteSettings();
+    const companyName = settings?.companyName || 'Astitva Creations';
+    const year = new Date().getFullYear();
+
+    const socials = [
+        { href: settings?.instagramUrl, icon: Instagram, label: 'Instagram' },
+        { href: settings?.facebookUrl, icon: Facebook, label: 'Facebook' },
+        { href: settings?.twitterUrl, icon: Twitter, label: 'X / Twitter' },
+        { href: settings?.youtubeUrl, icon: Youtube, label: 'YouTube' },
+    ].filter(s => s.href);
+
+    return (
+        <footer className="bg-ink text-white">
+            <div className="container-x py-16 sm:py-20">
+                <div className="flex flex-col gap-10 border-b border-white/10 pb-14 lg:flex-row lg:items-end lg:justify-between">
+                    <h2 className="max-w-2xl font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl">
+                        Your idea. <span className="text-accent">Our ink.</span> Worn everywhere.
+                    </h2>
+                    <Link to="/customize" className="btn-accent self-start px-8 py-4 text-base lg:self-auto">Start designing</Link>
+                </div>
+
+                <div className="grid gap-10 pt-14 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="space-y-4">
+                        <BrandMark light />
+                        <p className="max-w-xs text-sm leading-relaxed text-white/60">
+                            Custom printed hoodies, oversized tees and polos — made to order with premium fabrics and long-lasting prints.
+                        </p>
+                        {socials.length > 0 && (
+                            <div className="flex gap-2 pt-2">
+                                {socials.map(({ href, icon: Icon, label }) => (
+                                    <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label}
+                                        className="grid h-10 w-10 place-items-center rounded-full border border-white/15 text-white/70 transition hover:border-accent hover:bg-accent hover:text-white">
+                                        <Icon className="h-4 w-4" />
+                                    </a>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div>
+                        <h3 className="eyebrow text-white/40">Shop</h3>
+                        <ul className="mt-4 space-y-3 text-sm text-white/75">
+                            <li><Link className="hover:text-accent" to="/customize/hoodie">Custom Hoodies</Link></li>
+                            <li><Link className="hover:text-accent" to="/customize/oversized-tee">Oversized Tees</Link></li>
+                            <li><Link className="hover:text-accent" to="/customize/polo">Polo T-Shirts</Link></li>
+                            <li><Link className="hover:text-accent" to="/shop">Ready Collection</Link></li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h3 className="eyebrow text-white/40">Company</h3>
+                        <ul className="mt-4 space-y-3 text-sm text-white/75">
+                            <li><Link className="hover:text-accent" to="/about">About us</Link></li>
+                            <li><Link className="hover:text-accent" to="/contact">Contact & bulk orders</Link></li>
+                            <li><Link className="hover:text-accent" to="/privacy">Privacy policy</Link></li>
+                            <li><Link className="hover:text-accent" to="/terms">Terms & conditions</Link></li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h3 className="eyebrow text-white/40">Get in touch</h3>
+                        <ul className="mt-4 space-y-3 text-sm text-white/75">
+                            {settings?.phone && (
+                                <li><a href={`tel:${settings.phone}`} className="flex items-center gap-2.5 hover:text-accent"><Phone className="h-4 w-4 text-white/40" />{settings.phone}</a></li>
+                            )}
+                            {settings?.email && (
+                                <li><a href={`mailto:${settings.email}`} className="flex items-center gap-2.5 break-all hover:text-accent"><Mail className="h-4 w-4 shrink-0 text-white/40" />{settings.email}</a></li>
+                            )}
+                            {settings?.address && (
+                                <li className="flex gap-2.5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-white/40" /><span className="whitespace-pre-line">{settings.address}</span></li>
+                            )}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div className="border-t border-white/10">
+                <div className="container-x flex flex-col gap-2 py-6 text-xs text-white/40 sm:flex-row sm:justify-between">
+                    <p>© {year} {companyName}. All rights reserved.</p>
+                    <p>Printed with care in India.</p>
+                </div>
+            </div>
+        </footer>
+    );
+};
+
+export default Footer;
+</script>
+<script type="text/plain" data-path="src/components/MainLayout.tsx">
+import { Outlet, useLocation } from 'react-router-dom';
+import Navbar from './Navbar';
+import Footer from './Footer';
+import WhatsAppButton from './WhatsAppButton';
+import ScrollToTop from './ScrollToTop';
+import { useSiteSettings } from '../context/SiteSettingsContext';
+
+const MainLayout = () => {
+  const { settings } = useSiteSettings();
+  const { pathname } = useLocation();
+  // The design studio has its own WhatsApp link and a sticky checkout bar on mobile
+  const showWhatsApp = Boolean(settings?.whatsappNumber) && !pathname.startsWith('/customize');
+
+  return (
+    <div className="flex min-h-screen flex-col overflow-x-clip bg-paper">
+      <ScrollToTop />
+      <Navbar />
+      <main className="flex-1">
+        <Outlet />
+      </main>
+      <Footer />
+      {showWhatsApp && <WhatsAppButton phone={settings!.whatsappNumber!} />}
+    </div>
+  );
+};
+
+export default MainLayout;
+</script>
+<script type="text/plain" data-path="src/components/Navbar.tsx">
+import { useEffect, useState } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
+import { ArrowUpRight, Menu, X } from 'lucide-react';
+import { useSiteSettings } from '../context/SiteSettingsContext';
+
+const links = [
+    { to: '/', label: 'Home' },
+    { to: '/shop', label: 'Shop' },
+    { to: '/customize', label: 'Design Studio' },
+    { to: '/about', label: 'About' },
+    { to: '/contact', label: 'Contact' },
+];
+
+export function BrandMark({ light = false }: { light?: boolean }) {
+    const { settings, getLogoUrl } = useSiteSettings();
+    const companyName = settings?.companyName || 'Astitva Creations';
+    const logoUrl = getLogoUrl();
+    return (
+        <span className="flex items-center gap-2.5">
+            {logoUrl ? (
+                <img src={logoUrl} alt="" className={`h-9 w-9 rounded-xl object-contain ${light ? 'bg-white p-0.5' : ''}`} />
+            ) : (
+                <span className={`grid h-9 w-9 place-items-center rounded-xl font-display text-lg font-extrabold ${light ? 'bg-white text-ink' : 'bg-ink text-white'}`}>
+                    {companyName.charAt(0)}
+                </span>
+            )}
+            <span className={`font-display text-lg font-extrabold uppercase leading-none tracking-tight ${light ? 'text-white' : 'text-ink'}`}>
+                {companyName}
+            </span>
+        </span>
+    );
+}
+
+const Navbar = () => {
+    const [open, setOpen] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+    const location = useLocation();
+
+    useEffect(() => setOpen(false), [location.pathname]);
+
+    useEffect(() => {
+        const onScroll = () => setScrolled(window.scrollY > 8);
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
+    return (
+        <header className={`sticky top-0 z-50 transition-all duration-300 ${scrolled || open ? 'border-b border-line bg-paper/90 backdrop-blur-xl' : 'bg-paper'}`}>
+            <div className="container-x flex h-16 items-center justify-between sm:h-[72px]">
+                <Link to="/" aria-label="Home"><BrandMark /></Link>
+
+                <nav className="hidden items-center gap-1 md:flex">
+                    {links.map(l => (
+                        <NavLink
+                            key={l.to}
+                            to={l.to}
+                            end={l.to === '/'}
+                            className={({ isActive }) =>
+                                `rounded-full px-4 py-2 text-sm font-medium transition ${isActive ? 'bg-ink/[0.06] text-ink' : 'text-muted hover:text-ink'}`}
+                        >
+                            {l.label}
+                        </NavLink>
+                    ))}
+                </nav>
+
+                <div className="flex items-center gap-2">
+                    <Link to="/customize" className="btn-primary hidden px-5 py-2.5 sm:inline-flex">
+                        Design yours <ArrowUpRight className="h-4 w-4" />
+                    </Link>
+                    <button
+                        className="grid h-10 w-10 place-items-center rounded-full hover:bg-ink/5 md:hidden"
+                        onClick={() => setOpen(o => !o)}
+                        aria-label={open ? 'Close menu' : 'Open menu'}
+                        aria-expanded={open}
+                    >
+                        {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                    </button>
+                </div>
+            </div>
+
+            {open && (
+                <nav className="container-x animate-fade-up pb-6 md:hidden">
+                    <ul className="divide-y divide-line border-y border-line">
+                        {links.map(l => (
+                            <li key={l.to}>
+                                <NavLink to={l.to} end={l.to === '/'} className={({ isActive }) => `flex items-center justify-between py-4 font-display text-2xl font-bold ${isActive ? 'text-accent' : 'text-ink'}`}>
+                                    {l.label} <ArrowUpRight className="h-5 w-5" />
+                                </NavLink>
+                            </li>
+                        ))}
+                    </ul>
+                    <Link to="/customize" className="btn-accent mt-5 w-full">Start designing</Link>
+                </nav>
+            )}
+        </header>
+    );
+};
+
+export default Navbar;
+</script>
+<script type="text/plain" data-path="src/components/ProductCard.tsx">
+import { Link } from 'react-router-dom';
+import { ArrowUpRight, Shirt } from 'lucide-react';
+import type { Product } from '../types';
+import { getImageUrl } from '../utils/imageUtils';
+import { inr } from '../utils/format';
+
+const ProductCard = ({ product }: { product: Product }) => {
+    const main = product.imageUrl || product.images?.[0]?.imageUrl;
+    const hover = product.images?.[1]?.imageUrl;
+
+    return (
+        <Link to={`/product/${product.id}`} className="group block">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-paper-deep">
+                {main ? (
+                    <>
+                        <img
+                            src={getImageUrl(main)}
+                            alt={product.name}
+                            loading="lazy"
+                            className={`h-full w-full object-cover transition duration-700 group-hover:scale-105 ${hover ? 'group-hover:opacity-0' : ''}`}
+                        />
+                        {hover && (
+                            <img src={getImageUrl(hover)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-0 transition duration-700 group-hover:opacity-100" />
+                        )}
+                    </>
+                ) : (
+                    <div className="grid h-full w-full place-items-center text-muted"><Shirt className="h-12 w-12" strokeWidth={1} /></div>
+                )}
+                {product.category && (
+                    <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider backdrop-blur">
+                        {product.category.name}
+                    </span>
+                )}
+                <span className="absolute bottom-3 right-3 grid h-11 w-11 translate-y-2 place-items-center rounded-full bg-ink text-white opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100">
+                    <ArrowUpRight className="h-5 w-5" />
+                </span>
+            </div>
+            <div className="mt-4 flex items-start justify-between gap-3 px-1">
+                <div className="min-w-0">
+                    <h3 className="truncate font-semibold">{product.name}</h3>
+                    <p className="mt-0.5 truncate text-sm text-muted">{product.fabric || product.productCode}</p>
+                </div>
+                <p className="shrink-0 font-display text-lg font-bold">{inr(product.price)}</p>
+            </div>
+        </Link>
+    );
+};
+
+export default ProductCard;
+</script>
+<script type="text/plain" data-path="src/components/ScrollToTop.tsx">
+// src/components/ScrollToTop.tsx
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    // scroll window to top on every route change
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
+
+  return null;
+};
+
+export default ScrollToTop;
+</script>
+<script type="text/plain" data-path="src/components/WhatsAppButton.tsx">
+import { waLink } from '../utils/format';
+
+interface WhatsAppButtonProps {
+    phone: string;
+    message?: string;
+}
+
+const WhatsAppIcon = ({ className = '' }: { className?: string }) => (
+    <svg viewBox="0 0 32 32" className={className} fill="currentColor" aria-hidden="true">
+        <path d="M16.04 3C8.86 3 3.03 8.82 3.03 15.99c0 2.29.6 4.53 1.74 6.5L3 29l6.68-1.75a12.97 12.97 0 0 0 6.36 1.62h.01c7.17 0 13-5.82 13-12.99C29.05 8.82 23.21 3 16.04 3Zm0 23.68h-.01a10.8 10.8 0 0 1-5.5-1.5l-.4-.24-3.96 1.04 1.06-3.86-.26-.4a10.74 10.74 0 0 1-1.65-5.73c0-5.96 4.85-10.8 10.82-10.8a10.8 10.8 0 0 1 10.8 10.81c0 5.96-4.85 10.8-10.9 10.8Zm5.93-8.09c-.33-.16-1.93-.95-2.23-1.06-.3-.11-.52-.16-.74.17-.22.32-.85 1.06-1.04 1.28-.19.22-.38.24-.71.08-.33-.16-1.38-.51-2.63-1.62a9.9 9.9 0 0 1-1.82-2.26c-.19-.33-.02-.5.14-.66.15-.15.33-.38.49-.57.16-.19.22-.33.33-.54.11-.22.05-.41-.03-.57-.08-.16-.74-1.78-1.01-2.44-.27-.64-.54-.55-.74-.56h-.63c-.22 0-.57.08-.87.41-.3.32-1.14 1.11-1.14 2.71s1.17 3.15 1.33 3.36c.16.22 2.3 3.5 5.57 4.91.78.34 1.39.54 1.86.69.78.25 1.49.21 2.05.13.63-.09 1.93-.79 2.2-1.55.27-.76.27-1.41.19-1.55-.08-.13-.3-.21-.63-.38Z" />
+    </svg>
+);
+
+export { WhatsAppIcon };
+
+const WhatsAppButton = ({ phone, message = 'Hi! I would like to know more about your custom apparel.' }: WhatsAppButtonProps) => (
+    <a
+        href={waLink(phone, message)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-[#25D366] p-3.5 text-white shadow-lg shadow-black/20 transition hover:pr-5 sm:bottom-6 sm:right-6"
+        aria-label="Chat on WhatsApp"
+    >
+        <WhatsAppIcon className="h-6 w-6" />
+        <span className="hidden max-w-0 overflow-hidden whitespace-nowrap text-sm font-semibold transition-all duration-300 group-hover:max-w-40 sm:inline">
+            Chat with us
+        </span>
+    </a>
+);
+
+export default WhatsAppButton;
+</script>
+<script type="text/plain" data-path="src/context/SiteSettingsContext.tsx">
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { getSiteSettings } from '../services/api';
+import { SiteSettings } from '../types';
+
+interface SiteSettingsContextType {
+  settings: SiteSettings | null;
+  loading: boolean;
+  getLogoUrl: () => string;
+}
+
+const SiteSettingsContext = createContext<SiteSettingsContextType>({
+  settings: null,
+  loading: true,
+  getLogoUrl: () => '',
+});
+
+export const useSiteSettings = () => useContext(SiteSettingsContext);
+
+// Derive the server base URL from the API URL (strip /api suffix)
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE = API_URL.replace(/\/api\/?$/, '');
+
+export const SiteSettingsProvider = ({ children }: { children: ReactNode }) => {
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const data = await getSiteSettings();
+        setSettings(data);
+      } catch (err) {
+        console.error('Failed to load site settings:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const getLogoUrl = (): string => {
+    if (!settings?.logoUrl) return '';
+    // If already a full URL, return as-is
+    if (settings.logoUrl.startsWith('http')) return settings.logoUrl;
+    // Otherwise prepend API base
+    return `${API_BASE}${settings.logoUrl}`;
+  };
+
+  return (
+    <SiteSettingsContext.Provider value={{ settings, loading, getLogoUrl }}>
+      {children}
+    </SiteSettingsContext.Provider>
+  );
+};
+
+export default SiteSettingsContext;
+</script>
+<script type="text/plain" data-path="src/customizer/artwork.ts">
+import type { Garment, Placement, PrintDesign, PrintTransform, View } from '../types';
+import { getImageUrl } from '../utils/imageUtils';
+import { loadImage, MOCKUP_H, MOCKUP_W, renderMockup } from './mockups';
+
+export const MAX_ARTWORK_BYTES = 15 * 1024 * 1024;
+const DISPLAY_MAX_PX = 1400;
+
+export interface TextFont {
+  id: string;
+  label: string;
+  family: string;
+  weight: number;
+  style?: 'italic';
+}
+
+export const TEXT_FONTS: TextFont[] = [
+  { id: 'anton', label: 'Anton', family: '"Anton"', weight: 400 },
+  { id: 'bebas', label: 'Bebas Neue', family: '"Bebas Neue"', weight: 400 },
+  { id: 'bricolage', label: 'Bricolage', family: '"Bricolage Grotesque"', weight: 800 },
+  { id: 'marker', label: 'Marker', family: '"Permanent Marker"', weight: 400 },
+  { id: 'pacifico', label: 'Pacifico', family: '"Pacifico"', weight: 400 },
+  { id: 'playfair', label: 'Playfair', family: '"Playfair Display"', weight: 700, style: 'italic' },
+  { id: 'mono', label: 'Space Mono', family: '"Space Mono"', weight: 700 },
+];
+
+export const TEXT_COLORS = ['#ffffff', '#141414', '#ff5a1f', '#e8c547', '#c62828', '#2747a3', '#1e7a4c', '#f2a7c3'];
+
+export const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+export const DEFAULT_TRANSFORM: PrintTransform = { cx: 0.5, cy: 0.5, scale: 0.9, angle: 0 };
+
+const canvasToBlob = (canvas: HTMLCanvasElement, type = 'image/png', quality?: number): Promise<Blob> =>
+  new Promise((resolve, reject) => {
+    canvas.toBlob(b => (b ? resolve(b) : reject(new Error('Could not export image'))), type, quality);
+  });
+
+const fontCss = (f: TextFont, px: number) => `${f.style ?? ''} ${f.weight} ${px}px ${f.family}`.trim();
+
+/** Turn customer text into a transparent PNG so it prints exactly like an uploaded image */
+export async function renderTextArtwork(text: string, fontId: string, color: string) {
+  const font = TEXT_FONTS.find(f => f.id === fontId) ?? TEXT_FONTS[0];
+  const px = 220;
+  try { await document.fonts.load(fontCss(font, px), text); } catch { /* fall back to system font */ }
+
+  const lines = text.split('\n').map(l => l.trimEnd()).filter((l, i, arr) => l || arr.length === 1);
+  const measure = document.createElement('canvas').getContext('2d')!;
+  measure.font = fontCss(font, px);
+  const lineHeight = px * 1.18;
+  const pad = px * 0.25;
+  const width = Math.ceil(Math.max(...lines.map(l => measure.measureText(l || ' ').width)) + pad * 2);
+  const height = Math.ceil(lines.length * lineHeight + pad * 2);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(width, 10);
+  canvas.height = Math.max(height, 10);
+  const ctx = canvas.getContext('2d')!;
+  ctx.font = fontCss(font, px);
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  lines.forEach((line, i) => ctx.fillText(line, canvas.width / 2, pad + lineHeight * (i + 0.5)));
+
+  const blob = await canvasToBlob(canvas);
+  return { src: canvas.toDataURL('image/png'), blob };
+}
+
+/** Validate an uploaded artwork and create a lighter preview copy for the editor */
+export async function prepareImageArtwork(file: File) {
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type)) {
+    throw new Error('Please upload a PNG, JPG or WEBP image.');
+  }
+  if (file.size > MAX_ARTWORK_BYTES) {
+    throw new Error('Image is larger than 15 MB. Please upload a smaller file.');
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImage(url, false);
+    const s = Math.min(1, DISPLAY_MAX_PX / Math.max(img.width, img.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.width * s);
+    canvas.height = Math.round(img.height * s);
+    canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const isPng = file.type !== 'image/jpeg';
+    return {
+      src: canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', 0.92),
+      lowRes: Math.max(img.width, img.height) < 800,
+    };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/** Pixel rectangle of a print area on the 1000×1150 mockup canvas */
+export const zoneRect = (p: Placement) => ({
+  left: p.x * MOCKUP_W,
+  top: p.y * MOCKUP_H,
+  width: p.w * MOCKUP_W,
+  height: p.h * MOCKUP_H,
+});
+
+/** Draw the final design for one side of the garment (mockup + all prints) */
+export async function composeView(
+  garment: Garment,
+  view: View,
+  colorHex: string,
+  designs: Record<string, PrintDesign>,
+): Promise<Blob> {
+  const mockup = await renderMockup(garment, view, colorHex, getImageUrl);
+  const canvas = document.createElement('canvas');
+  canvas.width = MOCKUP_W;
+  canvas.height = MOCKUP_H;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#f5f3ee';
+  ctx.fillRect(0, 0, MOCKUP_W, MOCKUP_H);
+  ctx.drawImage(mockup, 0, 0);
+
+  for (const placement of garment.placements) {
+    const design = designs[placement.key];
+    if (placement.view !== view || !placement.enabled || !design) continue;
+    const img = await loadImage(design.src, false);
+    const z = zoneRect(placement);
+    const t = design.transform;
+    const w = t.scale * z.width;
+    const h = w * (img.height / img.width);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(z.left, z.top, z.width, z.height);
+    ctx.clip();
+    ctx.translate(z.left + t.cx * z.width, z.top + t.cy * z.height);
+    ctx.rotate((t.angle * Math.PI) / 180);
+    ctx.drawImage(img, -w / 2, -h / 2, w, h);
+    ctx.restore();
+  }
+  return canvasToBlob(canvas, 'image/jpeg', 0.9);
+}
+
+/** Initial scale so an artwork fits ("contain") inside its print area */
+export function fitScale(imgW: number, imgH: number, placement: Placement): number {
+  const z = zoneRect(placement);
+  const s = Math.min(z.width / imgW, z.height / imgH) * 0.92;
+  return (imgW * s) / z.width;
+}
+</script>
+<script type="text/plain" data-path="src/customizer/CheckoutModal.tsx">
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import { ArrowLeft, Loader2, Lock, MailCheck, ShieldCheck, X } from 'lucide-react';
+import { errorMessage, placeOrder, sendEmailOtp, verifyEmailOtp } from '../services/api';
+import type { PlacedOrder } from '../types';
+import { inr } from '../utils/format';
+
+export interface CustomerDetails {
+  customerName: string;
+  phone: string;
+  email: string;
+  address: string;
+  city: string;
+  pincode: string;
+  notes: string;
+}
+
+interface Props {
+  summary: { title: string; subtitle: string; total: number };
+  buildOrderForm: (customer: CustomerDetails) => Promise<FormData>;
+  onClose: () => void;
+  onPlaced: (order: PlacedOrder) => void;
+}
+
+type Step = 'details' | 'otp' | 'placing';
+
+const STORAGE_KEY = 'ac_checkout_details';
+const EMPTY: CustomerDetails = { customerName: '', phone: '', email: '', address: '', city: '', pincode: '', notes: '' };
+
+const loadSaved = (): CustomerDetails => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? { ...EMPTY, ...JSON.parse(raw), notes: '' } : EMPTY;
+  } catch {
+    return EMPTY;
+  }
+};
+
+export default function CheckoutModal({ summary, buildOrderForm, onClose, onPlaced }: Props) {
+  const [step, setStep] = useState<Step>('details');
+  const [form, setForm] = useState<CustomerDetails>(loadSaved);
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const codeRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && step !== 'placing') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [onClose, step]);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  useEffect(() => {
+    if (step === 'otp') codeRef.current?.focus();
+  }, [step]);
+
+  const update = (key: keyof CustomerDetails) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm(f => ({ ...f, [key]: e.target.value }));
+
+  const validate = (): string => {
+    if (form.customerName.trim().length < 2) return 'Please enter your full name.';
+    if (form.phone.replace(/\D/g, '').length < 10) return 'Please enter a valid 10-digit mobile number.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.email.trim())) return 'Please enter a valid email address.';
+    if (form.address.trim().length < 8) return 'Please enter your complete delivery address.';
+    if (form.pincode && !/^\d{6}$/.test(form.pincode.trim())) return 'Pincode should be 6 digits.';
+    return '';
+  };
+
+  const requestCode = async (e?: FormEvent) => {
+    e?.preventDefault();
+    const problem = validate();
+    if (problem) { setError(problem); return; }
+    setError('');
+    setBusy(true);
+    try {
+      await sendEmailOtp(form.email.trim());
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...form, notes: '' })); } catch { /* ignore */ }
+      setStep('otp');
+      setCode('');
+      setCooldown(60);
+    } catch (err) {
+      setError(errorMessage(err, 'Could not send the verification code.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verifyAndPlace = async (e?: FormEvent) => {
+    e?.preventDefault();
+    if (!/^\d{6}$/.test(code)) { setError('Enter the 6-digit code from your email.'); return; }
+    setError('');
+    setBusy(true);
+    let token = '';
+    try {
+      token = (await verifyEmailOtp(form.email.trim(), code)).verificationToken;
+    } catch (err) {
+      setError(errorMessage(err, 'Verification failed.'));
+      setBusy(false);
+      return;
+    }
+    setStep('placing');
+    try {
+      const orderForm = await buildOrderForm({ ...form, email: form.email.trim() });
+      const order = await placeOrder(orderForm, token);
+      onPlaced(order);
+    } catch (err) {
+      setError(errorMessage(err, 'We could not place your order. Please try again.'));
+      setStep('otp');
+      setCode('');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/60 backdrop-blur-sm sm:items-center sm:p-6" role="dialog" aria-modal="true">
+      <div className="max-h-[94vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl">
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-white/95 px-6 py-4 backdrop-blur">
+          <div className="flex items-center gap-2">
+            {step === 'otp' && (
+              <button onClick={() => { setStep('details'); setError(''); }} className="-ml-2 rounded-full p-2 hover:bg-paper" aria-label="Back">
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            )}
+            <div>
+              <p className="eyebrow">{step === 'details' ? 'Step 1 of 2' : 'Step 2 of 2'}</p>
+              <h2 className="font-display text-xl font-bold">{step === 'details' ? 'Delivery details' : 'Verify your email'}</h2>
+            </div>
+          </div>
+          {step !== 'placing' && (
+            <button onClick={onClose} className="rounded-full p-2 hover:bg-paper" aria-label="Close">
+              <X className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Order summary */}
+        <div className="mx-6 mt-5 flex items-center justify-between rounded-2xl bg-paper px-4 py-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">{summary.title}</p>
+            <p className="truncate text-xs text-muted">{summary.subtitle}</p>
+          </div>
+          <p className="font-display text-lg font-bold">{inr(summary.total)}</p>
+        </div>
+
+        {step === 'details' && (
+          <form onSubmit={requestCode} className="space-y-4 px-6 pb-6 pt-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className="label" htmlFor="co-name">Full name</label>
+                <input id="co-name" className="field" autoComplete="name" value={form.customerName} onChange={update('customerName')} />
+              </div>
+              <div>
+                <label className="label" htmlFor="co-phone">Mobile (WhatsApp)</label>
+                <input id="co-phone" className="field" type="tel" inputMode="tel" autoComplete="tel" value={form.phone} onChange={update('phone')} placeholder="98765 43210" />
+              </div>
+              <div>
+                <label className="label" htmlFor="co-email">Email</label>
+                <input id="co-email" className="field" type="email" autoComplete="email" value={form.email} onChange={update('email')} placeholder="you@email.com" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label" htmlFor="co-address">Delivery address</label>
+                <textarea id="co-address" rows={2} className="field resize-none" autoComplete="street-address" value={form.address} onChange={update('address')} placeholder="House / flat, street, area" />
+              </div>
+              <div>
+                <label className="label" htmlFor="co-city">City</label>
+                <input id="co-city" className="field" autoComplete="address-level2" value={form.city} onChange={update('city')} />
+              </div>
+              <div>
+                <label className="label" htmlFor="co-pin">Pincode</label>
+                <input id="co-pin" className="field" inputMode="numeric" autoComplete="postal-code" maxLength={6} value={form.pincode} onChange={update('pincode')} />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label" htmlFor="co-notes">Notes for our team (optional)</label>
+                <textarea id="co-notes" rows={2} className="field resize-none" value={form.notes} onChange={update('notes')} placeholder="e.g. print colours, delivery date, team names…" />
+              </div>
+            </div>
+
+            {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+
+            <button type="submit" disabled={busy} className="btn-primary w-full py-3.5">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MailCheck className="h-4 w-4" />}
+              Send verification code
+            </button>
+            <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted">
+              <Lock className="h-3.5 w-3.5" /> We verify every order by email to keep out fake requests.
+            </p>
+          </form>
+        )}
+
+        {(step === 'otp' || step === 'placing') && (
+          <form onSubmit={verifyAndPlace} className="space-y-5 px-6 pb-6 pt-5">
+            <p className="text-sm leading-relaxed text-muted">
+              We sent a 6-digit code to <span className="font-semibold text-ink">{form.email}</span>. It may take a minute — check your spam folder too.
+            </p>
+            <input
+              ref={codeRef}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="••••••"
+              disabled={step === 'placing'}
+              className="field text-center font-display text-3xl font-bold tracking-[0.6em]"
+              aria-label="Verification code"
+            />
+
+            {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+
+            <button type="submit" disabled={busy || code.length !== 6} className="btn-accent w-full py-3.5">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              {step === 'placing' ? 'Placing your order…' : `Verify & place order · ${inr(summary.total)}`}
+            </button>
+
+            <div className="flex items-center justify-between text-sm">
+              <button type="button" className="text-muted underline-offset-4 hover:text-ink hover:underline" onClick={() => { setStep('details'); setError(''); }} disabled={step === 'placing'}>
+                Change email
+              </button>
+              <button type="button" disabled={cooldown > 0 || busy} onClick={() => requestCode()} className="font-semibold text-accent disabled:text-muted">
+                {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+</script>
+<script type="text/plain" data-path="src/customizer/DesignCanvas.tsx">
+import { useEffect, useRef, useState } from 'react';
+import { Canvas, FabricImage, Rect, type FabricObject } from 'fabric';
+import type { Garment, Placement, PrintDesign, PrintTransform, View } from '../types';
+import { getImageUrl } from '../utils/imageUtils';
+import { loadImage, MOCKUP_H, MOCKUP_W, renderMockup } from './mockups';
+import { zoneRect } from './artwork';
+
+interface Props {
+  garment: Garment;
+  view: View;
+  colorHex: string;
+  designs: Record<string, PrintDesign>;
+  activeKey: string | null;
+  onSelect: (key: string) => void;
+  onTransform: (key: string, t: PrintTransform) => void;
+}
+
+type Meta = { key: string; kind: 'zone' | 'art' };
+
+const ACCENT = '#ff5a1f';
+const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+/**
+ * Interactive fabric.js editor for one side of the garment. Each print area is a
+ * dashed guide; artwork inside it can be dragged, scaled and rotated but is
+ * clipped to the area so it always stays printable.
+ */
+export default function DesignCanvas({ garment, view, colorHex, designs, activeKey, onSelect, onTransform }: Props) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<Canvas | null>(null);
+  const metaRef = useRef(new WeakMap<FabricObject, Meta>());
+  const placementsRef = useRef<Placement[]>(garment.placements);
+  const callbacksRef = useRef({ onSelect, onTransform });
+  const activeKeyRef = useRef(activeKey);
+  const [loading, setLoading] = useState(true);
+
+  placementsRef.current = garment.placements;
+  callbacksRef.current = { onSelect, onTransform };
+  activeKeyRef.current = activeKey;
+
+  // ── Create the fabric canvas once ──────────────────────────────────────────
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const el = document.createElement('canvas');
+    host.appendChild(el);
+
+    const c = new Canvas(el, {
+      width: MOCKUP_W,
+      height: MOCKUP_H,
+      selection: false,
+      preserveObjectStacking: true,
+      allowTouchScrolling: true,
+      enableRetinaScaling: true,
+    });
+    const wrapper = el.parentElement;
+    canvasRef.current = c;
+
+    const placementFor = (obj?: FabricObject) => {
+      const meta = obj ? metaRef.current.get(obj) : undefined;
+      if (!meta || meta.kind !== 'art') return null;
+      const placement = placementsRef.current.find(p => p.key === meta.key);
+      return placement ? { meta, placement } : null;
+    };
+
+    // Keep the artwork's centre inside its print area while dragging
+    c.on('object:moving', (e) => {
+      const found = placementFor(e.target);
+      if (!found) return;
+      const z = zoneRect(found.placement);
+      e.target.set({
+        left: clamp(e.target.left ?? 0, z.left, z.left + z.width),
+        top: clamp(e.target.top ?? 0, z.top, z.top + z.height),
+      });
+    });
+
+    c.on('object:modified', (e) => {
+      const found = placementFor(e.target);
+      if (!found) return;
+      const z = zoneRect(found.placement);
+      const t = e.target;
+      callbacksRef.current.onTransform(found.meta.key, {
+        cx: clamp(((t.left ?? 0) - z.left) / z.width, 0, 1),
+        cy: clamp(((t.top ?? 0) - z.top) / z.height, 0, 1),
+        scale: clamp(t.getScaledWidth() / z.width, 0.05, 5),
+        angle: Math.round(((t.angle ?? 0) % 360) * 10) / 10,
+      });
+    });
+
+    const handleSelection = (selected?: FabricObject[]) => {
+      const meta = selected?.[0] ? metaRef.current.get(selected[0]) : undefined;
+      if (meta) callbacksRef.current.onSelect(meta.key);
+    };
+    c.on('selection:created', (e) => handleSelection(e.selected));
+    c.on('selection:updated', (e) => handleSelection(e.selected));
+    c.on('mouse:down', (e) => {
+      const meta = e.target ? metaRef.current.get(e.target) : undefined;
+      if (meta?.kind === 'zone') callbacksRef.current.onSelect(meta.key);
+    });
+
+    // Responsive: draw at the container's width, keep 1000×1150 scene coordinates
+    const resize = () => {
+      const w = host.clientWidth;
+      if (!w) return;
+      c.setDimensions({ width: w, height: Math.round((w * MOCKUP_H) / MOCKUP_W) });
+      c.setZoom(w / MOCKUP_W);
+      c.requestRenderAll();
+    };
+    const ro = new ResizeObserver(resize);
+    ro.observe(host);
+    resize();
+
+    return () => {
+      ro.disconnect();
+      canvasRef.current = null;
+      c.dispose().finally(() => {
+        wrapper?.remove();
+        el.remove();
+      });
+    };
+  }, []);
+
+  // ── (Re)build mockup, guides and artwork when the design itself changes ───
+  const placementsSig = garment.placements
+    .map(p => `${p.key}:${p.view}:${p.enabled}:${p.x}:${p.y}:${p.w}:${p.h}`)
+    .join('|');
+  const designSig = Object.entries(designs).map(([k, d]) => `${k}:${d.id}`).join('|');
+  const buildToken = useRef(0);
+
+  useEffect(() => {
+    const c = canvasRef.current;
+    if (!c) return;
+    const token = ++buildToken.current;
+    let cancelled = false;
+    setLoading(true);
+
+    (async () => {
+      const mockup = await renderMockup(garment, view, colorHex, getImageUrl);
+      const placements = garment.placements.filter(p => p.enabled && p.view === view);
+      const arts = await Promise.all(
+        placements.map(p => (designs[p.key] ? loadImage(designs[p.key].src, false) : Promise.resolve(null))),
+      );
+      if (cancelled || token !== buildToken.current || canvasRef.current !== c) return;
+
+      c.clear();
+      c.backgroundImage = new FabricImage(mockup, {
+        left: 0,
+        top: 0,
+        originX: 'left',
+        originY: 'top',
+        selectable: false,
+        evented: false,
+      });
+
+      placements.forEach((p, i) => {
+        const z = zoneRect(p);
+        const guide = new Rect({
+          ...z,
+          originX: 'left',
+          originY: 'top',
+          fill: 'rgba(255,90,31,0.035)',
+          stroke: ACCENT,
+          strokeWidth: 2,
+          strokeUniform: true,
+          strokeDashArray: [10, 8],
+          opacity: p.key === activeKeyRef.current ? 1 : 0.45,
+          selectable: false,
+          hoverCursor: 'pointer',
+        });
+        metaRef.current.set(guide, { key: p.key, kind: 'zone' });
+        c.add(guide);
+
+        const img = arts[i];
+        const design = designs[p.key];
+        if (!img || !design) return;
+        const t = design.transform;
+        const s = (t.scale * z.width) / img.width;
+        const art = new FabricImage(img, {
+          originX: 'center',
+          originY: 'center',
+          left: z.left + t.cx * z.width,
+          top: z.top + t.cy * z.height,
+          scaleX: s,
+          scaleY: s,
+          angle: t.angle,
+          clipPath: new Rect({ ...z, originX: 'left', originY: 'top', absolutePositioned: true }),
+          cornerColor: ACCENT,
+          cornerStrokeColor: '#ffffff',
+          borderColor: ACCENT,
+          cornerStyle: 'circle',
+          transparentCorners: false,
+          cornerSize: 16,
+          touchCornerSize: 34,
+          padding: 4,
+          borderScaleFactor: 1.5,
+        });
+        art.setControlsVisibility({ mt: false, mb: false, ml: false, mr: false });
+        metaRef.current.set(art, { key: p.key, kind: 'art' });
+        c.add(art);
+        if (p.key === activeKeyRef.current) c.setActiveObject(art);
+      });
+
+      c.requestRenderAll();
+      setLoading(false);
+    })().catch(err => {
+      console.error('Design canvas error:', err);
+      if (!cancelled) setLoading(false);
+    });
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [garment.id, garment.style, garment.mockupFront, garment.mockupBack, placementsSig, view, colorHex, designSig]);
+
+  // ── Highlight the active print area without rebuilding ────────────────────
+  useEffect(() => {
+    const c = canvasRef.current;
+    if (!c) return;
+    let activeArt: FabricObject | undefined;
+    c.getObjects().forEach(obj => {
+      const meta = metaRef.current.get(obj);
+      if (!meta) return;
+      if (meta.kind === 'zone') obj.set({ opacity: meta.key === activeKey ? 1 : 0.45 });
+      if (meta.kind === 'art' && meta.key === activeKey) activeArt = obj;
+    });
+    if (activeArt && c.getActiveObject() !== activeArt) c.setActiveObject(activeArt);
+    if (!activeArt) c.discardActiveObject();
+    c.requestRenderAll();
+  }, [activeKey]);
+
+  return (
+    <div className="relative w-full">
+      <div ref={hostRef} className="w-full" style={{ aspectRatio: `${MOCKUP_W} / ${MOCKUP_H}` }} />
+      {loading && (
+        <div className="pointer-events-none absolute inset-0 grid place-items-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-ink/10 border-t-accent" />
+        </div>
+      )}
+    </div>
+  );
+}
+</script>
+<script type="text/plain" data-path="src/customizer/MockupImage.tsx">
+import { useEffect, useState } from 'react';
+import type { GarmentStyle, View } from '../types';
+import { getImageUrl } from '../utils/imageUtils';
+import { mockupSvg, renderMockup } from './mockups';
+
+interface Props {
+  garment: { style: GarmentStyle; mockupFront?: string | null; mockupBack?: string | null };
+  view?: View;
+  color: string;
+  className?: string;
+  alt?: string;
+}
+
+const svgUrl = (style: GarmentStyle, view: View, color: string) =>
+  `data:image/svg+xml;charset=utf-8,${encodeURIComponent(mockupSvg(style, view, color))}`;
+
+/** Static garment mockup in a given colour (vector drawing or tinted photo) */
+export default function MockupImage({ garment, view = 'front', color, className = '', alt = '' }: Props) {
+  const photo = view === 'front' ? garment.mockupFront : garment.mockupBack;
+  const [src, setSrc] = useState(() => (photo ? '' : svgUrl(garment.style, view, color)));
+
+  useEffect(() => {
+    if (!photo) {
+      setSrc(svgUrl(garment.style, view, color));
+      return;
+    }
+    let alive = true;
+    renderMockup(garment, view, color, getImageUrl)
+      .then(c => { if (alive) setSrc(c.toDataURL('image/png')); })
+      .catch(() => { if (alive) setSrc(svgUrl(garment.style, view, color)); });
+    return () => { alive = false; };
+  }, [garment, photo, view, color]);
+
+  return src
+    ? <img src={src} alt={alt} className={className} draggable={false} />
+    : <div className={`${className} animate-pulse rounded-3xl bg-paper-deep`} />;
+}
+</script>
+<script type="text/plain" data-path="src/customizer/mockups.ts">
+// Garment mockups for the design studio.
+//
+// Every mockup is drawn on a fixed 1000 × 1150 canvas. Print areas configured by
+// the admin are stored as fractions of this canvas, so they line up with both
+// the built-in vector drawings below and any photo mockup the admin uploads.
+//
+// NOTE: an identical copy of this file lives in
+// admin-dashboard/src/utils/mockups.ts (used for the print-area preview).
+// Keep both in sync.
+
+export const MOCKUP_W = 1000;
+export const MOCKUP_H = 1150;
+
+export type MockupStyle = 'hoodie' | 'oversized-tee' | 'polo';
+export type MockupView = 'front' | 'back';
+
+export interface MockupSource {
+  style: MockupStyle;
+  mockupFront?: string | null;
+  mockupBack?: string | null;
+}
+
+// ── Colour helpers ──────────────────────────────────────────────────────────
+const hexToRgb = (hex: string): [number, number, number] => {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h.padEnd(6, '0');
+  return [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16) || 0) as [number, number, number];
+};
+const rgbToHex = (r: number, g: number, b: number) =>
+  '#' + [r, g, b].map(v => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, '0')).join('');
+
+/** Blend `hex` towards white (amt > 0) or black (amt < 0) */
+export const shade = (hex: string, amt: number): string => {
+  const [r, g, b] = hexToRgb(hex);
+  const t = amt > 0 ? 255 : 0;
+  const p = Math.abs(amt);
+  return rgbToHex(r + (t - r) * p, g + (t - g) * p, b + (t - b) * p);
+};
+
+export const luminance = (hex: string): number => {
+  const [r, g, b] = hexToRgb(hex).map(v => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+interface Palette {
+  base: string;
+  rib: string;
+  inside: string;
+  outline: string;
+  seam: string;
+  fold: string;
+  highlight: string;
+  cord: string;
+  cordTip: string;
+  button: string;
+}
+
+const palette = (base: string): Palette => {
+  const dark = luminance(base) < 0.18;
+  return {
+    base,
+    rib: dark ? shade(base, 0.06) : shade(base, -0.07),
+    inside: shade(base, dark ? -0.45 : -0.3),
+    outline: dark ? shade(base, 0.2) : shade(base, -0.22),
+    seam: dark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.16)',
+    fold: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.055)',
+    highlight: dark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.28)',
+    cord: dark ? '#ece9e2' : shade(base, -0.18),
+    cordTip: dark ? '#bdb8ad' : '#8f8b82',
+    button: dark ? shade(base, 0.28) : shade(base, -0.12),
+  };
+};
+
+// ── Shared SVG building blocks ──────────────────────────────────────────────
+const defs = (p: Palette) => `
+  <defs>
+    <filter id="drop" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000" flood-opacity="0.16"/>
+    </filter>
+    <filter id="knit" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.11 0 0 0 -0.035" result="a"/>
+      <feComposite in="a" in2="SourceGraphic" operator="in"/>
+    </filter>
+    <linearGradient id="sides" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#000" stop-opacity="0.22"/>
+      <stop offset="0.2" stop-color="#000" stop-opacity="0"/>
+      <stop offset="0.8" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.22"/>
+    </linearGradient>
+    <linearGradient id="vertical" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000" stop-opacity="0.05"/>
+      <stop offset="0.35" stop-color="#000" stop-opacity="0"/>
+      <stop offset="0.85" stop-color="#000" stop-opacity="0.02"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.12"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.36" r="0.5">
+      <stop offset="0" stop-color="${p.highlight}"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="hollow" cx="0.5" cy="0.25" r="0.75">
+      <stop offset="0" stop-color="#000" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>`;
+
+/** Base fill + drop shadow + fabric grain + volume shading for a silhouette */
+const shadedSilhouette = (paths: string[], p: Palette) => {
+  const group = paths.map(d => `<path d="${d}"/>`).join('');
+  return `
+    <g id="sil" fill="${p.base}" stroke="${p.outline}" stroke-width="2.5" stroke-linejoin="round" filter="url(#drop)">${group}</g>
+    <g fill="#000" filter="url(#knit)">${group}</g>
+    <g fill="url(#sides)">${group}</g>
+    <g fill="url(#vertical)">${group}</g>
+    <g fill="url(#glow)">${group}</g>`;
+};
+
+const seam = (d: string, p: Palette, dashed = false, width = 2.5) =>
+  `<path d="${d}" fill="none" stroke="${p.seam}" stroke-width="${width}" stroke-linecap="round" ${dashed ? 'stroke-dasharray="7 6"' : ''}/>`;
+
+const fold = (d: string, p: Palette, width = 10) =>
+  `<path d="${d}" fill="none" stroke="${p.fold}" stroke-width="${width}" stroke-linecap="round"/>`;
+
+const part = (d: string, fill: string, p: Palette, strokeWidth = 2.5) =>
+  `<path d="${d}" fill="${fill}" stroke="${p.outline}" stroke-width="${strokeWidth}" stroke-linejoin="round"/>`;
+
+const ribLines = (x1: number, x2: number, y1: number, y2: number, p: Palette, step = 13) => {
+  let out = '';
+  for (let x = x1; x <= x2; x += step) out += `M${x} ${y1}L${x} ${y2}`;
+  return `<path d="${out}" stroke="${p.seam}" stroke-width="1.5" opacity="0.6"/>`;
+};
+
+const wrap = (inner: string) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${MOCKUP_W}" height="${MOCKUP_H}" viewBox="0 0 ${MOCKUP_W} ${MOCKUP_H}">${inner}</svg>`;
+
+// ── Oversized tee ───────────────────────────────────────────────────────────
+function teeSvg(view: MockupView, p: Palette): string {
+  const neckline = view === 'front' ? 'C 445 250 555 250 580 150' : 'C 450 180 550 180 580 150';
+  const body = `M 420 150 ${neckline} L 772 185 L 938 440 L 818 508 L 766 462 L 772 1048 Q 500 1072 228 1048 L 234 462 L 182 508 L 62 440 L 228 185 Z`;
+
+  const collar = view === 'front'
+    ? `<path d="M 420 150 C 445 250 555 250 580 150 C 555 130 445 130 420 150 Z" fill="${p.inside}"/>
+       <path d="M 420 150 C 445 250 555 250 580 150 C 555 130 445 130 420 150 Z" fill="url(#hollow)"/>
+       <path d="M 422 149 C 446 133 554 133 578 149" fill="none" stroke="${p.rib}" stroke-width="14" stroke-linecap="round"/>
+       ${part('M 408 146 C 432 285 568 285 592 146 L 580 150 C 555 250 445 250 420 150 Z', p.rib, p, 2)}
+       ${seam('M 416 156 C 440 270 560 270 584 156', p, true, 2)}`
+    : `${part('M 410 147 C 440 198 560 198 590 147 L 580 150 C 550 180 450 180 420 150 Z', p.rib, p, 2)}
+       ${seam('M 417 154 C 445 190 555 190 583 154', p, true, 2)}`;
+
+  return wrap(`${defs(p)}
+    ${shadedSilhouette([body], p)}
+    ${collar}
+    ${seam('M 772 185 Q 800 320 766 462', p)}
+    ${seam('M 228 185 Q 200 320 234 462', p)}
+    ${seam('M 929 425 L 809 493', p, true)}
+    ${seam('M 71 425 L 191 493', p, true)}
+    ${seam('M 233 1024 Q 500 1048 767 1024', p, true)}
+    ${fold('M 760 485 Q 700 520 640 528', p, 12)}
+    ${fold('M 240 485 Q 300 520 360 528', p, 12)}
+    ${fold('M 300 700 Q 322 820 296 960', p, 16)}
+    ${fold('M 700 700 Q 678 820 704 960', p, 16)}
+    ${fold('M 860 300 Q 880 360 870 420', p, 10)}
+    ${fold('M 140 300 Q 120 360 130 420', p, 10)}
+  `);
+}
+
+// ── Hoodie ──────────────────────────────────────────────────────────────────
+function hoodieSvg(view: MockupView, p: Palette): string {
+  const sleeveR = 'M 742 226 C 800 236 838 290 852 380 L 884 872 L 806 884 L 762 470 Z';
+  const sleeveL = 'M 258 226 C 200 236 162 290 148 380 L 116 872 L 194 884 L 238 470 Z';
+  const body = 'M 258 224 L 742 224 C 748 300 750 380 748 440 L 746 962 L 254 962 L 252 440 C 250 380 252 300 258 224 Z';
+  const cuffR = 'M 806 884 L 884 872 L 888 948 L 814 958 Z';
+  const cuffL = 'M 194 884 L 116 872 L 112 948 L 186 958 Z';
+  const hem = 'M 254 960 L 746 960 L 740 1036 Q 500 1048 260 1036 Z';
+
+  const common = `
+    ${shadedSilhouette([sleeveR, sleeveL, body], p)}
+    ${part(cuffR, p.rib, p)} ${part(cuffL, p.rib, p)}
+    ${part(hem, p.rib, p)}
+    ${ribLines(266, 734, 966, 1032, p, 14)}
+    ${seam('M 742 226 C 760 300 758 380 748 440', p)}
+    ${seam('M 258 226 C 240 300 242 380 252 440', p)}
+    ${fold('M 820 520 Q 838 640 826 760', p, 12)}
+    ${fold('M 180 520 Q 162 640 174 760', p, 12)}
+    ${fold('M 310 560 Q 330 700 306 900', p, 14)}
+    ${fold('M 690 560 Q 670 700 694 900', p, 14)}`;
+
+  if (view === 'back') {
+    const hood = 'M 326 228 C 306 124 388 48 500 44 C 612 48 694 124 674 228 C 648 320 584 392 500 404 C 416 392 352 320 326 228 Z';
+    return wrap(`${defs(p)}
+      ${common}
+      ${part(hood, p.base, p)}
+      <path d="${hood}" fill="url(#sides)"/>
+      <path d="${hood}" fill="url(#glow)"/>
+      ${seam('M 500 48 L 500 400', p)}
+      ${seam('M 340 236 C 362 318 420 378 500 392 C 580 378 638 318 660 236', p, true)}
+    `);
+  }
+
+  const hood = 'M 322 236 C 296 130 372 40 500 36 C 628 40 704 130 678 236 C 640 262 560 300 500 304 C 440 300 360 262 322 236 Z';
+  const opening = 'M 500 300 C 430 276 384 205 398 142 C 412 92 588 92 602 142 C 616 205 570 276 500 300 Z';
+  const pocket = 'M 372 782 L 628 782 C 646 832 678 868 708 900 L 708 958 L 292 958 L 292 900 C 322 868 354 832 372 782 Z';
+  return wrap(`${defs(p)}
+    ${common}
+    ${part(pocket, p.base, p)}
+    <path d="${pocket}" fill="url(#vertical)"/>
+    ${seam('M 380 796 L 620 796', p, true)}
+    ${seam('M 300 944 L 700 944', p, true)}
+    <path d="M 628 782 C 646 832 678 868 708 900 M 372 782 C 354 832 322 868 292 900" fill="none" stroke="${p.outline}" stroke-width="4"/>
+    ${part(hood, p.base, p)}
+    <path d="${hood}" fill="url(#vertical)"/>
+    <path d="${opening}" fill="${p.inside}"/>
+    <path d="${opening}" fill="url(#hollow)"/>
+    <path d="${opening}" fill="none" stroke="${p.base}" stroke-width="20"/>
+    <path d="${opening}" fill="none" stroke="${p.outline}" stroke-width="2.5"/>
+    ${seam('M 500 286 C 440 264 400 205 412 148 C 424 108 576 108 588 148 C 600 205 560 264 500 286', p, true)}
+    <circle cx="468" cy="296" r="7" fill="${p.cordTip}"/>
+    <circle cx="532" cy="296" r="7" fill="${p.cordTip}"/>
+    <path d="M 468 296 C 466 360 472 420 462 478 M 532 296 C 534 360 528 420 538 478" fill="none" stroke="${p.cord}" stroke-width="9" stroke-linecap="round"/>
+    <rect x="455" y="472" width="14" height="32" rx="5" fill="${p.cordTip}"/>
+    <rect x="531" y="472" width="14" height="32" rx="5" fill="${p.cordTip}"/>
+  `);
+}
+
+// ── Polo ────────────────────────────────────────────────────────────────────
+function poloSvg(view: MockupView, p: Palette): string {
+  const body = 'M 420 148 L 580 148 L 712 190 L 866 388 L 796 446 L 728 404 C 732 600 734 820 734 1040 Q 500 1058 266 1040 C 266 820 268 600 272 404 L 204 446 L 134 388 L 288 190 Z';
+  const cuffR = 'M 846 361 L 866 388 L 796 446 L 776 419 Z';
+  const cuffL = 'M 154 361 L 134 388 L 204 446 L 224 419 Z';
+
+  const common = `
+    ${shadedSilhouette([body], p)}
+    ${part(cuffR, p.rib, p, 2)} ${part(cuffL, p.rib, p, 2)}
+    ${seam('M 712 190 C 728 260 734 340 728 404', p)}
+    ${seam('M 288 190 C 272 260 266 340 272 404', p)}
+    ${seam('M 270 1018 Q 500 1036 730 1018', p, true)}
+    ${seam('M 733 1040 L 733 992', p)}
+    ${seam('M 267 1040 L 267 992', p)}
+    ${fold('M 316 620 Q 336 760 312 940', p, 14)}
+    ${fold('M 684 620 Q 664 760 688 940', p, 14)}
+    ${fold('M 724 420 Q 680 450 640 456', p, 10)}
+    ${fold('M 276 420 Q 320 450 360 456', p, 10)}`;
+
+  if (view === 'back') {
+    return wrap(`${defs(p)}
+      ${common}
+      ${part('M 404 152 C 436 126 564 126 596 152 L 596 184 C 560 166 440 166 404 184 Z', p.rib, p)}
+      ${seam('M 410 176 C 444 158 556 158 590 176', p, true, 2)}
+    `);
+  }
+
+  const button = (cy: number) =>
+    `<circle cx="500" cy="${cy}" r="9" fill="${p.button}" stroke="${p.outline}" stroke-width="1.5"/>
+     <circle cx="497" cy="${cy - 2}" r="1.6" fill="${p.outline}"/><circle cx="503" cy="${cy + 2}" r="1.6" fill="${p.outline}"/>`;
+
+  return wrap(`${defs(p)}
+    ${common}
+    ${part('M 476 236 L 524 236 L 524 432 L 476 432 Z', p.base, p, 2)}
+    ${seam('M 484 244 L 484 424 L 516 424 L 516 244', p, true, 2)}
+    ${button(276)} ${button(330)} ${button(384)}
+    <path d="M 424 156 C 452 140 548 140 576 156 L 500 238 Z" fill="${p.inside}"/>
+    ${part('M 404 150 C 436 118 564 118 596 150 L 586 166 C 556 142 444 142 414 166 Z', p.rib, p, 2)}
+    ${part('M 500 238 L 586 158 L 616 176 L 566 292 Z', p.rib, p)}
+    ${part('M 500 238 L 414 158 L 384 176 L 434 292 Z', p.rib, p)}
+    ${seam('M 508 236 L 586 168 L 606 180 L 562 280', p, true, 2)}
+    ${seam('M 492 236 L 414 168 L 394 180 L 438 280', p, true, 2)}
+  `);
+}
+
+/** Built-in vector mockup as an SVG string */
+export function mockupSvg(style: MockupStyle, view: MockupView, colorHex: string): string {
+  const p = palette(colorHex || '#ffffff');
+  if (style === 'hoodie') return hoodieSvg(view, p);
+  if (style === 'polo') return poloSvg(view, p);
+  return teeSvg(view, p);
+}
+
+// ── Rasterising ─────────────────────────────────────────────────────────────
+export const loadImage = (src: string, crossOrigin = true): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    if (crossOrigin && !src.startsWith('data:') && !src.startsWith('blob:')) img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Could not load image: ${src.slice(0, 80)}`));
+    img.src = src;
+  });
+
+const cache = new Map<string, Promise<HTMLCanvasElement>>();
+
+/**
+ * Render the mockup for a garment/view/colour onto a 1000×1150 canvas.
+ * Uploaded photo mockups (a white garment on a transparent PNG) are tinted by
+ * multiplying the chosen colour over the photo, which keeps its folds and shadows.
+ */
+export function renderMockup(
+  garment: MockupSource,
+  view: MockupView,
+  colorHex: string,
+  resolveUrl: (url: string) => string = (u) => u,
+): Promise<HTMLCanvasElement> {
+  const photo = view === 'front' ? garment.mockupFront : garment.mockupBack;
+  const key = `${garment.style}|${view}|${colorHex}|${photo || ''}`;
+  const cached = cache.get(key);
+  if (cached) return cached;
+
+  const job = (async () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = MOCKUP_W;
+    canvas.height = MOCKUP_H;
+    const ctx = canvas.getContext('2d')!;
+
+    if (photo) {
+      const img = await loadImage(resolveUrl(photo));
+      const s = Math.min(MOCKUP_W / img.width, MOCKUP_H / img.height);
+      const w = img.width * s;
+      const h = img.height * s;
+      const x = (MOCKUP_W - w) / 2;
+      const y = (MOCKUP_H - h) / 2;
+      ctx.drawImage(img, x, y, w, h);
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = colorHex;
+      ctx.fillRect(0, 0, MOCKUP_W, MOCKUP_H);
+      ctx.globalCompositeOperation = 'destination-in';
+      ctx.drawImage(img, x, y, w, h);
+      ctx.globalCompositeOperation = 'source-over';
+    } else {
+      const svg = mockupSvg(garment.style, view, colorHex);
+      const img = await loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, false);
+      ctx.drawImage(img, 0, 0, MOCKUP_W, MOCKUP_H);
+    }
+    return canvas;
+  })();
+
+  job.catch(() => cache.delete(key));
+  cache.set(key, job);
+  return job;
+}
+</script>
+<script type="text/plain" data-path="src/customizer/OrderSuccess.tsx">
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { CheckCircle2, MessageCircle, RotateCcw } from 'lucide-react';
+import type { PlacedOrder } from '../types';
+import { inr, waLink } from '../utils/format';
+import { getImageUrl } from '../utils/imageUtils';
+
+interface Props {
+  order: PlacedOrder;
+  brand: string;
+  whatsappNumber?: string;
+  onDesignAnother: () => void;
+}
+
+const REDIRECT_SECONDS = 6;
+
+/** Order confirmation + hand-off to WhatsApp with all order details pre-filled */
+export default function OrderSuccess({ order, brand, whatsappNumber, onDesignAnother }: Props) {
+  const [countdown, setCountdown] = useState<number | null>(whatsappNumber ? REDIRECT_SECONDS : null);
+
+  const message = useMemo(() => {
+    const lines = [
+      `Hi ${brand}! 👋`,
+      `I just placed an order on your website.`,
+      ``,
+      `🧾 *Order:* ${order.orderNumber}`,
+      `👕 *Product:* ${order.garmentName} – ${order.colorName}, Size ${order.size}`,
+      `🎨 *Prints:* ${order.prints.map(p => p.label).join(', ')}`,
+      `🔢 *Quantity:* ${order.quantity}`,
+      `💰 *Total:* ${inr(order.total)}`,
+      ``,
+      `*Name:* ${order.customerName}`,
+      `*Phone:* ${order.phone}`,
+      `*Email:* ${order.email}`,
+      `*Address:* ${[order.address, order.city, order.pincode].filter(Boolean).join(', ')}`,
+    ];
+    if (order.previews.front) lines.push('', `Front preview: ${getImageUrl(order.previews.front)}`);
+    if (order.previews.back) lines.push(`Back preview: ${getImageUrl(order.previews.back)}`);
+    return lines.join('\n');
+  }, [order, brand]);
+
+  const href = whatsappNumber ? waLink(whatsappNumber, message) : '';
+
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown <= 0) {
+      window.location.href = href;
+      return;
+    }
+    const t = setTimeout(() => setCountdown(c => (c === null ? null : c - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [countdown, href]);
+
+  return (
+    <section className="container-x py-12 sm:py-20">
+      <div className="mx-auto max-w-3xl animate-fade-up">
+        <div className="card overflow-hidden">
+          <div className="bg-ink px-6 py-10 text-center text-white sm:px-10">
+            <CheckCircle2 className="mx-auto h-14 w-14 text-accent" strokeWidth={1.5} />
+            <p className="eyebrow mt-5 text-white/60">Order placed</p>
+            <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">Thank you, {order.customerName.split(' ')[0]}!</h1>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-white/70">
+              Your order <span className="font-semibold text-white">{order.orderNumber}</span> is confirmed and a copy has been emailed to {order.email}.
+            </p>
+          </div>
+
+          <div className="grid gap-8 p-6 sm:grid-cols-2 sm:p-10">
+            <div className="grid grid-cols-2 gap-3">
+              {(['front', 'back'] as const).map(v => order.previews[v] && (
+                <figure key={v} className="overflow-hidden rounded-2xl bg-paper">
+                  <img src={getImageUrl(order.previews[v])} alt={`${v} preview`} className="aspect-[1000/1150] w-full object-cover" />
+                  <figcaption className="py-2 text-center text-xs font-medium capitalize text-muted">{v}</figcaption>
+                </figure>
+              ))}
+            </div>
+            <dl className="space-y-3 text-sm">
+              {[
+                ['Product', order.garmentName],
+                ['Colour / Size', `${order.colorName} · ${order.size}`],
+                ['Prints', order.prints.map(p => p.label).join(', ')],
+                ['Quantity', String(order.quantity)],
+                ['Per piece', inr(order.unitPrice)],
+              ].map(([k, v]) => (
+                <div key={k} className="flex justify-between gap-4 border-b border-line pb-3">
+                  <dt className="text-muted">{k}</dt>
+                  <dd className="text-right font-medium">{v}</dd>
+                </div>
+              ))}
+              <div className="flex items-baseline justify-between pt-1">
+                <dt className="font-semibold">Total</dt>
+                <dd className="font-display text-2xl font-bold">{inr(order.total)}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="border-t border-line bg-paper/60 p-6 sm:p-10">
+            {whatsappNumber ? (
+              <>
+                <h2 className="font-display text-lg font-bold">Send your details on WhatsApp</h2>
+                <p className="mt-1 text-sm text-muted">
+                  Share the order with our team to confirm payment and get faster updates.
+                  {countdown !== null && countdown > 0 && <> Opening WhatsApp in <b className="text-ink">{countdown}s</b>…</>}
+                </p>
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <a href={href} className="btn w-full bg-[#25D366] text-white hover:bg-[#1ebe5a] sm:w-auto" onClick={() => setCountdown(null)}>
+                    <MessageCircle className="h-4 w-4" /> Continue on WhatsApp
+                  </a>
+                  {countdown !== null && (
+                    <button className="btn-outline w-full sm:w-auto" onClick={() => setCountdown(null)}>Stay on this page</button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted">Our team will contact you on {order.phone} shortly to confirm your order.</p>
+            )}
+            <div className="mt-6 flex flex-wrap gap-4 text-sm font-semibold">
+              <button onClick={onDesignAnother} className="inline-flex items-center gap-1.5 hover:text-accent">
+                <RotateCcw className="h-4 w-4" /> Design another
+              </button>
+              <Link to="/" className="hover:text-accent">Back to home</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+</script>
+<script type="text/plain" data-path="src/main.tsx">
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.tsx'
+import './index.css'
+
+import { BrowserRouter } from 'react-router-dom'
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>,
+)
+</script>
+<script type="text/plain" data-path="src/pages/AboutPage.tsx">
+import { Link } from 'react-router-dom';
+import { ArrowRight, Droplets, Layers, Sparkles, Users } from 'lucide-react';
+import { useSiteSettings } from '../context/SiteSettingsContext';
+import { getImageUrl } from '../utils/imageUtils';
+import MockupImage from '../customizer/MockupImage';
+
+const AboutPage = () => {
+  const { settings } = useSiteSettings();
+  const brand = settings?.companyName || 'Astitva Creations';
+  const features = [
+    { icon: Layers, title: settings?.feature1Title, text: settings?.feature1Desc },
+    { icon: Droplets, title: settings?.feature2Title, text: settings?.feature2Desc },
+    { icon: Sparkles, title: settings?.feature3Title, text: settings?.feature3Desc },
+    { icon: Users, title: settings?.feature4Title, text: settings?.feature4Desc },
+  ].filter(f => f.title);
+
+  return (
+    <>
+      <section className="container-x grid items-center gap-12 py-14 sm:py-20 lg:grid-cols-2">
+        <div>
+          <p className="eyebrow">{settings?.aboutSubtitle || 'Our story'}</p>
+          <h1 className="mt-4 font-display text-4xl font-extrabold leading-[1.02] tracking-tight sm:text-6xl">
+            {settings?.aboutTitle || 'Crafting premium custom apparel.'}
+          </h1>
+          <p className="mt-6 max-w-xl whitespace-pre-line text-lg leading-relaxed text-muted">
+            {settings?.aboutDescription || `${brand} prints custom hoodies, oversized tees and polo t-shirts for individuals, teams and brands.`}
+          </p>
+          <Link to="/customize" className="btn-accent mt-8 px-8 py-4">Design yours <ArrowRight className="h-4 w-4" /></Link>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          {settings?.aboutImage1 ? (
+            <img src={getImageUrl(settings.aboutImage1)} alt="" className="aspect-[3/4] w-full rounded-3xl object-cover" />
+          ) : (
+            <div className="grid aspect-[3/4] place-items-center rounded-3xl bg-paper-deep p-6"><MockupImage garment={{ style: 'hoodie' }} color="#141414" className="w-full" /></div>
+          )}
+          {settings?.aboutImage2 ? (
+            <img src={getImageUrl(settings.aboutImage2)} alt="" className="mt-12 aspect-[3/4] w-full rounded-3xl object-cover" />
+          ) : (
+            <div className="mt-12 grid aspect-[3/4] place-items-center rounded-3xl bg-ink p-6"><MockupImage garment={{ style: 'oversized-tee' }} color="#f3f1ea" className="w-full" /></div>
+          )}
+        </div>
+      </section>
+
+      {features.length > 0 && (
+        <section className="bg-white py-16 sm:py-24">
+          <div className="container-x">
+            <p className="eyebrow">What we stand for</p>
+            <div className="mt-10 grid gap-px overflow-hidden rounded-3xl bg-line sm:grid-cols-2 lg:grid-cols-4">
+              {features.map(({ icon: Icon, title, text }) => (
+                <div key={title} className="bg-white p-8">
+                  <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent-soft text-accent"><Icon className="h-5 w-5" /></span>
+                  <h3 className="mt-6 font-display text-lg font-bold">{title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted">{text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="container-x py-16 sm:py-24">
+        <div className="flex flex-col items-start justify-between gap-6 rounded-[2rem] bg-ink p-8 text-white sm:flex-row sm:items-center sm:p-12">
+          <h2 className="max-w-xl font-display text-3xl font-bold sm:text-4xl">Planning merch for your team or event?</h2>
+          <Link to="/contact" className="btn-ghost-light px-8 py-4">Get a quote</Link>
+        </div>
+      </section>
+    </>
+  );
+};
+
+export default AboutPage;
+</script>
+<script type="text/plain" data-path="src/pages/ContactPage.tsx">
+import { Mail, MapPin, Phone } from 'lucide-react';
+import EnquiryForm from '../components/EnquiryForm';
+import { WhatsAppIcon } from '../components/WhatsAppButton';
+import { useSiteSettings } from '../context/SiteSettingsContext';
+import { waLink } from '../utils/format';
+
+const ContactPage = () => {
+  const { settings } = useSiteSettings();
+  const brand = settings?.companyName || 'Astitva Creations';
+
+  const channels = [
+    settings?.whatsappNumber && {
+      icon: WhatsAppIcon, label: 'WhatsApp', value: 'Chat with our team',
+      href: waLink(settings.whatsappNumber, `Hi ${brand}! I have a question about custom apparel.`),
+    },
+    settings?.phone && { icon: Phone, label: 'Call us', value: settings.phone, href: `tel:${settings.phone}` },
+    settings?.email && { icon: Mail, label: 'Email', value: settings.email, href: `mailto:${settings.email}` },
+  ].filter(Boolean) as { icon: React.ComponentType<{ className?: string }>; label: string; value: string; href: string }[];
+
+  return (
+    <>
+      <section className="border-b border-line bg-white">
+        <div className="container-x py-14 sm:py-20">
+          <p className="eyebrow">Contact</p>
+          <h1 className="mt-3 max-w-3xl font-display text-4xl font-extrabold tracking-tight sm:text-6xl">Let's make something people want to wear.</h1>
+          <p className="mt-4 max-w-xl text-muted">Questions, bulk orders or a design you need help with — send us a message and we'll get back to you.</p>
+        </div>
+      </section>
+
+      <section className="container-x grid gap-10 py-14 lg:grid-cols-5">
+        <div className="space-y-4 lg:col-span-2">
+          {channels.map(({ icon: Icon, label, value, href }) => (
+            <a key={label} href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noreferrer"
+              className="group flex items-center gap-4 rounded-3xl bg-white p-5 ring-1 ring-line transition hover:ring-ink">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-paper transition group-hover:bg-accent group-hover:text-white"><Icon className="h-5 w-5" /></span>
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold uppercase tracking-wider text-muted">{label}</span>
+                <span className="block truncate font-semibold">{value}</span>
+              </span>
+            </a>
+          ))}
+          {settings?.address && (
+            <div className="flex gap-4 rounded-3xl bg-white p-5 ring-1 ring-line">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-paper"><MapPin className="h-5 w-5" /></span>
+              <span>
+                <span className="block text-xs font-semibold uppercase tracking-wider text-muted">Visit</span>
+                <span className="block whitespace-pre-line font-medium">{settings.address}</span>
+              </span>
+            </div>
+          )}
+          {settings?.googleMapsEmbed && (
+            <iframe title="Map" src={settings.googleMapsEmbed} className="h-64 w-full rounded-3xl border-0 ring-1 ring-line" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+          )}
+        </div>
+        <div className="lg:col-span-3">
+          <EnquiryForm />
+        </div>
+      </section>
+    </>
+  );
+};
+
+export default ContactPage;
+</script>
+<script type="text/plain" data-path="src/pages/CustomizePage.tsx">
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  AlertTriangle, Check, Crosshair, ImagePlus, Info, Loader2, MessageCircle, Minus, Move, Plus, RefreshCw, Trash2, Type,
+} from 'lucide-react';
+import DesignCanvas from '../customizer/DesignCanvas';
+import CheckoutModal, { CustomerDetails } from '../customizer/CheckoutModal';
+import OrderSuccess from '../customizer/OrderSuccess';
+import {
+  composeView, DEFAULT_TRANSFORM, fitScale, newId, prepareImageArtwork, renderTextArtwork, TEXT_COLORS, TEXT_FONTS,
+} from '../customizer/artwork';
+import { loadImage } from '../customizer/mockups';
+import { errorMessage, getGarments } from '../services/api';
+import { useSiteSettings } from '../context/SiteSettingsContext';
+import type { Garment, PlacedOrder, Placement, PrintDesign, PrintTransform, View } from '../types';
+import { inr, waLink } from '../utils/format';
+
+const MAX_QTY = 500;
+
+interface TextDraft {
+  text: string;
+  font: string;
+  color: string;
+}
+
+const extFor = (type: string) => (type === 'image/jpeg' ? 'jpg' : type === 'image/webp' ? 'webp' : 'png');
+
+export default function CustomizePage() {
+  const { garmentKey } = useParams<{ garmentKey?: string }>();
+  const navigate = useNavigate();
+  const { settings } = useSiteSettings();
+  const brand = settings?.companyName || 'Astitva Creations';
+
+  const [garments, setGarments] = useState<Garment[]>([]);
+  const [loadError, setLoadError] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const [colorHex, setColorHex] = useState('');
+  const [size, setSize] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [view, setView] = useState<View>('front');
+  const [designs, setDesigns] = useState<Record<string, PrintDesign>>({});
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [textDraft, setTextDraft] = useState<TextDraft>({ text: '', font: TEXT_FONTS[0].id, color: '#ffffff' });
+  const [textEditorFor, setTextEditorFor] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ type: 'error' | 'info'; text: string } | null>(null);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadTargetRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    getGarments()
+      .then(setGarments)
+      .catch(err => setLoadError(errorMessage(err, 'Could not load the design studio.')))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const garment = useMemo(
+    () => garments.find(g => g.key === garmentKey) ?? garments[0],
+    [garments, garmentKey],
+  );
+  const placements = useMemo(() => garment?.placements.filter(p => p.enabled) ?? [], [garment]);
+
+  // Keep colour / size / prints valid when the garment changes
+  useEffect(() => {
+    if (!garment) return;
+    setColorHex(c => (garment.colors.some(x => x.hex === c) ? c : garment.colors[0]?.hex ?? '#ffffff'));
+    setSize(s => (garment.sizes.some(x => x.label === s) ? s
+      : garment.sizes.find(x => x.label === 'M')?.label ?? garment.sizes[0]?.label ?? ''));
+    setDesigns(d => {
+      const keys = new Set(garment.placements.filter(p => p.enabled).map(p => p.key));
+      return Object.fromEntries(Object.entries(d).filter(([k]) => keys.has(k)));
+    });
+    setActiveKey(k => (k && garment.placements.some(p => p.key === k && p.enabled) ? k : null));
+  }, [garment]);
+
+  // Default text colour contrasts with the garment
+  useEffect(() => {
+    if (!colorHex) return;
+    const dark = parseInt(colorHex.slice(1, 3), 16) * 0.299 + parseInt(colorHex.slice(3, 5), 16) * 0.587 + parseInt(colorHex.slice(5, 7), 16) * 0.114 < 140;
+    setTextDraft(t => (t.text ? t : { ...t, color: dark ? '#ffffff' : '#141414' }));
+  }, [colorHex]);
+
+  // ── Pricing ─────────────────────────────────────────────────────────────
+  const pricing = useMemo(() => {
+    if (!garment) return { base: 0, prints: [] as Placement[], printsTotal: 0, sizeExtra: 0, unit: 0, total: 0 };
+    const base = Number(garment.basePrice) || 0;
+    const prints = placements.filter(p => designs[p.key]);
+    const printsTotal = prints.reduce((s, p) => s + (Number(p.price) || 0), 0);
+    const sizeExtra = Number(garment.sizes.find(s => s.label === size)?.extra) || 0;
+    const unit = base + printsTotal + sizeExtra;
+    return { base, prints, printsTotal, sizeExtra, unit, total: unit * quantity };
+  }, [garment, placements, designs, size, quantity]);
+
+  const colorName = garment?.colors.find(c => c.hex === colorHex)?.name ?? '';
+
+  // ── Print actions ───────────────────────────────────────────────────────
+  const focusPlacement = (p: Placement) => {
+    setActiveKey(p.key);
+    setView(p.view);
+  };
+
+  const setDesign = (key: string, design: PrintDesign | null) =>
+    setDesigns(d => {
+      const next = { ...d };
+      if (design) next[key] = design; else delete next[key];
+      return next;
+    });
+
+  const openUpload = (p: Placement) => {
+    focusPlacement(p);
+    uploadTargetRef.current = p.key;
+    fileInputRef.current?.click();
+  };
+
+  const onFileChosen = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    const key = uploadTargetRef.current;
+    const placement = placements.find(p => p.key === key);
+    if (!file || !placement) return;
+    setBusyKey(placement.key);
+    setNotice(null);
+    try {
+      const { src, lowRes } = await prepareImageArtwork(file);
+      const img = await loadImage(src, false);
+      setDesign(placement.key, {
+        id: newId(),
+        kind: 'image',
+        src,
+        file,
+        fileName: `${placement.key}.${extFor(file.type)}`,
+        transform: { ...DEFAULT_TRANSFORM, scale: fitScale(img.width, img.height, placement) },
+      });
+      setTextEditorFor(null);
+      if (lowRes) setNotice({ type: 'info', text: 'Heads up: this image is quite small and may look blurry when printed. A larger PNG works best.' });
+    } catch (err) {
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Could not use that image.' });
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const openTextEditor = (p: Placement) => {
+    focusPlacement(p);
+    const existing = designs[p.key];
+    if (existing?.kind === 'text') {
+      setTextDraft({ text: existing.text ?? '', font: existing.font ?? TEXT_FONTS[0].id, color: existing.color ?? '#ffffff' });
+    } else {
+      setTextDraft(t => ({ ...t, text: '' }));
+    }
+    setTextEditorFor(p.key);
+  };
+
+  const applyText = async (p: Placement) => {
+    const text = textDraft.text.trim();
+    if (!text) { setNotice({ type: 'error', text: 'Type some text first.' }); return; }
+    setBusyKey(p.key);
+    setNotice(null);
+    try {
+      const { src, blob } = await renderTextArtwork(text, textDraft.font, textDraft.color);
+      const img = await loadImage(src, false);
+      const prev = designs[p.key];
+      setDesign(p.key, {
+        id: newId(),
+        kind: 'text',
+        src,
+        file: blob,
+        fileName: `${p.key}-text.png`,
+        text,
+        font: textDraft.font,
+        color: textDraft.color,
+        transform: prev?.kind === 'text'
+          ? { ...prev.transform, scale: fitScale(img.width, img.height, p) }
+          : { ...DEFAULT_TRANSFORM, scale: fitScale(img.width, img.height, p) },
+      });
+      setTextEditorFor(null);
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const recenter = (p: Placement) => {
+    const d = designs[p.key];
+    if (!d) return;
+    loadImage(d.src, false).then(img => {
+      setDesign(p.key, { ...d, id: newId(), transform: { ...DEFAULT_TRANSFORM, scale: fitScale(img.width, img.height, p) } });
+    });
+  };
+
+  const onTransform = useCallback((key: string, t: PrintTransform) => {
+    setDesigns(d => (d[key] ? { ...d, [key]: { ...d[key], transform: t } } : d));
+  }, []);
+
+  const onCanvasSelect = useCallback((key: string) => setActiveKey(key), []);
+
+  // ── Checkout ────────────────────────────────────────────────────────────
+  const buildOrderForm = async (customer: CustomerDetails) => {
+    if (!garment) throw new Error('No product selected');
+    const form = new FormData();
+    const prints = pricing.prints.map(p => {
+      const d = designs[p.key];
+      return { key: p.key, kind: d.kind, text: d.text, font: d.font, color: d.color, transform: d.transform };
+    });
+    form.append('data', JSON.stringify({ ...customer, garmentId: garment.id, colorHex, size, quantity, prints }));
+    pricing.prints.forEach(p => {
+      const d = designs[p.key];
+      form.append(`artwork_${p.key}`, d.file, d.fileName);
+    });
+    const views: View[] = ['front', ...(pricing.prints.some(p => p.view === 'back') ? ['back' as View] : [])];
+    for (const v of views) {
+      const blob = await composeView(garment, v, colorHex, designs);
+      form.append(`preview_${v}`, blob, `preview-${v}.jpg`);
+    }
+    return form;
+  };
+
+  const startCheckout = () => {
+    if (pricing.prints.length === 0) {
+      setNotice({ type: 'error', text: 'Add at least one print (image or text) before ordering.' });
+      return;
+    }
+    if (!size) {
+      setNotice({ type: 'error', text: 'Please choose a size.' });
+      return;
+    }
+    setCheckoutOpen(true);
+  };
+
+  const resetDesign = () => {
+    setPlacedOrder(null);
+    setDesigns({});
+    setActiveKey(null);
+    setQuantity(1);
+    window.scrollTo({ top: 0 });
+  };
+
+  const whatsappQuestion = garment && settings?.whatsappNumber
+    ? waLink(settings.whatsappNumber, `Hi ${brand}! I'm designing a custom ${garment.name} (${colorName}, size ${size || '-'}) on your website and have a question.`)
+    : '';
+
+  // ── Render ──────────────────────────────────────────────────────────────
+  if (placedOrder) {
+    return <OrderSuccess order={placedOrder} brand={brand} whatsappNumber={settings?.whatsappNumber} onDesignAnother={resetDesign} />;
+  }
+
+  if (loading) {
+    return (
+      <div className="grid min-h-[70vh] place-items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+      </div>
+    );
+  }
+
+  if (loadError || !garment) {
+    return (
+      <div className="container-x grid min-h-[60vh] place-items-center text-center">
+        <div>
+          <h1 className="font-display text-2xl font-bold">Design studio unavailable</h1>
+          <p className="mt-2 text-muted">{loadError || 'No customisable products are available right now.'}</p>
+          <Link to="/" className="btn-primary mt-6">Back to home</Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pb-28 lg:pb-16">
+      <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={onFileChosen} />
+
+      {/* Heading */}
+      <section className="border-b border-line bg-white">
+        <div className="container-x flex flex-col gap-5 py-6 sm:py-8 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="eyebrow"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> Design studio</p>
+            <h1 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">Make it yours.</h1>
+            <p className="mt-1 text-sm text-muted">Pick a garment, add your artwork or text, and see the price update live.</p>
+          </div>
+          <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+            {garments.map(g => (
+              <button
+                key={g.key}
+                onClick={() => navigate(`/customize/${g.key}`, { replace: true })}
+                className={`shrink-0 rounded-full border px-5 py-2.5 text-sm font-semibold transition ${g.key === garment.key ? 'border-ink bg-ink text-white' : 'border-line bg-white hover:border-ink'}`}
+              >
+                {g.name}
+                <span className={`ml-2 text-xs font-medium ${g.key === garment.key ? 'text-white/60' : 'text-muted'}`}>from {inr(g.basePrice)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div className="container-x mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-10">
+        {/* ── Canvas ─────────────────────────────────────────────────── */}
+        <div className="min-w-0 lg:col-span-7">
+          <div className="lg:sticky lg:top-24">
+            <div className="card relative overflow-hidden bg-[radial-gradient(circle_at_50%_35%,#ffffff_0%,#efece5_75%)] p-3 sm:p-6">
+              <div className="absolute left-4 top-4 z-10 flex rounded-full bg-white p-1 shadow-sm ring-1 ring-line">
+                {(['front', 'back'] as View[]).map(v => (
+                  <button
+                    key={v}
+                    onClick={() => setView(v)}
+                    className={`rounded-full px-4 py-1.5 text-xs font-semibold capitalize transition ${view === v ? 'bg-ink text-white' : 'text-muted hover:text-ink'}`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <div className="absolute right-4 top-4 z-10 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-muted shadow-sm ring-1 ring-line">
+                {colorName}
+              </div>
+              <div className="mx-auto max-w-[560px] pt-8 sm:pt-4">
+                <DesignCanvas
+                  garment={garment}
+                  view={view}
+                  colorHex={colorHex}
+                  designs={designs}
+                  activeKey={activeKey}
+                  onSelect={onCanvasSelect}
+                  onTransform={onTransform}
+                />
+              </div>
+            </div>
+            <p className="mt-3 flex items-center justify-center gap-2 text-center text-xs text-muted">
+              <Move className="h-3.5 w-3.5" /> Drag to move · pull a corner to resize or rotate · dashed boxes are the print areas
+            </p>
+          </div>
+        </div>
+
+        {/* ── Options ────────────────────────────────────────────────── */}
+        <div className="min-w-0 space-y-5 lg:col-span-5">
+          <div className="card p-5 sm:p-6">
+            <h2 className="font-display text-xl font-bold">{garment.name}</h2>
+            {garment.tagline && <p className="mt-0.5 text-sm text-muted">{garment.tagline}</p>}
+            {garment.fabric && <p className="mt-3 inline-flex rounded-full bg-paper px-3 py-1 text-xs font-medium">{garment.fabric}</p>}
+          </div>
+
+          {/* Colour */}
+          <div className="card p-5 sm:p-6">
+            <div className="flex items-baseline justify-between">
+              <h3 className="text-sm font-semibold">1. Base colour</h3>
+              <span className="text-xs text-muted">{colorName}</span>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-3">
+              {garment.colors.map(c => (
+                <button
+                  key={c.hex}
+                  title={c.name}
+                  aria-label={c.name}
+                  onClick={() => setColorHex(c.hex)}
+                  className={`relative h-10 w-10 rounded-full ring-1 ring-black/10 transition hover:scale-110 ${c.hex === colorHex ? 'ring-2 ring-ink ring-offset-2' : ''}`}
+                  style={{ backgroundColor: c.hex }}
+                >
+                  {c.hex === colorHex && (
+                    <Check className={`absolute inset-0 m-auto h-4 w-4 ${parseInt(c.hex.slice(1, 3), 16) > 160 ? 'text-ink' : 'text-white'}`} />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Prints */}
+          <div className="card p-5 sm:p-6">
+            <h3 className="text-sm font-semibold">2. Add your prints</h3>
+            <p className="mt-1 text-xs text-muted">Choose where you want a print. Each placement is priced separately.</p>
+            <div className="mt-4 space-y-3">
+              {placements.map(p => {
+                const d = designs[p.key];
+                const active = activeKey === p.key;
+                const editingText = textEditorFor === p.key;
+                return (
+                  <div
+                    key={p.key}
+                    className={`rounded-2xl border p-4 transition ${active ? 'border-ink bg-paper/60' : 'border-line hover:border-ink/40'}`}
+                  >
+                    <button className="flex w-full items-center gap-3 text-left" onClick={() => focusPlacement(p)}>
+                      <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-paper ring-1 ring-line"
+                        style={d ? { backgroundColor: colorHex } : undefined}>
+                        {d ? <img src={d.src} alt="" className="max-h-10 max-w-10 object-contain" />
+                          : <Crosshair className="h-5 w-5 text-muted" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">{p.label}</p>
+                        <p className="text-xs capitalize text-muted">{p.view} · {d ? (d.kind === 'text' ? `“${d.text}”` : 'Image added') : 'Not added'}</p>
+                      </div>
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${d ? 'bg-ink text-white' : 'bg-paper text-ink'}`}>
+                        +{inr(p.price)}
+                      </span>
+                    </button>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button onClick={() => openUpload(p)} disabled={busyKey === p.key} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3.5 py-2 text-xs font-semibold hover:border-ink">
+                        {busyKey === p.key ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+                        {d?.kind === 'image' ? 'Replace image' : 'Upload image'}
+                      </button>
+                      <button onClick={() => openTextEditor(p)} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3.5 py-2 text-xs font-semibold hover:border-ink">
+                        <Type className="h-3.5 w-3.5" /> {d?.kind === 'text' ? 'Edit text' : 'Add text'}
+                      </button>
+                      {d && (
+                        <>
+                          <button onClick={() => recenter(p)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold text-muted hover:text-ink" title="Re-centre">
+                            <RefreshCw className="h-3.5 w-3.5" /> Reset
+                          </button>
+                          <button onClick={() => setDesign(p.key, null)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50" title="Remove print">
+                            <Trash2 className="h-3.5 w-3.5" /> Remove
+                          </button>
+                        </>
+                      )}
+                    </div>
+
+                    {editingText && (
+                      <div className="mt-4 space-y-3 rounded-xl bg-white p-4 ring-1 ring-line">
+                        <textarea
+                          autoFocus
+                          rows={2}
+                          maxLength={120}
+                          value={textDraft.text}
+                          onChange={(e) => setTextDraft(t => ({ ...t, text: e.target.value }))}
+                          placeholder="Your text (Enter for a new line)"
+                          className="field resize-none"
+                        />
+                        <div className="no-scrollbar flex gap-2 overflow-x-auto">
+                          {TEXT_FONTS.map(f => (
+                            <button
+                              key={f.id}
+                              onClick={() => setTextDraft(t => ({ ...t, font: f.id }))}
+                              className={`shrink-0 rounded-lg border px-3 py-1.5 text-sm ${textDraft.font === f.id ? 'border-ink bg-ink text-white' : 'border-line'}`}
+                              style={{ fontFamily: f.family, fontWeight: f.weight, fontStyle: f.style ?? 'normal' }}
+                            >
+                              {f.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {TEXT_COLORS.map(c => (
+                            <button
+                              key={c}
+                              aria-label={`Text colour ${c}`}
+                              onClick={() => setTextDraft(t => ({ ...t, color: c }))}
+                              className={`h-7 w-7 rounded-full ring-1 ring-black/15 ${textDraft.color === c ? 'ring-2 ring-ink ring-offset-2' : ''}`}
+                              style={{ backgroundColor: c }}
+                            />
+                          ))}
+                          <label className="relative h-7 w-7 cursor-pointer overflow-hidden rounded-full bg-[conic-gradient(red,yellow,lime,cyan,blue,magenta,red)] ring-1 ring-black/15" title="Custom colour">
+                            <input type="color" value={textDraft.color} onChange={(e) => setTextDraft(t => ({ ...t, color: e.target.value }))} className="absolute inset-0 cursor-pointer opacity-0" />
+                          </label>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => applyText(p)} disabled={busyKey === p.key} className="btn-primary px-5 py-2">
+                            {busyKey === p.key && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Apply text
+                          </button>
+                          <button onClick={() => setTextEditorFor(null)} className="btn px-4 py-2 text-muted hover:text-ink">Cancel</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {notice && (
+              <p className={`mt-4 flex items-start gap-2 rounded-xl px-4 py-3 text-sm ${notice.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-800'}`}>
+                {notice.type === 'error' ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> : <Info className="mt-0.5 h-4 w-4 shrink-0" />}
+                {notice.text}
+              </p>
+            )}
+          </div>
+
+          {/* Size & quantity */}
+          <div className="card p-5 sm:p-6">
+            <h3 className="text-sm font-semibold">3. Size &amp; quantity</h3>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {garment.sizes.map(s => (
+                <button
+                  key={s.label}
+                  onClick={() => setSize(s.label)}
+                  className={`min-w-14 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${size === s.label ? 'border-ink bg-ink text-white' : 'border-line bg-white hover:border-ink'}`}
+                >
+                  {s.label}
+                  {Number(s.extra) > 0 && <span className={`block text-[10px] font-medium ${size === s.label ? 'text-white/60' : 'text-muted'}`}>+{inr(s.extra)}</span>}
+                </button>
+              ))}
+            </div>
+            <div className="mt-5 flex items-center justify-between">
+              <span className="text-sm text-muted">Quantity</span>
+              <div className="flex items-center rounded-full border border-line bg-white">
+                <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="grid h-10 w-10 place-items-center rounded-full hover:bg-paper" aria-label="Decrease quantity"><Minus className="h-4 w-4" /></button>
+                <input
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.min(MAX_QTY, Math.max(1, parseInt(e.target.value.replace(/\D/g, '')) || 1)))}
+                  inputMode="numeric"
+                  className="w-12 bg-transparent text-center text-sm font-semibold outline-none"
+                  aria-label="Quantity"
+                />
+                <button onClick={() => setQuantity(q => Math.min(MAX_QTY, q + 1))} className="grid h-10 w-10 place-items-center rounded-full hover:bg-paper" aria-label="Increase quantity"><Plus className="h-4 w-4" /></button>
+              </div>
+            </div>
+          </div>
+
+          {/* Price */}
+          <div className="card overflow-hidden">
+            <div className="space-y-2.5 p-5 text-sm sm:p-6">
+              <div className="flex justify-between"><span className="text-muted">{garment.name} ({colorName})</span><span>{inr(pricing.base)}</span></div>
+              {pricing.prints.map(p => (
+                <div key={p.key} className="flex justify-between"><span className="text-muted">{p.label}</span><span>+{inr(p.price)}</span></div>
+              ))}
+              {pricing.sizeExtra > 0 && <div className="flex justify-between"><span className="text-muted">Size {size}</span><span>+{inr(pricing.sizeExtra)}</span></div>}
+              <div className="flex justify-between border-t border-dashed border-line pt-2.5 font-medium"><span>Per piece</span><span>{inr(pricing.unit)}</span></div>
+              {quantity > 1 && <div className="flex justify-between text-muted"><span>× {quantity} pieces</span><span /></div>}
+            </div>
+            <div className="flex items-center justify-between bg-ink px-5 py-5 text-white sm:px-6">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-white/50">Total</p>
+                <p className="font-display text-3xl font-bold">{inr(pricing.total)}</p>
+              </div>
+              <button onClick={startCheckout} className="btn-accent hidden px-7 py-3.5 lg:inline-flex">Place order</button>
+            </div>
+          </div>
+
+          {whatsappQuestion && (
+            <a href={whatsappQuestion} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 text-sm font-semibold text-muted hover:text-ink">
+              <MessageCircle className="h-4 w-4" /> Questions? Chat with us on WhatsApp
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile sticky checkout bar */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-wider text-muted">{quantity} × {inr(pricing.unit)}</p>
+            <p className="font-display text-xl font-bold">{inr(pricing.total)}</p>
+          </div>
+          <button onClick={startCheckout} className="btn-accent px-7">Place order</button>
+        </div>
+      </div>
+
+      {checkoutOpen && (
+        <CheckoutModal
+          summary={{
+            title: `${garment.name} · ${colorName} · ${size}`,
+            subtitle: `${pricing.prints.map(p => p.label).join(', ')} · Qty ${quantity}`,
+            total: pricing.total,
+          }}
+          buildOrderForm={buildOrderForm}
+          onClose={() => setCheckoutOpen(false)}
+          onPlaced={(order) => { setCheckoutOpen(false); setPlacedOrder(order); window.scrollTo({ top: 0 }); }}
+        />
+      )}
+    </div>
+  );
+}
+</script>
+<script type="text/plain" data-path="src/pages/HomePage.tsx">
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  ArrowRight, ArrowUpRight, BadgeCheck, Droplets, Layers, Palette, Shirt, Sparkles, Truck, Upload, Users,
+} from 'lucide-react';
+import MockupImage from '../customizer/MockupImage';
+import ProductCard from '../components/ProductCard';
+import EnquiryForm from '../components/EnquiryForm';
+import { getBanners, getGarments, getProducts } from '../services/api';
+import { useSiteSettings } from '../context/SiteSettingsContext';
+import type { Garment, Product } from '../types';
+import { inr } from '../utils/format';
+import { getImageUrl } from '../utils/imageUtils';
+
+interface Banner {
+  id: number;
+  title?: string;
+  subtitle?: string;
+  imageUrl: string;
+  link?: string;
+}
+
+const MARQUEE = ['Custom Hoodies', 'Oversized Tees', 'Polo T-Shirts', 'Team & College Merch', 'Corporate Uniforms', 'Event T-Shirts', 'Bulk Orders'];
+
+const STEPS = [
+  { icon: Shirt, title: 'Pick your garment', text: 'Hoodie, oversized tee or polo — in the colour you love.' },
+  { icon: Upload, title: 'Add your print', text: 'Upload artwork or type text on the chest, front or back. Move and resize it live.' },
+  { icon: BadgeCheck, title: 'Verify & order', text: 'Confirm with a quick email code. We print, pack and ship it to your door.' },
+];
+
+export default function HomePage() {
+  const { settings } = useSiteSettings();
+  const [garments, setGarments] = useState<Garment[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
+
+  useEffect(() => {
+    getGarments().then(setGarments).catch(() => setGarments([]));
+    getProducts().then(d => setProducts((Array.isArray(d) ? d : d.products || []).slice(0, 8))).catch(() => setProducts([]));
+    getBanners().then(d => setBanners(Array.isArray(d) ? d : [])).catch(() => setBanners([]));
+  }, []);
+
+  const hoodie = garments.find(g => g.style === 'hoodie');
+  const showcase = garments[0];
+  const features = [
+    { icon: Layers, title: settings?.feature1Title || 'Heavyweight cotton', text: settings?.feature1Desc || '180 to 350 GSM pre-shrunk combed cotton for maximum durability.' },
+    { icon: Droplets, title: settings?.feature2Title || 'Precision printing', text: settings?.feature2Desc || 'Vibrant, crack-resistant prints with high detail.' },
+    { icon: Sparkles, title: settings?.feature3Title || 'Bio-washed & pre-shrunk', text: settings?.feature3Desc || 'Ultra-soft feel with no fading or shrinkage.' },
+    { icon: Users, title: settings?.feature4Title || 'Bulk & team orders', text: settings?.feature4Desc || 'Custom apparel for colleges, events and companies.' },
+  ];
+
+  return (
+    <>
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden">
+        <div className="container-x grid items-center gap-10 pb-16 pt-10 sm:pt-14 lg:grid-cols-12 lg:pb-24">
+          <div className="animate-fade-up lg:col-span-6">
+            <p className="eyebrow"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> Custom apparel studio</p>
+            <h1 className="mt-5 font-display text-[clamp(2.75rem,8vw,5.75rem)] font-extrabold leading-[0.95] tracking-tight">
+              Wear what<br />you <span className="relative inline-block text-accent">imagine.
+                <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none" aria-hidden="true"><path d="M2 9c60-6 180-8 296-3" stroke="currentColor" strokeWidth="4" strokeLinecap="round" /></svg>
+              </span>
+            </h1>
+            <p className="mt-7 max-w-lg text-base leading-relaxed text-muted sm:text-lg">
+              Premium hoodies, oversized tees and polos printed with your artwork. Design it live in our studio and see the exact price before you order.
+            </p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Link to="/customize" className="btn-accent px-8 py-4 text-base">Start designing <ArrowRight className="h-4 w-4" /></Link>
+              <Link to="/shop" className="btn-outline px-8 py-4 text-base">Shop collection</Link>
+            </div>
+            <ul className="mt-10 grid max-w-lg grid-cols-3 gap-4 border-t border-line pt-6 text-sm">
+              <li><p className="font-display text-2xl font-bold">{garments.length || 3}</p><p className="text-muted">garment styles</p></li>
+              <li><p className="font-display text-2xl font-bold">{Math.max(...garments.map(g => g.colors.length), 6)}+</p><p className="text-muted">base colours</p></li>
+              <li><p className="font-display text-2xl font-bold">1–500</p><p className="text-muted">pieces / order</p></li>
+            </ul>
+          </div>
+
+          <div className="relative lg:col-span-6">
+            <div className="absolute inset-x-6 bottom-0 top-10 overflow-hidden rounded-[2.5rem] bg-paper-deep sm:inset-x-10">
+              <div className="absolute -right-10 -top-10 h-64 w-64 rounded-full bg-accent/50 blur-3xl" />
+              <div className="absolute -bottom-16 -left-10 h-56 w-56 rounded-full bg-[#b9a7d6]/50 blur-3xl" />
+            </div>
+            <div className="relative grid grid-cols-5 items-end px-2 pt-6 sm:px-6">
+              <MockupImage garment={{ style: 'oversized-tee' }} color="#f3f1ea" className="col-span-2 -mr-10 mb-6 -rotate-6 drop-shadow-2xl" alt="" />
+              <MockupImage garment={hoodie ?? { style: 'hoodie' }} color="#141414" className="relative z-10 col-span-3 drop-shadow-2xl" alt="Custom printed hoodie" />
+            </div>
+            <div className="absolute left-2 top-10 z-20 rounded-2xl bg-white px-4 py-3 shadow-xl ring-1 ring-line sm:left-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Live pricing</p>
+              <p className="mt-1 text-sm">Hoodie {inr(hoodie?.basePrice ?? 500)} <span className="text-muted">+ back print</span></p>
+            </div>
+            <div className="absolute bottom-6 right-4 z-20 flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold shadow-xl ring-1 ring-line sm:right-10">
+              <Palette className="h-4 w-4 text-accent" /> {hoodie?.colors.length ?? 6}+ colours
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Marquee ──────────────────────────────────────────────────────── */}
+      <div className="overflow-hidden border-y border-ink bg-ink py-4 text-white">
+        <div className="flex w-max animate-marquee">
+          {[0, 1].map(k => (
+            <div key={k} className="flex shrink-0 items-center" aria-hidden={k === 1}>
+              {MARQUEE.map(t => (
+                <span key={t} className="flex items-center whitespace-nowrap px-6 font-display text-xl font-bold uppercase tracking-tight sm:text-2xl">
+                  {t}<span className="ml-12 text-accent">✦</span>
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Garments ─────────────────────────────────────────────────────── */}
+      {garments.length > 0 && (
+        <section className="container-x py-20 sm:py-28">
+          <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+            <div>
+              <p className="eyebrow">Choose your canvas</p>
+              <h2 className="mt-3 max-w-xl font-display text-4xl font-bold tracking-tight sm:text-5xl">Blanks built to carry your design.</h2>
+            </div>
+            <Link to="/customize" className="group inline-flex items-center gap-2 text-sm font-semibold">
+              Open design studio <ArrowUpRight className="h-4 w-4 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </Link>
+          </div>
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            {garments.map((g, i) => (
+              <Link key={g.id} to={`/customize/${g.key}`} className="group card overflow-hidden transition hover:-translate-y-1 hover:shadow-xl hover:shadow-ink/5">
+                <div className={`relative aspect-square p-8 ${['bg-paper-deep', 'bg-[#e7e4f0]', 'bg-[#e3ebe5]'][i % 3]}`}>
+                  <MockupImage garment={g} color={g.colors[0]?.hex ?? '#ffffff'} className="h-full w-full object-contain transition duration-500 group-hover:scale-105" alt={g.name} />
+                  <div className="absolute bottom-4 left-4 flex -space-x-1.5">
+                    {g.colors.slice(0, 6).map(c => (
+                      <span key={c.hex} className="h-5 w-5 rounded-full ring-2 ring-white" style={{ backgroundColor: c.hex }} title={c.name} />
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-end justify-between gap-4 p-6">
+                  <div>
+                    <h3 className="font-display text-2xl font-bold">{g.name}</h3>
+                    <p className="mt-1 text-sm text-muted">{g.tagline}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-xs text-muted">from</p>
+                    <p className="font-display text-xl font-bold">{inr(g.basePrice)}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── How it works ─────────────────────────────────────────────────── */}
+      <section className="bg-white py-20 sm:py-28">
+        <div className="container-x">
+          <p className="eyebrow">How it works</p>
+          <h2 className="mt-3 max-w-2xl font-display text-4xl font-bold tracking-tight sm:text-5xl">From idea to doorstep in three steps.</h2>
+          <div className="mt-14 grid gap-px overflow-hidden rounded-3xl bg-line md:grid-cols-3">
+            {STEPS.map(({ icon: Icon, title, text }, i) => (
+              <div key={title} className="bg-white p-8 sm:p-10">
+                <div className="flex items-center justify-between">
+                  <span className="grid h-12 w-12 place-items-center rounded-2xl bg-paper"><Icon className="h-5 w-5" /></span>
+                  <span className="font-display text-6xl font-extrabold text-paper-deep">0{i + 1}</span>
+                </div>
+                <h3 className="mt-8 font-display text-xl font-bold">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Print placements ─────────────────────────────────────────────── */}
+      {showcase && (
+        <section className="overflow-hidden bg-ink py-20 text-white sm:py-28">
+          <div className="container-x grid items-center gap-14 lg:grid-cols-2">
+            <div>
+              <p className="eyebrow text-white/50">Transparent pricing</p>
+              <h2 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">Choose where it prints. Pay only for what you add.</h2>
+              <p className="mt-5 max-w-md text-white/60">Every garment has a base price. Each print spot adds a fixed amount — the total updates instantly in the studio.</p>
+              <ul className="mt-10 divide-y divide-white/10 border-y border-white/10">
+                <li className="flex items-center justify-between py-4">
+                  <span>{showcase.name} <span className="text-white/50">(base)</span></span>
+                  <span className="font-display text-lg font-bold">{inr(showcase.basePrice)}</span>
+                </li>
+                {showcase.placements.filter(p => p.enabled).map(p => (
+                  <li key={p.key} className="flex items-center justify-between py-4">
+                    <span className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-accent" />{p.label}</span>
+                    <span className="font-display text-lg font-bold text-accent">+{inr(p.price)}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link to={`/customize/${showcase.key}`} className="btn-accent mt-10 px-8 py-4">Try it in the studio</Link>
+            </div>
+            <div className="relative grid grid-cols-2 gap-4">
+              {(['front', 'back'] as const).map(v => (
+                <div key={v} className="relative rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+                  <div className="relative">
+                    <MockupImage garment={showcase} view={v} color={showcase.colors[0]?.hex ?? '#141414'} className="w-full" alt={`${showcase.name} ${v}`} />
+                    {showcase.placements.filter(p => p.enabled && p.view === v).map(p => (
+                      <span
+                        key={p.key}
+                        className="absolute grid place-items-center rounded-md border-2 border-dashed border-accent bg-accent/10 text-[10px] font-bold uppercase tracking-wider text-accent"
+                        style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%`, width: `${p.w * 100}%`, height: `${p.h * 100}%` }}
+                      >
+                        <span className="hidden sm:inline">{p.key}</span>
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-center text-xs font-semibold uppercase tracking-wider text-white/50">{v}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Products ─────────────────────────────────────────────────────── */}
+      {products.length > 0 && (
+        <section className="container-x py-20 sm:py-28">
+          <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+            <div>
+              <p className="eyebrow">Ready to wear</p>
+              <h2 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">Fresh from the press.</h2>
+            </div>
+            <Link to="/shop" className="btn-outline">View all products</Link>
+          </div>
+          <div className="mt-12 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4">
+            {products.map(p => <ProductCard key={p.id} product={p} />)}
+          </div>
+        </section>
+      )}
+
+      {/* ── Lookbook (admin banners) ─────────────────────────────────────── */}
+      {banners.length > 0 && (
+        <section className="pb-20 sm:pb-28">
+          <div className="container-x"><p className="eyebrow">Lookbook</p></div>
+          <div className="no-scrollbar mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 sm:px-6 lg:px-8 xl:px-[max(2rem,calc((100vw_-_80rem)/2_+_2rem))]">
+            {banners.map(b => {
+              const inner = (
+                <div className="group relative h-[420px] w-[78vw] shrink-0 snap-start overflow-hidden rounded-3xl sm:w-[460px]">
+                  <img src={getImageUrl(b.imageUrl)} alt={b.title || ''} loading="lazy" className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
+                  {(b.title || b.subtitle) && (
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-6 text-white">
+                      {b.title && <h3 className="font-display text-2xl font-bold">{b.title}</h3>}
+                      {b.subtitle && <p className="mt-1 text-sm text-white/75">{b.subtitle}</p>}
+                    </div>
+                  )}
+                </div>
+              );
+              return b.link
+                ? <a key={b.id} href={b.link} className="contents">{inner}</a>
+                : <div key={b.id} className="contents">{inner}</div>;
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* ── Why us ───────────────────────────────────────────────────────── */}
+      <section className="border-t border-line bg-white py-20 sm:py-28">
+        <div className="container-x">
+          <div className="grid gap-12 lg:grid-cols-12">
+            <div className="lg:col-span-4">
+              <p className="eyebrow">{settings?.aboutSubtitle || 'Why choose us'}</p>
+              <h2 className="mt-3 font-display text-4xl font-bold tracking-tight">{settings?.aboutTitle || 'Quality you can feel, prints that last.'}</h2>
+              <Link to="/about" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold hover:text-accent">Our story <ArrowRight className="h-4 w-4" /></Link>
+            </div>
+            <div className="grid gap-8 sm:grid-cols-2 lg:col-span-8">
+              {features.map(({ icon: Icon, title, text }) => (
+                <div key={title} className="flex gap-5">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-accent-soft text-accent"><Icon className="h-5 w-5" /></span>
+                  <div>
+                    <h3 className="font-semibold">{title}</h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-muted">{text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Bulk orders ──────────────────────────────────────────────────── */}
+      <section className="container-x py-20 sm:py-28">
+        <div className="grid gap-10 rounded-[2rem] bg-paper-deep p-6 sm:p-12 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <p className="eyebrow">Bulk & corporate</p>
+            <h2 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">Ordering for a team, event or brand?</h2>
+            <p className="mt-5 max-w-md text-muted">Tell us the quantity, garments and artwork you have in mind and we'll get back with a quote for your bulk order.</p>
+            <ul className="mt-8 space-y-3 text-sm">
+              {['Quotes for bulk quantities', 'Help with artwork & mock-ups', 'Mixed sizes and colours in one order'].map(t => (
+                <li key={t} className="flex items-center gap-3"><Truck className="h-4 w-4 text-accent" />{t}</li>
+              ))}
+            </ul>
+          </div>
+          <EnquiryForm compact />
+        </div>
+      </section>
+    </>
+  );
+}
+</script>
+<script type="text/plain" data-path="src/pages/LegalPage.tsx">
+import { ReactNode } from 'react';
+
+/** Shared layout for the privacy policy and terms pages */
+export default function LegalPage({ eyebrow, title, intro, children }: { eyebrow: string; title: string; intro: string; children: ReactNode }) {
+  return (
+    <>
+      <section className="border-b border-line bg-white">
+        <div className="container-x py-14 sm:py-20">
+          <p className="eyebrow">{eyebrow}</p>
+          <h1 className="mt-3 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">{title}</h1>
+          <p className="mt-4 max-w-2xl text-muted">{intro}</p>
+        </div>
+      </section>
+      <section className="container-x py-14">
+        <div className="mx-auto max-w-3xl space-y-10 text-[15px] leading-relaxed text-ink/80 [&_h2]:mb-3 [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-ink [&_li]:ml-5 [&_li]:list-disc [&_li]:pl-1 [&_ul]:space-y-2">
+          {children}
+        </div>
+      </section>
+    </>
+  );
+}
+</script>
+<script type="text/plain" data-path="src/pages/PrivacyPolicy.tsx">
+import LegalPage from './LegalPage';
+import { useSiteSettings } from '../context/SiteSettingsContext';
+
+const PrivacyPolicy = () => {
+  const { settings } = useSiteSettings();
+  const brand = settings?.companyName || 'Astitva Creations';
+  return (
+    <LegalPage eyebrow="Legal" title="Privacy policy" intro={`How ${brand} collects and uses your information when you browse, enquire or order on this website.`}>
+      <div>
+        <h2>What we collect</h2>
+        <ul>
+          <li>Order details: your name, mobile number, email address and delivery address.</li>
+          <li>The artwork and text you upload in the design studio, and the preview images of your design.</li>
+          <li>Enquiry and review details you submit through our forms.</li>
+          <li>Basic technical information such as your IP address, used to prevent spam and abuse.</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Email verification</h2>
+        <p>Before an order is placed we send a one-time code to your email address. This confirms the order is genuine and protects us and our customers from fake requests. The code is valid for a short time and is not used for anything else.</p>
+      </div>
+      <div>
+        <h2>How we use it</h2>
+        <ul>
+          <li>To print, pack and deliver your order and to contact you about it (including on WhatsApp if you message us).</li>
+          <li>To reply to enquiries and prepare quotes.</li>
+          <li>To keep records required for invoicing and accounting.</li>
+        </ul>
+        <p className="mt-3">We do not sell or rent your personal information. Your artwork is used only to produce your order.</p>
+      </div>
+      <div>
+        <h2>Your choices</h2>
+        <p>To update or delete your information, contact us{settings?.email ? <> at <a className="font-semibold text-ink underline" href={`mailto:${settings.email}`}>{settings.email}</a></> : ' using the details on our contact page'}.</p>
+      </div>
+    </LegalPage>
+  );
+};
+
+export default PrivacyPolicy;
+</script>
+<script type="text/plain" data-path="src/pages/ProductDetails.tsx">
+import { FormEvent, useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, Loader2, Palette, RotateCcw, ShieldCheck, Shirt, Star, Truck } from 'lucide-react';
+import api, { createProductEnquiry, errorMessage } from '../services/api';
+import type { Product, ProductImage } from '../types';
+import ProductCard from '../components/ProductCard';
+import { WhatsAppIcon } from '../components/WhatsAppButton';
+import { useSiteSettings } from '../context/SiteSettingsContext';
+import { getImageUrl } from '../utils/imageUtils';
+import { inr, waLink } from '../utils/format';
+
+interface Review {
+    id: number;
+    customerName: string;
+    rating: number;
+    comment: string;
+    createdAt: string;
+}
+
+const Stars = ({ value, size = 'h-4 w-4' }: { value: number; size?: string }) => (
+    <span className="flex gap-0.5">
+        {[1, 2, 3, 4, 5].map(i => (
+            <Star key={i} className={`${size} ${i <= Math.round(value) ? 'fill-accent text-accent' : 'text-line'}`} />
+        ))}
+    </span>
+);
+
+const ProductDetails = () => {
+    const { id } = useParams<{ id: string }>();
+    const { settings } = useSiteSettings();
+    const [product, setProduct] = useState<Product | null>(null);
+    const [related, setRelated] = useState<Product[]>([]);
+    const [reviews, setReviews] = useState<Review[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [activeImage, setActiveImage] = useState(0);
+    const [size, setSize] = useState('');
+
+    const [reviewForm, setReviewForm] = useState({ customerName: '', rating: 5, comment: '' });
+    const [reviewState, setReviewState] = useState<'idle' | 'sending' | 'sent'>('idle');
+
+    const [enquiry, setEnquiry] = useState({ name: '', email: '', mobileNo: '', message: '' });
+    const [enquiryState, setEnquiryState] = useState<'idle' | 'sending' | 'sent'>('idle');
+    const [enquiryError, setEnquiryError] = useState('');
+
+    useEffect(() => {
+        let alive = true;
+        setLoading(true);
+        setActiveImage(0);
+        (async () => {
+            try {
+                const { data } = await api.get<Product>(`/products/${id}`);
+                if (!alive) return;
+                setProduct(data);
+                setSize(data.availableSizes?.[0] || '');
+                const [rel, rev] = await Promise.all([
+                    api.get(`/products/advanced-search?category=${data.category?.id || ''}`).catch(() => ({ data: [] })),
+                    api.get(`/reviews/product/${id}`).catch(() => ({ data: [] })),
+                ]);
+                if (!alive) return;
+                const list: Product[] = Array.isArray(rel.data) ? rel.data : rel.data.products || [];
+                setRelated(list.filter(p => p.id !== data.id).slice(0, 4));
+                setReviews(Array.isArray(rev.data) ? rev.data : []);
+            } catch {
+                if (alive) setError('This product could not be found.');
+            } finally {
+                if (alive) setLoading(false);
+            }
+        })();
+        return () => { alive = false; };
+    }, [id]);
+
+    const submitReview = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!reviewForm.customerName.trim() || !reviewForm.comment.trim()) return;
+        setReviewState('sending');
+        try {
+            const { data } = await api.post('/reviews', { productId: id, ...reviewForm });
+            setReviews(r => [data, ...r]);
+            setReviewForm({ customerName: '', rating: 5, comment: '' });
+            setReviewState('sent');
+        } catch {
+            setReviewState('idle');
+        }
+    };
+
+    const submitEnquiry = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!product) return;
+        if (!enquiry.name.trim() || !enquiry.email.trim() || enquiry.mobileNo.replace(/\D/g, '').length < 10) {
+            setEnquiryError('Please enter your name, email and a valid mobile number.');
+            return;
+        }
+        setEnquiryError('');
+        setEnquiryState('sending');
+        try {
+            await createProductEnquiry({
+                ...enquiry,
+                message: enquiry.message || `Interested in ${product.name}${size ? ` (size ${size})` : ''}.`,
+                productId: product.id,
+                productCode: product.productCode,
+                productName: product.name,
+            });
+            setEnquiryState('sent');
+        } catch (err) {
+            setEnquiryError(errorMessage(err));
+            setEnquiryState('idle');
+        }
+    };
+
+    if (loading) {
+        return <div className="grid min-h-[70vh] place-items-center"><Loader2 className="h-8 w-8 animate-spin text-accent" /></div>;
+    }
+
+    if (error || !product) {
+        return (
+            <div className="container-x grid min-h-[60vh] place-items-center text-center">
+                <div>
+                    <Shirt className="mx-auto h-12 w-12 text-muted" strokeWidth={1} />
+                    <h1 className="mt-4 font-display text-2xl font-bold">{error || 'Product not found'}</h1>
+                    <Link to="/shop" className="btn-primary mt-6">Back to shop</Link>
+                </div>
+            </div>
+        );
+    }
+
+    const images: ProductImage[] = product.images?.length
+        ? product.images
+        : product.imageUrl ? [{ id: 0, imageUrl: product.imageUrl, imageOrder: 0, isMain: true }] : [];
+    const avg = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+    const whatsapp = settings?.whatsappNumber
+        ? waLink(settings.whatsappNumber, `Hi! I'd like to order *${product.name}* (Code: ${product.productCode})${size ? `, size *${size}*` : ''}. Price shown: ${inr(product.price)}. Please share availability.`)
+        : '';
+    const specs = [
+        ['Fabric', product.fabric],
+        ['Fit', product.fitType],
+        ['For', product.gender],
+        ['Colour', product.color],
+        ['Code', product.productCode],
+    ].filter(([, v]) => v);
+
+    return (
+        <>
+            <section className="container-x py-8 sm:py-12">
+                <Link to="/shop" className="inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-ink">
+                    <ArrowLeft className="h-4 w-4" /> Back to shop
+                </Link>
+
+                <div className="mt-6 grid gap-10 lg:grid-cols-2 lg:gap-16">
+                    {/* Gallery */}
+                    <div className="lg:sticky lg:top-24 lg:self-start">
+                        <div className="aspect-[4/5] overflow-hidden rounded-[2rem] bg-paper-deep">
+                            {images[activeImage] ? (
+                                <img src={getImageUrl(images[activeImage].imageUrl)} alt={product.name} className="h-full w-full object-cover" />
+                            ) : (
+                                <div className="grid h-full place-items-center text-muted"><Shirt className="h-16 w-16" strokeWidth={1} /></div>
+                            )}
+                        </div>
+                        {images.length > 1 && (
+                            <div className="no-scrollbar mt-4 flex gap-3 overflow-x-auto">
+                                {images.map((img, i) => (
+                                    <button key={img.id} onClick={() => setActiveImage(i)}
+                                        className={`h-20 w-16 shrink-0 overflow-hidden rounded-xl ring-2 transition ${i === activeImage ? 'ring-ink' : 'ring-transparent opacity-70 hover:opacity-100'}`}>
+                                        <img src={getImageUrl(img.imageUrl)} alt="" className="h-full w-full object-cover" />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Info */}
+                    <div>
+                        {product.category && <p className="eyebrow">{product.category.name}</p>}
+                        <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">{product.name}</h1>
+                        {reviews.length > 0 && (
+                            <a href="#reviews" className="mt-3 flex items-center gap-2 text-sm text-muted">
+                                <Stars value={avg} /> {avg.toFixed(1)} · {reviews.length} review{reviews.length > 1 ? 's' : ''}
+                            </a>
+                        )}
+                        <p className="mt-6 font-display text-4xl font-bold">{inr(product.price)}</p>
+
+                        {product.description && <p className="mt-6 whitespace-pre-line leading-relaxed text-muted">{product.description}</p>}
+
+                        {!!product.availableSizes?.length && (
+                            <div className="mt-8">
+                                <p className="label">Size</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {(product.availableSizes ?? []).map(s => (
+                                        <button key={s} onClick={() => setSize(s)}
+                                            className={`min-w-14 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${size === s ? 'border-ink bg-ink text-white' : 'border-line bg-white hover:border-ink'}`}>
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                            {whatsapp && (
+                                <a href={whatsapp} target="_blank" rel="noreferrer" className="btn flex-1 bg-[#25D366] py-4 text-white hover:bg-[#1ebe5a]">
+                                    <WhatsAppIcon className="h-5 w-5" /> Order on WhatsApp
+                                </a>
+                            )}
+                            <a href="#enquire" className="btn-outline flex-1 py-4">Send an enquiry</a>
+                        </div>
+                        {product.isCustomizable && (
+                            <Link to="/customize" className="mt-3 flex items-center justify-center gap-2 rounded-full bg-accent-soft py-3 text-sm font-semibold text-accent-dark hover:bg-accent hover:text-white">
+                                <Palette className="h-4 w-4" /> Want your own print? Open the design studio
+                            </Link>
+                        )}
+
+                        {specs.length > 0 && (
+                            <dl className="mt-10 divide-y divide-line border-y border-line text-sm">
+                                {specs.map(([k, v]) => (
+                                    <div key={k} className="flex justify-between py-3"><dt className="text-muted">{k}</dt><dd className="font-medium">{v}</dd></div>
+                                ))}
+                            </dl>
+                        )}
+
+                        <div className="mt-8 grid grid-cols-3 gap-3 text-center text-xs text-muted">
+                            {[{ icon: ShieldCheck, t: 'Quality checked' }, { icon: Truck, t: 'Shipped across India' }, { icon: RotateCcw, t: 'Easy support' }].map(({ icon: Icon, t }) => (
+                                <div key={t} className="rounded-2xl bg-white p-4 ring-1 ring-line"><Icon className="mx-auto mb-2 h-5 w-5 text-ink" />{t}</div>
+                            ))}
+                        </div>
+
+                        {/* Enquiry */}
+                        <div id="enquire" className="mt-10 scroll-mt-28 rounded-3xl bg-white p-6 ring-1 ring-line">
+                            <h2 className="font-display text-xl font-bold">Enquire about this product</h2>
+                            {enquiryState === 'sent' ? (
+                                <p className="mt-3 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800">Thanks! We've received your enquiry and will contact you shortly.</p>
+                            ) : (
+                                <form onSubmit={submitEnquiry} className="mt-4 grid gap-3 sm:grid-cols-2">
+                                    <input className="field" placeholder="Name" value={enquiry.name} onChange={e => setEnquiry(f => ({ ...f, name: e.target.value }))} />
+                                    <input className="field" placeholder="Mobile" type="tel" value={enquiry.mobileNo} onChange={e => setEnquiry(f => ({ ...f, mobileNo: e.target.value }))} />
+                                    <input className="field sm:col-span-2" placeholder="Email" type="email" value={enquiry.email} onChange={e => setEnquiry(f => ({ ...f, email: e.target.value }))} />
+                                    <textarea className="field resize-none sm:col-span-2" rows={3} placeholder="Quantity, sizes, questions…" value={enquiry.message} onChange={e => setEnquiry(f => ({ ...f, message: e.target.value }))} />
+                                    {enquiryError && <p className="text-sm text-red-600 sm:col-span-2">{enquiryError}</p>}
+                                    <button type="submit" disabled={enquiryState === 'sending'} className="btn-primary sm:col-span-2">
+                                        {enquiryState === 'sending' && <Loader2 className="h-4 w-4 animate-spin" />} Send enquiry
+                                    </button>
+                                </form>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Reviews */}
+            <section id="reviews" className="scroll-mt-24 border-t border-line bg-white py-16">
+                <div className="container-x grid gap-12 lg:grid-cols-3">
+                    <div>
+                        <p className="eyebrow">Reviews</p>
+                        <h2 className="mt-3 font-display text-3xl font-bold">What customers say</h2>
+                        {reviews.length > 0 && (
+                            <div className="mt-4 flex items-center gap-3"><span className="font-display text-5xl font-bold">{avg.toFixed(1)}</span><Stars value={avg} size="h-5 w-5" /></div>
+                        )}
+                        {reviewState === 'sent' ? (
+                            <p className="mt-6 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800">Thanks for your review!</p>
+                        ) : (
+                            <form onSubmit={submitReview} className="mt-8 space-y-3">
+                                <div className="flex gap-1" role="radiogroup" aria-label="Rating">
+                                    {[1, 2, 3, 4, 5].map(r => (
+                                        <button type="button" key={r} onClick={() => setReviewForm(f => ({ ...f, rating: r }))} aria-label={`${r} star`}>
+                                            <Star className={`h-7 w-7 ${r <= reviewForm.rating ? 'fill-accent text-accent' : 'text-line'}`} />
+                                        </button>
+                                    ))}
+                                </div>
+                                <input className="field" placeholder="Your name" value={reviewForm.customerName} onChange={e => setReviewForm(f => ({ ...f, customerName: e.target.value }))} />
+                                <textarea className="field resize-none" rows={3} placeholder="Share your experience" value={reviewForm.comment} onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))} />
+                                <button disabled={reviewState === 'sending'} className="btn-primary">Post review</button>
+                            </form>
+                        )}
+                    </div>
+                    <div className="space-y-4 lg:col-span-2">
+                        {reviews.length === 0 && <p className="rounded-2xl border border-dashed border-line p-10 text-center text-sm text-muted">No reviews yet — be the first to review this product.</p>}
+                        {reviews.slice(0, 8).map(r => (
+                            <article key={r.id} className="rounded-2xl bg-paper p-6">
+                                <div className="flex items-center justify-between">
+                                    <p className="font-semibold">{r.customerName}</p>
+                                    <Stars value={r.rating} />
+                                </div>
+                                <p className="mt-3 text-sm leading-relaxed text-muted">{r.comment}</p>
+                                <p className="mt-3 text-xs text-muted/70">{new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                            </article>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {related.length > 0 && (
+                <section className="container-x py-16">
+                    <h2 className="font-display text-3xl font-bold">You may also like</h2>
+                    <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4">
+                        {related.map(p => <ProductCard key={p.id} product={p} />)}
+                    </div>
+                </section>
+            )}
+        </>
+    );
+};
+
+export default ProductDetails;
+</script>
+<script type="text/plain" data-path="src/pages/ShopPage.tsx">
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Search, Shirt } from 'lucide-react';
+import ProductCard from '../components/ProductCard';
+import { getCategories, getProducts } from '../services/api';
+import type { Category, Product } from '../types';
+
+type Sort = 'new' | 'price-asc' | 'price-desc';
+
+export default function ShopPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [category, setCategory] = useState<number | 'all'>('all');
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<Sort>('new');
+
+  useEffect(() => {
+    Promise.all([
+      getProducts().then(d => setProducts(Array.isArray(d) ? d : d.products || [])),
+      getCategories().then(d => setCategories(Array.isArray(d) ? d : [])),
+    ]).catch(() => undefined).finally(() => setLoading(false));
+  }, []);
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const list = products.filter(p =>
+      (category === 'all' || p.category?.id === category) &&
+      (!q || [p.name, p.productCode, p.description, p.category?.name, ...(p.tags || [])].some(v => v?.toLowerCase().includes(q))),
+    );
+    if (sort === 'price-asc') list.sort((a, b) => Number(a.price) - Number(b.price));
+    if (sort === 'price-desc') list.sort((a, b) => Number(b.price) - Number(a.price));
+    return list;
+  }, [products, category, query, sort]);
+
+  const usedCategories = categories.filter(c => products.some(p => p.category?.id === c.id));
+
+  return (
+    <>
+      <section className="border-b border-line bg-white">
+        <div className="container-x py-12 sm:py-16">
+          <p className="eyebrow">The collection</p>
+          <h1 className="mt-3 font-display text-5xl font-extrabold tracking-tight sm:text-6xl">Shop</h1>
+          <p className="mt-3 max-w-lg text-muted">Ready-made designs, printed to order. Want something one-of-a-kind? Make it in the design studio.</p>
+        </div>
+      </section>
+
+      <section className="container-x py-10">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+            {[{ id: 'all' as const, name: 'All' }, ...usedCategories].map(c => (
+              <button
+                key={c.id}
+                onClick={() => setCategory(c.id)}
+                className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition ${category === c.id ? 'border-ink bg-ink text-white' : 'border-line bg-white hover:border-ink'}`}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-3">
+            <label className="relative flex-1 lg:w-72">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+              <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search products" className="field rounded-full pl-11" />
+            </label>
+            <select value={sort} onChange={e => setSort(e.target.value as Sort)} className="field w-auto rounded-full pr-8" aria-label="Sort products">
+              <option value="new">Newest</option>
+              <option value="price-asc">Price: low to high</option>
+              <option value="price-desc">Price: high to low</option>
+            </select>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-[4/5] rounded-3xl bg-paper-deep" />
+                <div className="mt-4 h-4 w-2/3 rounded bg-paper-deep" />
+              </div>
+            ))}
+          </div>
+        ) : visible.length > 0 ? (
+          <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4">
+            {visible.map(p => <ProductCard key={p.id} product={p} />)}
+          </div>
+        ) : (
+          <div className="mt-10 rounded-3xl border border-dashed border-line py-20 text-center">
+            <Shirt className="mx-auto h-10 w-10 text-muted" strokeWidth={1.25} />
+            <p className="mt-4 font-semibold">No products found</p>
+            <p className="mt-1 text-sm text-muted">Try another category or search term.</p>
+          </div>
+        )}
+
+        <Link to="/customize" className="group mt-20 flex flex-col justify-between gap-6 rounded-[2rem] bg-ink p-8 text-white sm:flex-row sm:items-center sm:p-12">
+          <div>
+            <p className="eyebrow text-white/50">Design studio</p>
+            <h2 className="mt-2 font-display text-3xl font-bold sm:text-4xl">Didn't find it? <span className="text-accent">Design it.</span></h2>
+          </div>
+          <span className="btn-accent self-start sm:self-auto">Start designing <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>
+        </Link>
+      </section>
+    </>
+  );
+}
+</script>
+<script type="text/plain" data-path="src/pages/TermsConditions.tsx">
+import LegalPage from './LegalPage';
+import { useSiteSettings } from '../context/SiteSettingsContext';
+
+const TermsConditions = () => {
+  const { settings } = useSiteSettings();
+  const brand = settings?.companyName || 'Astitva Creations';
+  return (
+    <LegalPage eyebrow="Legal" title="Terms & conditions" intro={`Please read these terms before placing an order with ${brand}.`}>
+      <div>
+        <h2>Orders</h2>
+        <ul>
+          <li>Orders placed on the website are confirmed once our team has reviewed your design and contacted you about payment.</li>
+          <li>Prices shown in the design studio are calculated from the selected garment, print placements, size and quantity. Final pricing for bulk or special requests will be confirmed by our team.</li>
+          <li>We may decline or cancel an order if the artwork is unsuitable for printing or breaks these terms.</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Your artwork</h2>
+        <ul>
+          <li>You confirm that you own, or have permission to use, every image, logo and text you upload.</li>
+          <li>We will not print content that is offensive, unlawful or infringes someone else's trademark or copyright.</li>
+          <li>Low-resolution images may print less sharply than they appear on screen. We will let you know if we spot a problem.</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Colours & sizing</h2>
+        <p>On-screen mockups are a guide. Fabric and print colours can vary slightly from what you see on your display, and print placement may vary by a small margin between sizes.</p>
+      </div>
+      <div>
+        <h2>Returns</h2>
+        <p>Because every piece is printed to order, custom items cannot be returned or exchanged unless they arrive damaged or with a printing defect. Please contact us within 48 hours of delivery with photos if there is an issue.</p>
+      </div>
+    </LegalPage>
+  );
+};
+
+export default TermsConditions;
+</script>
+<script type="text/plain" data-path="src/services/api.ts">
+import axios from 'axios';
+import type { Garment, PlacedOrder } from '../types';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+const api = axios.create({
+    baseURL: API_URL,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    timeout: 30000,
+});
+
+/** Pull the server's error message out of an axios error */
+export const errorMessage = (err: unknown, fallback = 'Something went wrong. Please try again.'): string => {
+    if (axios.isAxiosError(err)) {
+        const msg = (err.response?.data as { message?: string } | undefined)?.message;
+        if (msg) return msg;
+        if (err.code === 'ECONNABORTED') return 'The request timed out. Please check your connection.';
+    }
+    return fallback;
+};
+
+export const getProducts = async () => {
+    const response = await api.get('/products');
+    return response.data;
+};
+
+export const createEnquiry = async (enquiryData: { name: string; email: string; mobileNo: string; message: string }) => {
+    const response = await api.post('/enquiries', enquiryData);
+    return response.data;
+};
+
+export const createProductEnquiry = async (enquiryData: {
+    name: string;
+    email: string;
+    mobileNo: string;
+    message: string;
+    productId: number;
+    productCode: string;
+    productName: string;
+}) => {
+    const response = await api.post('/enquiries/product', enquiryData);
+    return response.data;
+};
+
+export const getCategories = async () => {
+    const response = await api.get('/categories');
+    return response.data;
+};
+
+export const getSiteSettings = async () => {
+    const response = await api.get('/settings');
+    return response.data;
+};
+
+export const getBanners = async () => {
+    const response = await api.get('/banners/public');
+    return response.data;
+};
+
+// ── Design studio ────────────────────────────────────────────────────────────
+export const getGarments = async (): Promise<Garment[]> => {
+    const response = await api.get('/garments');
+    return response.data;
+};
+
+export const sendEmailOtp = async (email: string): Promise<{ expiresIn: number }> => {
+    const response = await api.post('/otp/send', { email });
+    return response.data;
+};
+
+export const verifyEmailOtp = async (email: string, code: string): Promise<{ verificationToken: string }> => {
+    const response = await api.post('/otp/verify', { email, code });
+    return response.data;
+};
+
+export const placeOrder = async (form: FormData, verificationToken: string): Promise<PlacedOrder> => {
+    const response = await api.post('/orders', form, {
+        headers: { 'Content-Type': 'multipart/form-data', 'X-Verification-Token': verificationToken },
+        timeout: 120000,
+    });
+    return response.data;
+};
+
+export default api;
+</script>
+<script type="text/plain" data-path="src/types.ts">
+export interface ProductImage {
+  id: number;
+  imageUrl: string;
+  imageOrder: number;
+  isMain: boolean;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  imageUrl?: string;
+}
+
+export interface Product {
+  id: number;
+  productCode: string;
+  name: string;
+  description: string;
+  price: number | string;
+  category?: { id: number; name: string; slug: string } | null;
+  images: ProductImage[];
+  imageUrl?: string; // Convenience: first/main image URL (populated by backend)
+  stockQuantity: number;
+  availableSizes?: string[];
+  fabric?: string;
+  gender?: string;
+  fitType?: string;
+  isCustomizable?: boolean;
+  color?: string;
+  tags?: string[];
+  createdAt?: string;
+}
+
+export interface SiteSettings {
+  id: number;
+  companyName: string;
+  logoUrl?: string;
+  whatsappNumber?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  googleMapsEmbed?: string;
+  instagramUrl?: string;
+  facebookUrl?: string;
+  twitterUrl?: string;
+  youtubeUrl?: string;
+
+  aboutSubtitle?: string;
+  aboutTitle?: string;
+  aboutDescription?: string;
+  aboutImage1?: string;
+  aboutImage2?: string;
+  feature1Title?: string;
+  feature1Desc?: string;
+  feature2Title?: string;
+  feature2Desc?: string;
+  feature3Title?: string;
+  feature3Desc?: string;
+  feature4Title?: string;
+  feature4Desc?: string;
+}
+
+// ── Design studio ────────────────────────────────────────────────────────────
+export type GarmentStyle = 'hoodie' | 'oversized-tee' | 'polo';
+export type View = 'front' | 'back';
+
+export interface GarmentColor {
+  name: string;
+  hex: string;
+}
+
+export interface GarmentSize {
+  label: string;
+  extra: number;
+}
+
+export interface Placement {
+  key: string;
+  label: string;
+  view: View;
+  price: number;
+  /** Print area as fractions (0–1) of the 1000×1150 mockup canvas */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  enabled: boolean;
+}
+
+export interface Garment {
+  id: number;
+  key: string;
+  style: GarmentStyle;
+  name: string;
+  tagline?: string;
+  description?: string;
+  fabric?: string;
+  basePrice: number | string;
+  colors: GarmentColor[];
+  sizes: GarmentSize[];
+  placements: Placement[];
+  mockupFront?: string | null;
+  mockupBack?: string | null;
+}
+
+/** Position of an artwork inside its print area (all relative to the area). */
+export interface PrintTransform {
+  cx: number;
+  cy: number;
+  /** artwork width ÷ print-area width */
+  scale: number;
+  angle: number;
+}
+
+export interface PrintDesign {
+  /** Changes whenever the artwork itself (not its position) changes */
+  id: string;
+  kind: 'image' | 'text';
+  /** Display-sized data URL used on the canvas */
+  src: string;
+  /** Full-quality file sent to the print team */
+  file: Blob;
+  fileName: string;
+  text?: string;
+  font?: string;
+  color?: string;
+  transform: PrintTransform;
+}
+
+export interface PlacedOrder {
+  id: number;
+  orderNumber: string;
+  customerName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city?: string;
+  pincode?: string;
+  garmentName: string;
+  colorName: string;
+  size: string;
+  quantity: number;
+  unitPrice: number | string;
+  total: number | string;
+  prints: { key: string; label: string }[];
+  previews: { front?: string; back?: string };
+}
+</script>
+<script type="text/plain" data-path="src/utils/format.ts">
+export const inr = (value: number | string | undefined | null): string => {
+  const n = Number(value) || 0;
+  return `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+};
+
+/** Normalise a phone number for wa.me (adds India's 91 to bare 10-digit numbers) */
+export const waNumber = (raw?: string | null): string => {
+  const digits = String(raw || '').replace(/\D/g, '');
+  return digits.length === 10 ? `91${digits}` : digits;
+};
+
+export const waLink = (number: string | null | undefined, text: string): string => {
+  const n = waNumber(number);
+  return `https://wa.me/${n}?text=${encodeURIComponent(text)}`;
+};
+</script>
+<script type="text/plain" data-path="src/utils/imageUtils.ts">
+export function getImageUrl(url?: string | null): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const API_BASE = API_URL.replace(/\/api\/?$/, '');
+
+  if (url.startsWith('/uploads')) {
+    return `${API_BASE}${url}`;
+  }
+  return `${API_BASE}/uploads/${url}`;
+}
+</script>
+<script>
+window.__errors = [];
+window.addEventListener('error', e => window.__errors.push(String(e.message)));
+window.addEventListener('unhandledrejection', e => window.__errors.push('rejection: ' + String(e.reason && (e.reason.stack || e.reason.message) || e.reason)));
+const files = {};
+document.querySelectorAll('script[data-path]').forEach(s => { files[s.dataset.path] = s.textContent; });
+const R = 'https://esm.sh/react@18.3.1';
+const map = {
+  'react': R, 'react/jsx-runtime': R + '/jsx-runtime',
+  'react-dom/client': 'https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1',
+  'react-router-dom': 'https://esm.sh/react-router-dom@7.9.6?deps=react@18.3.1,react-dom@18.3.1',
+  'lucide-react': 'https://esm.sh/lucide-react@0.555.0?deps=react@18.3.1',
+  'fabric': 'https://esm.sh/fabric@6.7.1',
+};
+function resolve(from, spec) {
+  const parts = from.split('/'); parts.pop();
+  for (const seg of spec.split('/')) { if (seg === '..') parts.pop(); else if (seg !== '.') parts.push(seg); }
+  const p = parts.join('/');
+  for (const ext of ['', '.ts', '.tsx']) if (files[p + ext] !== undefined) return '@app/' + p + ext;
+  return null;
+}
+for (const [path, code] of Object.entries(files)) {
+  let js = ts.transpileModule(code, { fileName: path, compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
+  js = js.replace(/import\.meta\.env/g, '({})');
+  js = js.replace(/^import\s+['"][^'"]+\.css['"];?\s*$/gm, '');
+  js = js.replace(/(from\s+|import\s*\(\s*)(['"])(\.[^'"]+)\2/g, (m, pre, q, spec) => { const r = resolve(path, spec); return r ? pre + q + r + q : m; });
+  map['@app/' + path] = URL.createObjectURL(new Blob([js], { type: 'text/javascript' }));
+}
+const mock = `
+const garments = ${JSON.stringify(window.__garments)};
+const settings = { id: 1, companyName: 'Astitva Creations', whatsappNumber: '9876543210', email: 'hello@astitvacreations.shop', phone: '+91 98765 43210', address: 'Shop 4, Example Market, Pune, Maharashtra', aboutSubtitle: 'OUR BRAND STORY', aboutTitle: 'Crafting Premium Custom Apparel & T-Shirt Designs', aboutDescription: 'We transform premium fabrics into high-impact oversized t-shirts, custom graphic tees, hoodies and corporate merchandise.', feature1Title: 'Heavyweight Cotton', feature1Desc: '180 to 350 GSM pre-shrunk combed cotton.', feature2Title: 'Precision DTG & Screen Printing', feature2Desc: 'Vibrant, crack-resistant prints.', feature3Title: 'Bio-Washed & Pre-Shrunk', feature3Desc: 'Ultra-soft fabric feel.', feature4Title: 'Custom Apparel & Bulk Orders', feature4Desc: 'Corporate branding and team wear.' };
+const products = [1,2,3,4].map(i => ({ id: i, productCode: 'AC-000'+i, name: ['Midnight Bloom Hoodie','Street Tiger Oversized Tee','Classic Logo Polo','Retro Wave Tee'][i-1], description: 'Sample product', price: [899,549,649,499][i-1], category: { id: 1, name: ['Hoodies','Oversized','Polos','Graphic Tees'][i-1], slug: 'x' }, images: [], stockQuantity: 10, fabric: '240 GSM Cotton', availableSizes: ['S','M','L','XL'] }));
+function route(url, body) {
+  const u = url.split('?')[0];
+  if (u === '/settings') return settings;
+  if (u === '/garments') return garments;
+  if (u === '/products') return { products, total: 4 };
+  if (u.startsWith('/products/advanced-search')) return products;
+  if (u.startsWith('/products/')) return products[0];
+  if (u === '/categories') return products.map(p => p.category);
+  if (u.startsWith('/reviews/')) return [];
+  if (u === '/banners/public') return [];
+  if (u === '/otp/send') return { expiresIn: 600 };
+  if (u === '/otp/verify') return { verificationToken: 'tok' };
+  if (u === '/orders') {
+    window.__lastOrder = body;
+    const data = JSON.parse(body.get('data'));
+    const g = garments.find(x => x.id === data.garmentId);
+    const prev = {}; for (const v of ['front','back']) { const f = body.get('preview_' + v); if (f) prev[v] = URL.createObjectURL(f); }
+    return { id: 1, orderNumber: 'AC-2026-0001', ...data, garmentName: g.name, colorName: (g.colors.find(c => c.hex === data.colorHex)||{}).name, unitPrice: 800, total: 800 * data.quantity, prints: data.prints.map(p => ({ key: p.key, label: g.placements.find(x => x.key === p.key).label })), previews: prev };
+  }
+  if (u === '/enquiries') return { ok: true };
+  throw Object.assign(new Error('404 ' + u), { isAxiosError: true });
+}
+const wait = (v) => new Promise(r => setTimeout(() => r(v), 150));
+export default {
+  create: () => ({ get: async (url) => wait({ data: route(url) }), post: async (url, body) => wait({ data: route(url, body) }) }),
+  isAxiosError: (e) => !!(e && e.isAxiosError),
+};`;
+map['axios'] = URL.createObjectURL(new Blob([mock], { type: 'text/javascript' }));
+const entry = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { MemoryRouter } from 'react-router-dom';
+import App from '@app/src/App.tsx';
+const root = createRoot(document.getElementById('root'));
+window.__go = (path) => root.render(React.createElement(MemoryRouter, { key: path, initialEntries: [path] }, React.createElement(App)));
+window.__go(window.__start || '/');`;
+map['@entry'] = URL.createObjectURL(new Blob([entry], { type: 'text/javascript' }));
+const im = document.createElement('script'); im.type = 'importmap'; im.textContent = JSON.stringify({ imports: map }); document.head.appendChild(im);
+const s = document.createElement('script'); s.type = 'module'; s.textContent = "import '@entry';"; document.body.appendChild(s);
+</script></body></html>

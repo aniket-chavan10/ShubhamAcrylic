@@ -1,13 +1,19 @@
-import { FC, ReactNode, useState, useRef, useEffect } from "react";
+import { FC, ReactNode, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { ChevronDown, ExternalLink, LogOut, Menu, Settings, User } from "lucide-react";
 import Sidebar from "./Sidebar";
-import { User, Settings, LogOut, ChevronDown } from "lucide-react";
 import { getSiteSettings } from "../services/siteSettingsService";
 import { getImageUrl } from "../utils/imageUtils";
+import { fetchWithAuth } from "../utils/apiUtils";
 
-const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
+const PUBLIC_SITE_URL = import.meta.env.VITE_PUBLIC_SITE_URL || "https://astitvacreations.shop";
+
+const AdminLayout: FC<{ children: ReactNode; title?: string; actions?: ReactNode }> = ({ children, title, actions }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [companyName, setCompanyName] = useState("Astitva Creations");
   const [logoUrl, setLogoUrl] = useState("");
+  const [me, setMe] = useState<{ username?: string; email?: string }>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = () => {
@@ -17,8 +23,8 @@ const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
 
   // Inactivity Auto-Logout Timer (15 minutes threshold)
   useEffect(() => {
-    const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes
-    let timeoutId: any;
+    const INACTIVITY_TIMEOUT = 15 * 60 * 1000;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     const resetTimer = () => {
       clearTimeout(timeoutId);
@@ -31,8 +37,7 @@ const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
 
     const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
     events.forEach(event => window.addEventListener(event, resetTimer));
-
-    resetTimer(); // Start timer on mount
+    resetTimer();
 
     return () => {
       clearTimeout(timeoutId);
@@ -40,112 +45,76 @@ const AdminLayout: FC<{ children: ReactNode }> = ({ children }) => {
     };
   }, []);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setIsDropdownOpen(false);
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const data = await getSiteSettings();
+    getSiteSettings()
+      .then(data => {
         if (data.companyName) setCompanyName(data.companyName);
         if (data.logoUrl) setLogoUrl(getImageUrl(data.logoUrl));
-      } catch (err) {
-        console.error("AdminLayout settings error:", err);
-      }
-    };
-    fetchSettings();
+      })
+      .catch(err => console.error("AdminLayout settings error:", err));
+    fetchWithAuth("/auth/me")
+      .then(r => (r.ok ? r.json() : {}))
+      .then(setMe)
+      .catch(() => undefined);
   }, []);
 
+  const initial = (me.username || "A").charAt(0).toUpperCase();
+
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
-        {/* Header with Profile Dropdown */}
-        <header className="bg-white/70 backdrop-blur-md shadow-sm border-b border-gray-200 sticky top-0 z-10 px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt="Logo"
-                  className="h-8 w-auto object-contain"
-                />
-              ) : null}
-              <h1 className="text-xl font-extrabold text-gray-800 tracking-tight">{companyName} Admin</h1>
+    <div className="flex min-h-screen bg-paper">
+      <Sidebar companyName={companyName} logoUrl={logoUrl} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="no-print sticky top-0 z-30 border-b border-line bg-paper/85 px-4 py-3 backdrop-blur-md sm:px-8">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <button onClick={() => setSidebarOpen(true)} className="rounded-lg p-2 hover:bg-ink/5 lg:hidden" aria-label="Open menu">
+                <Menu className="h-5 w-5" />
+              </button>
+              <h1 className="truncate font-display text-lg font-bold tracking-tight sm:text-xl">{title || `${companyName} Admin`}</h1>
             </div>
 
-            {/* Profile Dropdown */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-2 focus:outline-none group"
-              >
-                {/* Circular Avatar */}
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-md group-hover:shadow-lg transition-shadow">
-                  A
-                </div>
-                <ChevronDown
-                  className={`w-4 h-4 text-gray-600 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
-                />
-              </button>
+            <div className="flex items-center gap-2">
+              {actions}
+              <a href={PUBLIC_SITE_URL} target="_blank" rel="noreferrer" className="hidden items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-muted hover:bg-ink/5 hover:text-ink md:inline-flex">
+                View site <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+              <div className="relative" ref={dropdownRef}>
+                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-1.5 rounded-full p-0.5 pr-2 hover:bg-ink/5">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-ink font-semibold text-white">{initial}</span>
+                  <ChevronDown className={`h-4 w-4 text-muted transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
 
-              {/* Dropdown Menu */}
-              {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <p className="text-sm font-semibold text-gray-800">Admin User</p>
-                    <p className="text-xs text-gray-500">admin@astitvacreations.com</p>
+                {isDropdownOpen && (
+                  <div className="absolute right-0 z-50 mt-2 w-60 rounded-2xl border border-line bg-white py-2 shadow-xl">
+                    <div className="border-b border-line px-4 py-3">
+                      <p className="text-sm font-semibold">{me.username || "Admin"}</p>
+                      <p className="truncate text-xs text-muted">{me.email || ""}</p>
+                    </div>
+                    <Link to="/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-paper" onClick={() => setIsDropdownOpen(false)}>
+                      <User className="h-4 w-4 text-muted" /> My profile
+                    </Link>
+                    <Link to="/site-settings" className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-paper" onClick={() => setIsDropdownOpen(false)}>
+                      <Settings className="h-4 w-4 text-muted" /> Site settings
+                    </Link>
+                    <div className="my-1 border-t border-line" />
+                    <button onClick={handleLogout} className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50">
+                      <LogOut className="h-4 w-4" /> Logout
+                    </button>
                   </div>
-
-                  <button
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      window.location.href = "/profile";
-                    }}
-                    className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
-                  >
-                    <User className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm text-gray-700">My Profile</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      window.location.href = "/site-settings";
-                    }}
-                    className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
-                  >
-                    <Settings className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm text-gray-700">Site Settings</span>
-                  </button>
-
-                  <div className="border-t border-gray-100 my-1"></div>
-
-                  <button
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      handleLogout();
-                    }}
-                    className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-red-50 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4 text-red-600" />
-                    <span className="text-sm text-red-600 font-medium">Logout</span>
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </header>
-        <main className="flex-1 p-8">{children}</main>
+        <main className="flex-1 p-4 sm:p-8">{children}</main>
       </div>
     </div>
   );

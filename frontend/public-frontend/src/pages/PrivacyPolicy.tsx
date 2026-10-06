@@ -1,40 +1,38 @@
-// src/pages/PrivacyPolicy.tsx
-const PrivacyPolicy = () => {
-  return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-4xl px-4 pb-16 pt-24 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-semibold text-slate-900 mb-4">
-          Privacy Policy
-        </h1>
-        <p className="text-sm text-slate-600 mb-6">
-          This page explains how Astitva Creations collects and uses basic
-          enquiry details from visitors to this website.
-        </p>
+import LegalPage from './LegalPage';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
-        <section className="space-y-4 text-sm text-slate-700 bg-white rounded-2xl border border-slate-200 p-6">
-          <p>
-            When you submit the enquiry form, we collect your name, email,
-            mobile number and project message so that our team can respond to
-            you.
-          </p>
-          <p>
-            Your details are used only for communication related to your enquiry
-            and ongoing project discussions. They are not sold or shared with
-            third‑party marketing companies.
-          </p>
-          <p>
-            Basic website analytics may be used to understand how visitors use
-            the site (for example, which pages are viewed most often) so we can
-            improve our content and services.
-          </p>
-          <p>
-            If you would like your contact information to be updated or removed
-            from our records, please email{' '}
-            <span className="font-medium">info@astitvacreations.com</span>.
-          </p>
-        </section>
+const PrivacyPolicy = () => {
+  const { settings } = useSiteSettings();
+  const brand = settings?.companyName || 'Astitva Creations';
+  return (
+    <LegalPage eyebrow="Legal" title="Privacy policy" intro={`How ${brand} collects and uses your information when you browse, enquire or order on this website.`}>
+      <div>
+        <h2>What we collect</h2>
+        <ul>
+          <li>Order details: your name, mobile number, email address and delivery address.</li>
+          <li>The artwork and text you upload in the design studio, and the preview images of your design.</li>
+          <li>Enquiry and review details you submit through our forms.</li>
+          <li>Basic technical information such as your IP address, used to prevent spam and abuse.</li>
+        </ul>
       </div>
-    </main>
+      <div>
+        <h2>Email verification</h2>
+        <p>Before an order is placed we send a one-time code to your email address. This confirms the order is genuine and protects us and our customers from fake requests. The code is valid for a short time and is not used for anything else.</p>
+      </div>
+      <div>
+        <h2>How we use it</h2>
+        <ul>
+          <li>To print, pack and deliver your order and to contact you about it (including on WhatsApp if you message us).</li>
+          <li>To reply to enquiries and prepare quotes.</li>
+          <li>To keep records required for invoicing and accounting.</li>
+        </ul>
+        <p className="mt-3">We do not sell or rent your personal information. Your artwork is used only to produce your order.</p>
+      </div>
+      <div>
+        <h2>Your choices</h2>
+        <p>To update or delete your information, contact us{settings?.email ? <> at <a className="font-semibold text-ink underline" href={`mailto:${settings.email}`}>{settings.email}</a></> : ' using the details on our contact page'}.</p>
+      </div>
+    </LegalPage>
   );
 };
 

@@ -1,40 +1,36 @@
-// src/pages/TermsConditions.tsx
-const TermsConditions = () => {
-  return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-4xl px-4 pb-16 pt-24 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-semibold text-slate-900 mb-4">
-          Terms &amp; Conditions
-        </h1>
-        <p className="text-sm text-slate-600 mb-6">
-          These terms outline how this website and information about Creative
-          Finishes products may be used.
-        </p>
+import LegalPage from './LegalPage';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
-        <section className="space-y-4 text-sm text-slate-700 bg-white rounded-2xl border border-slate-200 p-6">
-          <p>
-            Product information, images and prices shown on this website are for
-            general guidance only and may change based on final design, size and
-            finish selection.
-          </p>
-          <p>
-            Orders, quotations and warranties are confirmed directly with our
-            team or authorised partners; they may include additional
-            specifications and commercial terms not listed on this site.
-          </p>
-          <p>
-            By using this website you agree not to misuse any content, copy our
-            branding, or attempt to disrupt the operation of the site or its
-            forms.
-          </p>
-          <p>
-            For detailed commercial terms for a specific project, please contact
-            our team using the enquiry form or phone number provided on the
-            Contact page.
-          </p>
-        </section>
+const TermsConditions = () => {
+  const { settings } = useSiteSettings();
+  const brand = settings?.companyName || 'Astitva Creations';
+  return (
+    <LegalPage eyebrow="Legal" title="Terms & conditions" intro={`Please read these terms before placing an order with ${brand}.`}>
+      <div>
+        <h2>Orders</h2>
+        <ul>
+          <li>Orders placed on the website are confirmed once our team has reviewed your design and contacted you about payment.</li>
+          <li>Prices shown in the design studio are calculated from the selected garment, print placements, size and quantity. Final pricing for bulk or special requests will be confirmed by our team.</li>
+          <li>We may decline or cancel an order if the artwork is unsuitable for printing or breaks these terms.</li>
+        </ul>
       </div>
-    </main>
+      <div>
+        <h2>Your artwork</h2>
+        <ul>
+          <li>You confirm that you own, or have permission to use, every image, logo and text you upload.</li>
+          <li>We will not print content that is offensive, unlawful or infringes someone else's trademark or copyright.</li>
+          <li>Low-resolution images may print less sharply than they appear on screen. We will let you know if we spot a problem.</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Colours & sizing</h2>
+        <p>On-screen mockups are a guide. Fabric and print colours can vary slightly from what you see on your display, and print placement may vary by a small margin between sizes.</p>
+      </div>
+      <div>
+        <h2>Returns</h2>
+        <p>Because every piece is printed to order, custom items cannot be returned or exchanged unless they arrive damaged or with a printing defect. Please contact us within 48 hours of delivery with photos if there is an issue.</p>
+      </div>
+    </LegalPage>
   );
 };
 

@@ -12,6 +12,10 @@ const Banner = require('./models/Banner');
 const Enquiry = require('./models/Enquiry');
 const Review = require('./models/Review');
 const SiteSettings = require('./models/SiteSettings');
+const Garment = require('./models/Garment');
+const Order = require('./models/Order');
+require('./models/EmailOtp');
+const Invoice = require('./models/Invoice');
 
 // ── Associations ────────────────────────────────────────────────────────────
 Product.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
@@ -21,9 +25,14 @@ ProductImage.belongsTo(Product, { foreignKey: 'productId' });
 Product.hasMany(Review, { foreignKey: 'productId', as: 'reviews' });
 Review.belongsTo(Product, { foreignKey: 'productId' });
 Enquiry.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
+Order.belongsTo(Garment, { foreignKey: 'garmentId', as: 'garment', constraints: false });
+Invoice.belongsTo(Order, { foreignKey: 'orderId', as: 'order', constraints: false });
 
 const app = express();
 const path = require('path');
+
+// Behind nginx: needed so req.ip is the real client IP (used for OTP rate limits)
+app.set('trust proxy', 1);
 
 // ── Middleware ──────────────────────────────────────────────────────────────
 const corsOrigin = process.env.CORS_ORIGIN
@@ -44,6 +53,11 @@ const bannerRoutes = require('./routes/bannerRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const siteSettingsRoutes = require('./routes/siteSettingsRoutes');
+const garmentRoutes = require('./routes/garmentRoutes');
+const otpRoutes = require('./routes/otpRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+const invoiceRoutes = require('./routes/invoiceRoutes');
+const garmentController = require('./controllers/garmentController');
 
 app.get('/', (req, res) => res.send('Backend API is running (MySQL)'));
 
@@ -54,11 +68,17 @@ app.use('/api/banners', bannerRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/settings', siteSettingsRoutes);
+app.use('/api/garments', garmentRoutes);
+app.use('/api/otp', otpRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/invoices', invoiceRoutes);
 
 // ── Error handling ───────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('Express error:', err.stack || err);
-  res.status(500).json({ message: err.message, error: err });
+  // Multer validation errors (file type / size / count) are client errors
+  const status = err.name === 'MulterError' || /must be|only image/i.test(err.message) ? 400 : 500;
+  res.status(status).json({ message: err.message });
 });
 
 // ── DB Sync + Start ──────────────────────────────────────────────────────────
@@ -74,6 +94,7 @@ sequelize.sync({ alter: true })
       await SiteSettings.create({ companyName: 'Astitva Creations' });
       console.log('✅ Default site settings created');
     }
+    await garmentController.seedDefaults();
 
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);

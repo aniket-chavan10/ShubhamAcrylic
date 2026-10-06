@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
-import { Package, Mail, Star, Image, TrendingUp, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Package, Mail, Star, Image, TrendingUp, Clock, CheckCircle, AlertCircle, Receipt, ShoppingBag, Shirt } from "lucide-react";
+import { fetchOrders, fetchOrderStats, Order } from "../services/orderService";
+import { fetchInvoices } from "../services/invoiceService";
+import { getImageUrl } from "../utils/imageUtils";
+import { inr } from "../utils/format";
 import { fetchProducts } from "../services/productService";
 import { fetchEnquiries } from "../services/enquiryService";
 import * as reviewService from "../services/reviewService";
@@ -27,8 +32,26 @@ const Dashboard = () => {
   const [recentEnquiries, setRecentEnquiries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [sales, setSales] = useState({ newOrders: 0, totalOrders: 0, orderValue: 0, billed: 0, received: 0, outstanding: 0 });
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+
   useEffect(() => {
     loadDashboardData();
+    Promise.all([
+      fetchOrderStats().catch(() => null),
+      fetchInvoices({ page: 1 }).catch(() => null),
+      fetchOrders({ page: 1 }).catch(() => null),
+    ]).then(([orderStats, invoices, orders]) => {
+      setSales({
+        newOrders: orderStats?.byStatus.new ?? 0,
+        totalOrders: orderStats?.total ?? 0,
+        orderValue: orderStats?.revenue ?? 0,
+        billed: invoices?.summary.billed ?? 0,
+        received: invoices?.summary.received ?? 0,
+        outstanding: invoices?.summary.outstanding ?? 0,
+      });
+      setRecentOrders(orders?.orders.slice(0, 5) ?? []);
+    });
   }, []);
 
   const loadDashboardData = async () => {
@@ -105,10 +128,64 @@ const Dashboard = () => {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-900 to-blue-900 rounded-2xl p-8 mb-8 text-white shadow-lg shadow-indigo-900/20">
-          <h2 className="text-3xl font-extrabold tracking-tight mb-2">Welcome back to Astitva Creations!</h2>
-          <p className="text-indigo-100 text-lg opacity-90">Here's what's happening with your business today.</p>
+        <div className="relative overflow-hidden rounded-2xl bg-ink p-8 text-white">
+          <div className="absolute -right-10 -top-16 h-56 w-56 rounded-full bg-accent/40 blur-3xl" />
+          <p className="relative text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Dashboard</p>
+          <h2 className="relative mt-2 font-display text-3xl font-bold tracking-tight">Welcome back!</h2>
+          <p className="relative mt-1 text-white/60">Here's what's happening with your business today.</p>
+          <div className="relative mt-6 flex flex-wrap gap-2">
+            <Link to="/invoices/new" className="a-btn-accent"><Receipt className="h-4 w-4" /> New invoice</Link>
+            <Link to="/orders" className="a-btn border border-white/20 text-white hover:bg-white hover:text-ink"><ShoppingBag className="h-4 w-4" /> View orders</Link>
+            <Link to="/garments" className="a-btn border border-white/20 text-white hover:bg-white hover:text-ink"><Shirt className="h-4 w-4" /> Studio pricing</Link>
+          </div>
         </div>
+
+        {/* Sales */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <Link to="/orders" className="a-card p-5 transition hover:border-ink">
+            <p className="a-label">New website orders</p>
+            <p className="font-display text-3xl font-bold text-accent">{sales.newOrders}</p>
+            <p className="text-xs text-muted">{sales.totalOrders} orders in total</p>
+          </Link>
+          <div className="a-card p-5">
+            <p className="a-label">Website order value</p>
+            <p className="font-display text-3xl font-bold">{inr(sales.orderValue)}</p>
+            <p className="text-xs text-muted">Excluding cancelled</p>
+          </div>
+          <Link to="/invoices" className="a-card p-5 transition hover:border-ink">
+            <p className="a-label">Invoiced</p>
+            <p className="font-display text-3xl font-bold">{inr(sales.billed)}</p>
+            <p className="text-xs text-muted">{inr(sales.received)} received</p>
+          </Link>
+          <Link to="/invoices" className="a-card p-5 transition hover:border-ink">
+            <p className="a-label">Outstanding</p>
+            <p className="font-display text-3xl font-bold text-red-600">{inr(sales.outstanding)}</p>
+            <p className="text-xs text-muted">To be collected</p>
+          </Link>
+        </div>
+
+        {recentOrders.length > 0 && (
+          <div className="a-card">
+            <div className="flex items-center justify-between border-b border-line p-5">
+              <h3 className="font-display text-lg font-bold">Latest website orders</h3>
+              <Link to="/orders" className="text-sm font-semibold text-accent-dark hover:underline">View all</Link>
+            </div>
+            <div className="divide-y divide-line">
+              {recentOrders.map(o => (
+                <Link key={o.id} to="/orders" className="flex items-center gap-4 p-4 hover:bg-paper/60">
+                  {o.previews?.front
+                    ? <img src={getImageUrl(o.previews.front)} alt="" className="h-12 w-11 rounded-lg bg-paper object-cover" />
+                    : <span className="h-12 w-11 rounded-lg bg-paper" />}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{o.customerName} <span className="font-normal text-muted">· {o.orderNumber}</span></p>
+                    <p className="truncate text-xs text-muted">{o.garmentName} × {o.quantity} · {o.colorName} · {o.size}</p>
+                  </div>
+                  <p className="text-sm font-semibold">{inr(o.total)}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

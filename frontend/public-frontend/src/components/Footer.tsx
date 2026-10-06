@@ -1,118 +1,88 @@
-import { Instagram, Twitter, Facebook, Youtube } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Facebook, Instagram, Mail, MapPin, Phone, Twitter, Youtube } from 'lucide-react';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { BrandMark } from './Navbar';
 
 const Footer = () => {
-    const { settings, getLogoUrl } = useSiteSettings();
-
+    const { settings } = useSiteSettings();
     const companyName = settings?.companyName || 'Astitva Creations';
-    const logoUrl = getLogoUrl();
-    const currentYear = new Date().getFullYear();
+    const year = new Date().getFullYear();
 
-    const handleNavClick = (e: React.MouseEvent, sectionId: string) => {
-        e.preventDefault();
-        const element = document.getElementById(sectionId);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-        } else {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-    };
+    const socials = [
+        { href: settings?.instagramUrl, icon: Instagram, label: 'Instagram' },
+        { href: settings?.facebookUrl, icon: Facebook, label: 'Facebook' },
+        { href: settings?.twitterUrl, icon: Twitter, label: 'X / Twitter' },
+        { href: settings?.youtubeUrl, icon: Youtube, label: 'YouTube' },
+    ].filter(s => s.href);
 
     return (
-        <footer className="bg-gray-900 text-gray-300 py-10 sm:py-16">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-12">
-                    <div className="col-span-2 sm:col-span-2 md:col-span-1">
-                        <div className="flex items-center gap-2 mb-4 sm:mb-6">
-                            {logoUrl ? (
-                                <img
-                                    src={logoUrl}
-                                    alt={`${companyName} logo`}
-                                    className="w-9 h-9 rounded-lg object-contain bg-white p-0.5"
-                                />
-                            ) : (
-                                <div className="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                                    {companyName.charAt(0)}
-                                </div>
-                            )}
-                            <span className="font-bold text-xl sm:text-2xl text-white uppercase tracking-wider">{companyName}</span>
-                        </div>
-                        <p className="text-gray-400 text-sm leading-relaxed mb-4 sm:mb-6">
-                            Crafting premium bespoke acrylic signages, display stands, cast acrylic panels, and custom engraved trophies.
+        <footer className="bg-ink text-white">
+            <div className="container-x py-16 sm:py-20">
+                <div className="flex flex-col gap-10 border-b border-white/10 pb-14 lg:flex-row lg:items-end lg:justify-between">
+                    <h2 className="max-w-2xl font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl">
+                        Your idea. <span className="text-accent">Our ink.</span> Worn everywhere.
+                    </h2>
+                    <Link to="/customize" className="btn-accent self-start px-8 py-4 text-base lg:self-auto">Start designing</Link>
+                </div>
+
+                <div className="grid gap-10 pt-14 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="space-y-4">
+                        <BrandMark light />
+                        <p className="max-w-xs text-sm leading-relaxed text-white/60">
+                            Custom printed hoodies, oversized tees and polos — made to order with premium fabrics and long-lasting prints.
                         </p>
-                        <div className="flex gap-3 sm:gap-4">
-                            {settings?.instagramUrl && (
-                                <a href={settings.instagramUrl} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all">
-                                    <Instagram size={18} />
-                                </a>
-                            )}
-                            {settings?.twitterUrl && (
-                                <a href={settings.twitterUrl} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all">
-                                    <Twitter size={18} />
-                                </a>
-                            )}
-                            {settings?.facebookUrl && (
-                                <a href={settings.facebookUrl} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all">
-                                    <Facebook size={18} />
-                                </a>
-                            )}
-                            {settings?.youtubeUrl && (
-                                <a href={settings.youtubeUrl} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all">
-                                    <Youtube size={18} />
-                                </a>
-                            )}
-                        </div>
+                        {socials.length > 0 && (
+                            <div className="flex gap-2 pt-2">
+                                {socials.map(({ href, icon: Icon, label }) => (
+                                    <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label}
+                                        className="grid h-10 w-10 place-items-center rounded-full border border-white/15 text-white/70 transition hover:border-accent hover:bg-accent hover:text-white">
+                                        <Icon className="h-4 w-4" />
+                                    </a>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div>
-                        <h4 className="text-white font-bold mb-4 sm:mb-6 text-sm sm:text-base">Products</h4>
-                        <ul className="space-y-3 sm:space-y-4 text-sm">
-                            {[
-                                { name: 'Acrylic Signages', id: 'products' },
-                                { name: 'Display Stands', id: 'products' },
-                                { name: 'Acrylic Sheets', id: 'products' },
-                                { name: 'Corporate Trophies', id: 'products' },
-                                { name: 'Laser Cut Crafts', id: 'products' },
-                            ].map(link => (
-                                <li key={link.name}>
-                                    <a href={`#${link.id}`} onClick={(e) => handleNavClick(e, link.id)} className="hover:text-indigo-400 transition-colors">
-                                        {link.name}
-                                    </a>
-                                </li>
-                            ))}
+                        <h3 className="eyebrow text-white/40">Shop</h3>
+                        <ul className="mt-4 space-y-3 text-sm text-white/75">
+                            <li><Link className="hover:text-accent" to="/customize/hoodie">Custom Hoodies</Link></li>
+                            <li><Link className="hover:text-accent" to="/customize/oversized-tee">Oversized Tees</Link></li>
+                            <li><Link className="hover:text-accent" to="/customize/polo">Polo T-Shirts</Link></li>
+                            <li><Link className="hover:text-accent" to="/shop">Ready Collection</Link></li>
                         </ul>
                     </div>
 
                     <div>
-                        <h4 className="text-white font-bold mb-4 sm:mb-6 text-sm sm:text-base">Quick Links</h4>
-                        <ul className="space-y-3 sm:space-y-4 text-sm">
-                            {[
-                                { name: 'Home', id: 'home' },
-                                { name: 'Our Products', id: 'products' },
-                                { name: 'About Us', id: 'about' },
-                                { name: 'Contact & Enquiry', id: 'contact' },
-                            ].map(link => (
-                                <li key={link.name}>
-                                    <a href={`#${link.id}`} onClick={(e) => handleNavClick(e, link.id)} className="hover:text-indigo-400 transition-colors">
-                                        {link.name}
-                                    </a>
-                                </li>
-                            ))}
+                        <h3 className="eyebrow text-white/40">Company</h3>
+                        <ul className="mt-4 space-y-3 text-sm text-white/75">
+                            <li><Link className="hover:text-accent" to="/about">About us</Link></li>
+                            <li><Link className="hover:text-accent" to="/contact">Contact & bulk orders</Link></li>
+                            <li><Link className="hover:text-accent" to="/privacy">Privacy policy</Link></li>
+                            <li><Link className="hover:text-accent" to="/terms">Terms & conditions</Link></li>
                         </ul>
                     </div>
 
                     <div>
-                        <h4 className="text-white font-bold mb-4 sm:mb-6 text-sm sm:text-base">Support & Legal</h4>
-                        <ul className="space-y-3 sm:space-y-4 text-sm">
-                            <li><a href="#contact" onClick={(e) => handleNavClick(e, 'contact')} className="hover:text-indigo-400 transition-colors">Get a Quote</a></li>
-                            <li><a href="#about" onClick={(e) => handleNavClick(e, 'about')} className="hover:text-indigo-400 transition-colors">About {companyName}</a></li>
-                            <li><a href="#contact" onClick={(e) => handleNavClick(e, 'contact')} className="hover:text-indigo-400 transition-colors">Help & FAQ</a></li>
+                        <h3 className="eyebrow text-white/40">Get in touch</h3>
+                        <ul className="mt-4 space-y-3 text-sm text-white/75">
+                            {settings?.phone && (
+                                <li><a href={`tel:${settings.phone}`} className="flex items-center gap-2.5 hover:text-accent"><Phone className="h-4 w-4 text-white/40" />{settings.phone}</a></li>
+                            )}
+                            {settings?.email && (
+                                <li><a href={`mailto:${settings.email}`} className="flex items-center gap-2.5 break-all hover:text-accent"><Mail className="h-4 w-4 shrink-0 text-white/40" />{settings.email}</a></li>
+                            )}
+                            {settings?.address && (
+                                <li className="flex gap-2.5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-white/40" /><span className="whitespace-pre-line">{settings.address}</span></li>
+                            )}
                         </ul>
                     </div>
                 </div>
-
-                <div className="border-t border-gray-800 mt-8 sm:mt-12 pt-6 sm:pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 gap-4">
-                    <p>&copy; {currentYear} {companyName}. All rights reserved.</p>
+            </div>
+            <div className="border-t border-white/10">
+                <div className="container-x flex flex-col gap-2 py-6 text-xs text-white/40 sm:flex-row sm:justify-between">
+                    <p>© {year} {companyName}. All rights reserved.</p>
+                    <p>Printed with care in India.</p>
                 </div>
             </div>
         </footer>

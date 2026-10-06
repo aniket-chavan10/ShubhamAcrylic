@@ -1,201 +1,79 @@
-import { useState } from 'react';
-import { createEnquiry, createProductEnquiry } from '../services/api';
-import { Mail, Phone, MessageSquare, Send, Package } from 'lucide-react';
-import { useSiteSettings } from '../context/SiteSettingsContext';
+import { FormEvent, useState } from 'react';
+import { CheckCircle2, Loader2, Send } from 'lucide-react';
+import { createEnquiry, errorMessage } from '../services/api';
 
-interface EnquiryFormProps {
-  // When provided → product enquiry mode
-  productId?: number;
-  productCode?: string;
-  productName?: string;
-  compact?: boolean; // Use compact layout when embedded in product page
-}
+const EMPTY = { name: '', email: '', mobileNo: '', message: '' };
 
-const EnquiryForm = ({ productId, productCode, productName, compact = false }: EnquiryFormProps) => {
-  const isProductMode = !!(productId && productCode);
-  const { settings } = useSiteSettings();
+/** General enquiry / bulk order form (Contact page and home page) */
+const EnquiryForm = ({ compact = false }: { compact?: boolean }) => {
+    const [form, setForm] = useState(EMPTY);
+    const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+    const [error, setError] = useState('');
 
-  const contactPhone = settings?.phone || '';
-  const contactEmail = settings?.email || '';
+    const update = (key: keyof typeof EMPTY) =>
+        (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm(f => ({ ...f, [key]: e.target.value }));
 
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    mobileNo: '',
-    message: isProductMode
-      ? `Hi, I'm interested in "${productName}" (Code: ${productCode}). Please share pricing and availability details.`
-      : '',
-  });
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [errors, setErrors] = useState<Record<string, string>>({});
+    const submit = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
+            setError('Please fill in your name, email and message.');
+            return;
+        }
+        if (form.mobileNo.replace(/\D/g, '').length < 10) {
+            setError('Please enter a valid mobile number.');
+            return;
+        }
+        setError('');
+        setStatus('sending');
+        try {
+            await createEnquiry(form);
+            setStatus('sent');
+            setForm(EMPTY);
+        } catch (err) {
+            setError(errorMessage(err));
+            setStatus('idle');
+        }
+    };
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
-    if (!formData.mobileNo.trim()) newErrors.mobileNo = 'Mobile number is required';
-    else if (!/^\d{10}$/.test(formData.mobileNo)) newErrors.mobileNo = 'Enter valid 10-digit number';
-    if (!formData.message.trim()) newErrors.message = 'Message is required';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    setStatus('loading');
-    try {
-      if (isProductMode) {
-        await createProductEnquiry({
-          ...formData,
-          productId: productId!,
-          productCode: productCode!,
-          productName: productName!,
-        });
-      } else {
-        await createEnquiry(formData);
-      }
-      setStatus('success');
-      setFormData({
-        name: '',
-        email: '',
-        mobileNo: '',
-        message: isProductMode
-          ? `Hi, I'm interested in "${productName}" (Code: ${productCode}). Please share pricing and availability details.`
-          : '',
-      });
-      setTimeout(() => setStatus('idle'), 4000);
-    } catch (error) {
-      setStatus('error');
-      setTimeout(() => setStatus('idle'), 3000);
+    if (status === 'sent') {
+        return (
+            <div className="flex flex-col items-center rounded-3xl bg-white p-10 text-center ring-1 ring-line">
+                <CheckCircle2 className="h-12 w-12 text-success" strokeWidth={1.5} />
+                <h3 className="mt-4 font-display text-2xl font-bold">Message received!</h3>
+                <p className="mt-2 max-w-sm text-sm text-muted">Thanks for reaching out. Our team will get back to you within one working day.</p>
+                <button onClick={() => setStatus('idle')} className="btn-outline mt-6">Send another message</button>
+            </div>
+        );
     }
-  };
 
-  return (
-    <section id={isProductMode ? 'product-enquiry' : 'contact'} className={`bg-white ${compact ? 'py-4 sm:py-6' : 'py-8 sm:py-12 border-t border-gray-200'}`}>
-      <div className={`${compact ? '' : 'max-w-5xl mx-auto px-4 sm:px-6 lg:px-8'}`}>
-
-        {/* Header */}
-        <div className={`${compact ? 'mb-4' : 'text-center mb-6 sm:mb-8'}`}>
-          {isProductMode ? (
-            <div className="flex items-center gap-3 mb-1">
-              <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-200">
-                <Package size={13} /> {productCode}
-              </span>
+    return (
+        <form onSubmit={submit} className="space-y-4 rounded-3xl bg-white p-6 ring-1 ring-line sm:p-8">
+            <div className={`grid gap-4 ${compact ? '' : 'sm:grid-cols-2'}`}>
+                <div>
+                    <label className="label" htmlFor="enq-name">Name</label>
+                    <input id="enq-name" className="field" autoComplete="name" value={form.name} onChange={update('name')} />
+                </div>
+                <div>
+                    <label className="label" htmlFor="enq-phone">Mobile</label>
+                    <input id="enq-phone" className="field" type="tel" autoComplete="tel" value={form.mobileNo} onChange={update('mobileNo')} />
+                </div>
+                <div className={compact ? '' : 'sm:col-span-2'}>
+                    <label className="label" htmlFor="enq-email">Email</label>
+                    <input id="enq-email" className="field" type="email" autoComplete="email" value={form.email} onChange={update('email')} />
+                </div>
+                <div className={compact ? '' : 'sm:col-span-2'}>
+                    <label className="label" htmlFor="enq-msg">What are you looking for?</label>
+                    <textarea id="enq-msg" rows={4} className="field resize-none" value={form.message} onChange={update('message')}
+                        placeholder="e.g. 60 black hoodies with our college logo on the back, needed by 20th…" />
+                </div>
             </div>
-          ) : null}
-          <h2 className={`font-bold text-gray-900 ${compact ? 'text-lg sm:text-xl mb-1' : 'text-2xl sm:text-3xl mb-2'}`}>
-            {isProductMode ? `Enquire About This Product` : 'Get in Touch'}
-          </h2>
-          <p className={`text-gray-500 ${compact ? 'text-sm' : 'text-sm sm:text-base'}`}>
-            {isProductMode
-              ? `Fill the form below and our team will get back to you with pricing and details.`
-              : "Have questions? We'd love to hear from you."}
-          </p>
-        </div>
-
-        {/* Status Messages */}
-        {status === 'success' && (
-          <div className="mb-4 p-3 sm:p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded text-sm">
-            ✅ Thank you! We'll get back to you soon.
-          </div>
-        )}
-        {status === 'error' && (
-          <div className="mb-4 p-3 sm:p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded text-sm">
-            Something went wrong. Please try again.
-          </div>
-        )}
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-gray-50 rounded-xl p-4 sm:p-5 shadow-sm space-y-3 sm:space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Name *</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2.5 sm:py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900 text-base sm:text-sm"
-                placeholder="Your name"
-              />
-              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Email *</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2.5 sm:py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900 text-base sm:text-sm"
-                placeholder="your@email.com"
-              />
-              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Mobile Number *</label>
-            <input
-              type="tel"
-              value={formData.mobileNo}
-              onChange={(e) => setFormData({ ...formData, mobileNo: e.target.value })}
-              className="w-full px-3 py-2.5 sm:py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900 text-base sm:text-sm"
-              placeholder="10-digit mobile number"
-            />
-            {errors.mobileNo && <p className="text-red-500 text-xs mt-1">{errors.mobileNo}</p>}
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Message *</label>
-            <textarea
-              value={formData.message}
-              onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-              rows={compact ? 3 : 4}
-              className="w-full px-3 py-2.5 sm:py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-gray-900 text-base sm:text-sm"
-              placeholder="How can we help you?"
-            />
-            {errors.message && <p className="text-red-500 text-xs mt-1">{errors.message}</p>}
-          </div>
-
-          <button
-            type="submit"
-            disabled={status === 'loading'}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm min-h-[44px]"
-          >
-            <Send size={16} />
-            {status === 'loading' ? 'Sending...' : isProductMode ? 'Send Product Enquiry' : 'Send Message'}
-          </button>
+            {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+            <button type="submit" disabled={status === 'sending'} className="btn-primary w-full sm:w-auto">
+                {status === 'sending' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Send enquiry
+            </button>
         </form>
-
-        {/* Contact info – only in general mode */}
-        {!isProductMode && (contactPhone || contactEmail) && (
-          <div className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
-            {contactPhone && (
-              <a href={`tel:${contactPhone}`} className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <Phone className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-gray-900">Phone</p>
-                <p className="text-sm text-gray-600">{contactPhone}</p>
-              </a>
-            )}
-            {contactEmail && (
-              <a href={`mailto:${contactEmail}`} className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <Mail className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-gray-900">Email</p>
-                <p className="text-sm text-gray-600">{contactEmail}</p>
-              </a>
-            )}
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <MessageSquare className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-              <p className="text-sm font-semibold text-gray-900">Support</p>
-              <p className="text-sm text-gray-600">Mon-Sat, 9AM-6PM</p>
-            </div>
-          </div>
-        )}
-      </div>
-    </section>
-  );
+    );
 };
 
 export default EnquiryForm;

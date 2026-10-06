@@ -11,7 +11,7 @@ const createAdmin = async () => {
         // Sync model (won't drop existing tables)
         await User.sync({ alter: false });
 
-        const adminEmail = 'admin@shubhamacrylic.com';
+        const adminEmail = 'admin@astitvacreations.shop';
         const adminUsername = 'admin';
         const adminPassword = 'p@sswor1';
 

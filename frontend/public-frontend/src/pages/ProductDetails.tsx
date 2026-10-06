@@ -1,15 +1,13 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Star, Truck, ShieldCheck, RotateCcw, MessageCircle, Package, ChevronLeft, ChevronRight } from 'lucide-react';
-import api from '../services/api';
-import { Product, ProductImage } from '../types';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import WhatsAppButton from '../components/WhatsAppButton';
+import { FormEvent, useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, Loader2, Palette, RotateCcw, ShieldCheck, Shirt, Star, Truck } from 'lucide-react';
+import api, { createProductEnquiry, errorMessage } from '../services/api';
+import type { Product, ProductImage } from '../types';
 import ProductCard from '../components/ProductCard';
-import EnquiryForm from '../components/EnquiryForm';
+import { WhatsAppIcon } from '../components/WhatsAppButton';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { getImageUrl } from '../utils/imageUtils';
+import { inr, waLink } from '../utils/format';
 
 interface Review {
     id: number;
@@ -19,386 +17,285 @@ interface Review {
     createdAt: string;
 }
 
+const Stars = ({ value, size = 'h-4 w-4' }: { value: number; size?: string }) => (
+    <span className="flex gap-0.5">
+        {[1, 2, 3, 4, 5].map(i => (
+            <Star key={i} className={`${size} ${i <= Math.round(value) ? 'fill-accent text-accent' : 'text-line'}`} />
+        ))}
+    </span>
+);
+
 const ProductDetails = () => {
     const { id } = useParams<{ id: string }>();
+    const { settings } = useSiteSettings();
     const [product, setProduct] = useState<Product | null>(null);
-    const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+    const [related, setRelated] = useState<Product[]>([]);
     const [reviews, setReviews] = useState<Review[]>([]);
-    const [showAllReviews, setShowAllReviews] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [activeImage, setActiveImage] = useState(0);
+    const [size, setSize] = useState('');
 
-    // Use shared site settings from context
-    const { settings } = useSiteSettings();
-
-    // Image gallery state
-    const [activeImageIndex, setActiveImageIndex] = useState(0);
-
-    // Review form state
     const [reviewForm, setReviewForm] = useState({ customerName: '', rating: 5, comment: '' });
-    const [submitting, setSubmitting] = useState(false);
-    const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [reviewState, setReviewState] = useState<'idle' | 'sending' | 'sent'>('idle');
+
+    const [enquiry, setEnquiry] = useState({ name: '', email: '', mobileNo: '', message: '' });
+    const [enquiryState, setEnquiryState] = useState<'idle' | 'sending' | 'sent'>('idle');
+    const [enquiryError, setEnquiryError] = useState('');
 
     useEffect(() => {
-        const fetchAll = async () => {
+        let alive = true;
+        setLoading(true);
+        setActiveImage(0);
+        (async () => {
             try {
-                const productRes = await api.get(`/products/${id}`);
-                setProduct(productRes.data);
-
-                const currentCategoryId = productRes.data.category && typeof productRes.data.category === 'object'
-                    ? productRes.data.category.id
-                    : productRes.data.category;
-
-                // Fetch related products (same category) using advanced-search
-                const productsRes = await api.get(`/products/advanced-search?category=${currentCategoryId || ''}`);
-                const allProducts: Product[] = Array.isArray(productsRes.data)
-                    ? productsRes.data
-                    : productsRes.data.products || [];
-
-                const related = allProducts
-                    .filter((p) => p.id !== productRes.data.id)
-                    .slice(0, 4);
-                setRelatedProducts(related);
-
-                // Fetch reviews
-                const reviewsRes = await api.get(`/reviews/product/${id}`);
-                setReviews(reviewsRes.data);
-            } catch (err) {
-                setError('Failed to load product details.');
+                const { data } = await api.get<Product>(`/products/${id}`);
+                if (!alive) return;
+                setProduct(data);
+                setSize(data.availableSizes?.[0] || '');
+                const [rel, rev] = await Promise.all([
+                    api.get(`/products/advanced-search?category=${data.category?.id || ''}`).catch(() => ({ data: [] })),
+                    api.get(`/reviews/product/${id}`).catch(() => ({ data: [] })),
+                ]);
+                if (!alive) return;
+                const list: Product[] = Array.isArray(rel.data) ? rel.data : rel.data.products || [];
+                setRelated(list.filter(p => p.id !== data.id).slice(0, 4));
+                setReviews(Array.isArray(rev.data) ? rev.data : []);
+            } catch {
+                if (alive) setError('This product could not be found.');
             } finally {
-                setLoading(false);
+                if (alive) setLoading(false);
             }
-        };
-        fetchAll();
+        })();
+        return () => { alive = false; };
     }, [id]);
 
-    const handleReviewSubmit = async (e: React.FormEvent) => {
+    const submitReview = async (e: FormEvent) => {
         e.preventDefault();
-        setSubmitting(true);
+        if (!reviewForm.customerName.trim() || !reviewForm.comment.trim()) return;
+        setReviewState('sending');
         try {
-            const response = await api.post('/reviews', { productId: id, ...reviewForm });
-            setReviews([response.data, ...reviews]);
+            const { data } = await api.post('/reviews', { productId: id, ...reviewForm });
+            setReviews(r => [data, ...r]);
             setReviewForm({ customerName: '', rating: 5, comment: '' });
-            setSubmitSuccess(true);
-            setTimeout(() => setSubmitSuccess(false), 3000);
-        } catch (err) {
-            console.error('Error submitting review:', err);
-        } finally {
-            setSubmitting(false);
+            setReviewState('sent');
+        } catch {
+            setReviewState('idle');
         }
     };
 
-    // ── WhatsApp redirect ────────────────────────────────────────────────────
-    const handleWhatsApp = () => {
-        if (!product || !settings?.whatsappNumber) return;
-        const phone = settings.whatsappNumber.replace(/\D/g, '');
-        const msg = encodeURIComponent(
-            `Hi! I'm interested in *${product.name}* (Product Code: *${product.productCode}*). Could you please share pricing and availability? Thank you!`
-        );
-        window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+    const submitEnquiry = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!product) return;
+        if (!enquiry.name.trim() || !enquiry.email.trim() || enquiry.mobileNo.replace(/\D/g, '').length < 10) {
+            setEnquiryError('Please enter your name, email and a valid mobile number.');
+            return;
+        }
+        setEnquiryError('');
+        setEnquiryState('sending');
+        try {
+            await createProductEnquiry({
+                ...enquiry,
+                message: enquiry.message || `Interested in ${product.name}${size ? ` (size ${size})` : ''}.`,
+                productId: product.id,
+                productCode: product.productCode,
+                productName: product.name,
+            });
+            setEnquiryState('sent');
+        } catch (err) {
+            setEnquiryError(errorMessage(err));
+            setEnquiryState('idle');
+        }
     };
 
-    // ── Image gallery helpers ────────────────────────────────────────────────
-    const images: ProductImage[] = product?.images?.length
+    if (loading) {
+        return <div className="grid min-h-[70vh] place-items-center"><Loader2 className="h-8 w-8 animate-spin text-accent" /></div>;
+    }
+
+    if (error || !product) {
+        return (
+            <div className="container-x grid min-h-[60vh] place-items-center text-center">
+                <div>
+                    <Shirt className="mx-auto h-12 w-12 text-muted" strokeWidth={1} />
+                    <h1 className="mt-4 font-display text-2xl font-bold">{error || 'Product not found'}</h1>
+                    <Link to="/shop" className="btn-primary mt-6">Back to shop</Link>
+                </div>
+            </div>
+        );
+    }
+
+    const images: ProductImage[] = product.images?.length
         ? product.images
-        : product?.imageUrl
-        ? [{ id: 0, imageUrl: product.imageUrl, imageOrder: 0, isMain: true }]
-        : [];
-
-    if (loading) return (
-        <div className="min-h-screen w-full flex items-center justify-center">
-            <div className="relative w-20 h-20">
-                <div className="absolute inset-0 border-4 border-blue-200 rounded-full animate-ping" />
-                <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            </div>
-        </div>
-    );
-
-    if (error || !product) return (
-        <div className="min-h-screen flex items-center justify-center">
-            <div className="text-center">
-                <div className="text-red-500 text-xl mb-4">{error || 'Product not found'}</div>
-                <a href="/" className="text-blue-600 hover:underline">Return to Home</a>
-            </div>
-        </div>
-    );
-
-    const avgRating = reviews.length > 0
-        ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-        : 0;
+        : product.imageUrl ? [{ id: 0, imageUrl: product.imageUrl, imageOrder: 0, isMain: true }] : [];
+    const avg = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+    const whatsapp = settings?.whatsappNumber
+        ? waLink(settings.whatsappNumber, `Hi! I'd like to order *${product.name}* (Code: ${product.productCode})${size ? `, size *${size}*` : ''}. Price shown: ${inr(product.price)}. Please share availability.`)
+        : '';
+    const specs = [
+        ['Fabric', product.fabric],
+        ['Fit', product.fitType],
+        ['For', product.gender],
+        ['Colour', product.color],
+        ['Code', product.productCode],
+    ].filter(([, v]) => v);
 
     return (
-        <div className="min-h-screen bg-white font-sans">
-            <Navbar />
+        <>
+            <section className="container-x py-8 sm:py-12">
+                <Link to="/shop" className="inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-ink">
+                    <ArrowLeft className="h-4 w-4" /> Back to shop
+                </Link>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-                {/* ── Product Detail ─────────────────────────────────────── */}
-                <div className="flex flex-col md:flex-row gap-6 sm:gap-8 mb-10 sm:mb-16">
-
-                    {/* ── Image Gallery ───────────────────────────────────── */}
-                    <div className="w-full md:w-2/5">
-                        <div className="md:sticky md:top-24">
-                            {/* Main image */}
-                            <div className="relative border-2 border-gray-200 rounded-2xl overflow-hidden bg-gray-50 flex items-center justify-center h-72 sm:h-[400px] md:h-[480px] mb-3 group">
-                                <img
-                                    src={getImageUrl(images[activeImageIndex]?.imageUrl) || 'https://via.placeholder.com/500'}
-                                    alt={`${product.name} - Image ${activeImageIndex + 1}`}
-                                    className="max-h-full max-w-full object-contain p-4 sm:p-6 transition-opacity duration-300"
-                                />
-                                {/* Arrows (only when multiple images) */}
-                                {images.length > 1 && (
-                                    <>
-                                        <button
-                                            onClick={() => setActiveImageIndex(i => Math.max(0, i - 1))}
-                                            disabled={activeImageIndex === 0}
-                                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white border border-gray-200 rounded-full p-2 shadow transition disabled:opacity-30 min-w-[36px] min-h-[36px] flex items-center justify-center"
-                                        >
-                                            <ChevronLeft size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => setActiveImageIndex(i => Math.min(images.length - 1, i + 1))}
-                                            disabled={activeImageIndex === images.length - 1}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white border border-gray-200 rounded-full p-2 shadow transition disabled:opacity-30 min-w-[36px] min-h-[36px] flex items-center justify-center"
-                                        >
-                                            <ChevronRight size={18} />
-                                        </button>
-                                    </>
-                                )}
-                                {/* Image counter */}
-                                {images.length > 1 && (
-                                    <span className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
-                                        {activeImageIndex + 1} / {images.length}
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* Thumbnail strip */}
-                            {images.length > 1 && (
-                                <div className="flex gap-2 overflow-x-auto pb-1">
-                                    {images.map((img, index) => (
-                                        <button
-                                            key={img.id}
-                                            onClick={() => setActiveImageIndex(index)}
-                                            className={`flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 transition ${
-                                                index === activeImageIndex
-                                                    ? 'border-blue-600 shadow-md'
-                                                    : 'border-gray-200 hover:border-gray-400'
-                                            }`}
-                                        >
-                                            <img
-                                                src={getImageUrl(img.imageUrl)}
-                                                alt={`Thumbnail ${index + 1}`}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </button>
-                                    ))}
-                                </div>
+                <div className="mt-6 grid gap-10 lg:grid-cols-2 lg:gap-16">
+                    {/* Gallery */}
+                    <div className="lg:sticky lg:top-24 lg:self-start">
+                        <div className="aspect-[4/5] overflow-hidden rounded-[2rem] bg-paper-deep">
+                            {images[activeImage] ? (
+                                <img src={getImageUrl(images[activeImage].imageUrl)} alt={product.name} className="h-full w-full object-cover" />
+                            ) : (
+                                <div className="grid h-full place-items-center text-muted"><Shirt className="h-16 w-16" strokeWidth={1} /></div>
                             )}
                         </div>
-                    </div>
-
-                    {/* ── Product Info ────────────────────────────────────── */}
-                    <div className="w-full md:w-3/5 space-y-4 sm:space-y-5">
-                        {/* Category + Product Code */}
-                        <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm text-blue-600 font-semibold uppercase">
-                                {product.category && typeof product.category === 'object' ? product.category.name : product.category || 'Uncategorized'}
-                            </span>
-                            <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-bold px-2.5 py-1 rounded-full border border-gray-200">
-                                <Package size={11} /> {product.productCode}
-                            </span>
-                        </div>
-
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{product.name}</h1>
-
-                        {/* Rating */}
-                        <div className="flex items-center gap-3">
-                            <div className="flex text-yellow-400">
-                                {[...Array(5)].map((_, i) => (
-                                    <Star key={i} size={18} fill={i < Math.round(Number(avgRating)) ? 'currentColor' : 'none'} />
+                        {images.length > 1 && (
+                            <div className="no-scrollbar mt-4 flex gap-3 overflow-x-auto">
+                                {images.map((img, i) => (
+                                    <button key={img.id} onClick={() => setActiveImage(i)}
+                                        className={`h-20 w-16 shrink-0 overflow-hidden rounded-xl ring-2 transition ${i === activeImage ? 'ring-ink' : 'ring-transparent opacity-70 hover:opacity-100'}`}>
+                                        <img src={getImageUrl(img.imageUrl)} alt="" className="h-full w-full object-cover" />
+                                    </button>
                                 ))}
                             </div>
-                            <span className="text-gray-500 text-sm">{avgRating} ({reviews.length} reviews)</span>
-                        </div>
-
-                        {/* Price */}
-                        <div className="border-t border-b border-gray-200 py-4 sm:py-5">
-                            <div className="text-3xl sm:text-4xl font-bold text-gray-900">₹{product.price}</div>
-                            <p className="text-gray-500 text-sm mt-1">Inclusive of all taxes</p>
-                        </div>
-
-                        {/* Product Details */}
-                        <div className="bg-gray-50 rounded-xl p-4 sm:p-5 space-y-3">
-                            <h3 className="font-bold text-base text-gray-900">Product Details</h3>
-                            <p className="text-gray-700 text-sm leading-relaxed">{product.description}</p>
-                            <div className="grid grid-cols-2 gap-2 sm:gap-3 text-sm mt-3">
-                                {product.materialType && <div><span className="font-semibold">Material:</span> {product.materialType}</div>}
-                                {product.size && <div><span className="font-semibold">Size:</span> {product.size}</div>}
-                                {product.color && <div><span className="font-semibold">Color:</span> {product.color}</div>}
-                                {product.weight && <div><span className="font-semibold">Weight:</span> {product.weight} kg</div>}
-                            </div>
-                            {product.tags && product.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 mt-2">
-                                    {product.tags.map(tag => (
-                                        <span key={tag} className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">
-                                            {tag}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Shipping info */}
-                        <div className="flex flex-wrap gap-3 sm:gap-4 text-sm bg-blue-50 rounded-xl p-3 sm:p-4">
-                            <div className="flex items-center gap-2"><Truck size={16} className="text-blue-600" /> Free Delivery</div>
-                            <div className="flex items-center gap-2"><RotateCcw size={16} className="text-blue-600" /> 7 Days Return</div>
-                            <div className="flex items-center gap-2"><ShieldCheck size={16} className="text-blue-600" /> 1 Year Warranty</div>
-                        </div>
-
-                        {/* ── Action Buttons ──────────────────────────────── */}
-                        <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                            {/* WhatsApp CTA */}
-                            {settings?.whatsappNumber && (
-                                <button
-                                    onClick={handleWhatsApp}
-                                    className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 active:scale-95 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-lg shadow-green-200 min-h-[48px]"
-                                >
-                                    <MessageCircle size={20} fill="white" />
-                                    WhatsApp Enquiry
-                                </button>
-                            )}
-                            {/* Scroll to enquiry form */}
-                            <a
-                                href="#product-enquiry"
-                                className="flex-1 flex items-center justify-center gap-2 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-bold py-3.5 px-6 rounded-xl transition-all min-h-[48px]"
-                            >
-                                Send Enquiry
-                            </a>
-                        </div>
+                        )}
                     </div>
-                </div>
 
-                {/* ── Product Enquiry Form ────────────────────────────────── */}
-                <div className="mb-10 sm:mb-16 bg-gray-50 rounded-2xl p-4 sm:p-6 md:p-8 border border-gray-200">
-                    <EnquiryForm
-                        productId={product.id}
-                        productCode={product.productCode}
-                        productName={product.name}
-                        compact={true}
-                    />
-                </div>
-
-                {/* ── Write Review ────────────────────────────────────────── */}
-                <div className="mb-10 sm:mb-16 bg-gray-50 rounded-xl p-4 sm:p-8">
-                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Write a Review</h2>
-                    {submitSuccess && (
-                        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-                            Thank you! Your review has been submitted successfully.
-                        </div>
-                    )}
-                    <form onSubmit={handleReviewSubmit} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Your Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={reviewForm.customerName}
-                                    onChange={(e) => setReviewForm({ ...reviewForm, customerName: e.target.value })}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-base sm:text-sm"
-                                    placeholder="Enter your name"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Rating</label>
-                                <select
-                                    value={reviewForm.rating}
-                                    onChange={(e) => setReviewForm({ ...reviewForm, rating: Number(e.target.value) })}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-base sm:text-sm"
-                                >
-                                    {[5, 4, 3, 2, 1].map(num => (
-                                        <option key={num} value={num}>{num} Star{num > 1 ? 's' : ''}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Your Review</label>
-                            <textarea
-                                required
-                                value={reviewForm.comment}
-                                onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-                                rows={4}
-                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none text-base sm:text-sm"
-                                placeholder="Share your experience with this product..."
-                            />
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={submitting}
-                            className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 min-h-[44px]"
-                        >
-                            {submitting ? 'Submitting...' : 'Submit Review'}
-                        </button>
-                    </form>
-                </div>
-
-                {/* ── Customer Reviews ────────────────────────────────────── */}
-                {reviews.length > 0 && (
-                    <div className="mb-10 sm:mb-16">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-                            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Customer Reviews ({reviews.length})</h2>
-                            <button
-                                onClick={() => setShowAllReviews(!showAllReviews)}
-                                className="px-6 py-2 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-semibold rounded-lg transition-colors text-sm min-h-[44px]"
-                            >
-                                {showAllReviews ? 'Show Less' : 'Show All Reviews'}
-                            </button>
-                        </div>
-                        <div className="space-y-4">
-                            {(showAllReviews ? reviews : reviews.slice(0, 3)).map((review) => (
-                                <div key={review.id} className="bg-white border-2 border-gray-200 rounded-xl p-4 sm:p-6">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div>
-                                            <div className="font-bold text-gray-900">{review.customerName}</div>
-                                            <div className="flex text-yellow-400 mt-1">
-                                                {[...Array(5)].map((_, i) => (
-                                                    <Star key={i} size={14} fill={i < review.rating ? 'currentColor' : 'none'} />
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <span className="text-sm text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</span>
-                                    </div>
-                                    <p className="text-gray-700 text-sm">{review.comment}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* ── Related Products ────────────────────────────────────── */}
-                {relatedProducts.length > 0 && (
+                    {/* Info */}
                     <div>
-                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Related Products</h2>
-                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                            {relatedProducts.map((rp) => (
-                                <ProductCard key={rp.id} product={rp} />
+                        {product.category && <p className="eyebrow">{product.category.name}</p>}
+                        <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">{product.name}</h1>
+                        {reviews.length > 0 && (
+                            <a href="#reviews" className="mt-3 flex items-center gap-2 text-sm text-muted">
+                                <Stars value={avg} /> {avg.toFixed(1)} · {reviews.length} review{reviews.length > 1 ? 's' : ''}
+                            </a>
+                        )}
+                        <p className="mt-6 font-display text-4xl font-bold">{inr(product.price)}</p>
+
+                        {product.description && <p className="mt-6 whitespace-pre-line leading-relaxed text-muted">{product.description}</p>}
+
+                        {!!product.availableSizes?.length && (
+                            <div className="mt-8">
+                                <p className="label">Size</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {(product.availableSizes ?? []).map(s => (
+                                        <button key={s} onClick={() => setSize(s)}
+                                            className={`min-w-14 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${size === s ? 'border-ink bg-ink text-white' : 'border-line bg-white hover:border-ink'}`}>
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                            {whatsapp && (
+                                <a href={whatsapp} target="_blank" rel="noreferrer" className="btn flex-1 bg-[#25D366] py-4 text-white hover:bg-[#1ebe5a]">
+                                    <WhatsAppIcon className="h-5 w-5" /> Order on WhatsApp
+                                </a>
+                            )}
+                            <a href="#enquire" className="btn-outline flex-1 py-4">Send an enquiry</a>
+                        </div>
+                        {product.isCustomizable && (
+                            <Link to="/customize" className="mt-3 flex items-center justify-center gap-2 rounded-full bg-accent-soft py-3 text-sm font-semibold text-accent-dark hover:bg-accent hover:text-white">
+                                <Palette className="h-4 w-4" /> Want your own print? Open the design studio
+                            </Link>
+                        )}
+
+                        {specs.length > 0 && (
+                            <dl className="mt-10 divide-y divide-line border-y border-line text-sm">
+                                {specs.map(([k, v]) => (
+                                    <div key={k} className="flex justify-between py-3"><dt className="text-muted">{k}</dt><dd className="font-medium">{v}</dd></div>
+                                ))}
+                            </dl>
+                        )}
+
+                        <div className="mt-8 grid grid-cols-3 gap-3 text-center text-xs text-muted">
+                            {[{ icon: ShieldCheck, t: 'Quality checked' }, { icon: Truck, t: 'Shipped across India' }, { icon: RotateCcw, t: 'Easy support' }].map(({ icon: Icon, t }) => (
+                                <div key={t} className="rounded-2xl bg-white p-4 ring-1 ring-line"><Icon className="mx-auto mb-2 h-5 w-5 text-ink" />{t}</div>
                             ))}
                         </div>
+
+                        {/* Enquiry */}
+                        <div id="enquire" className="mt-10 scroll-mt-28 rounded-3xl bg-white p-6 ring-1 ring-line">
+                            <h2 className="font-display text-xl font-bold">Enquire about this product</h2>
+                            {enquiryState === 'sent' ? (
+                                <p className="mt-3 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800">Thanks! We've received your enquiry and will contact you shortly.</p>
+                            ) : (
+                                <form onSubmit={submitEnquiry} className="mt-4 grid gap-3 sm:grid-cols-2">
+                                    <input className="field" placeholder="Name" value={enquiry.name} onChange={e => setEnquiry(f => ({ ...f, name: e.target.value }))} />
+                                    <input className="field" placeholder="Mobile" type="tel" value={enquiry.mobileNo} onChange={e => setEnquiry(f => ({ ...f, mobileNo: e.target.value }))} />
+                                    <input className="field sm:col-span-2" placeholder="Email" type="email" value={enquiry.email} onChange={e => setEnquiry(f => ({ ...f, email: e.target.value }))} />
+                                    <textarea className="field resize-none sm:col-span-2" rows={3} placeholder="Quantity, sizes, questions…" value={enquiry.message} onChange={e => setEnquiry(f => ({ ...f, message: e.target.value }))} />
+                                    {enquiryError && <p className="text-sm text-red-600 sm:col-span-2">{enquiryError}</p>}
+                                    <button type="submit" disabled={enquiryState === 'sending'} className="btn-primary sm:col-span-2">
+                                        {enquiryState === 'sending' && <Loader2 className="h-4 w-4 animate-spin" />} Send enquiry
+                                    </button>
+                                </form>
+                            )}
+                        </div>
                     </div>
-                )}
-            </main>
+                </div>
+            </section>
 
-            <Footer />
+            {/* Reviews */}
+            <section id="reviews" className="scroll-mt-24 border-t border-line bg-white py-16">
+                <div className="container-x grid gap-12 lg:grid-cols-3">
+                    <div>
+                        <p className="eyebrow">Reviews</p>
+                        <h2 className="mt-3 font-display text-3xl font-bold">What customers say</h2>
+                        {reviews.length > 0 && (
+                            <div className="mt-4 flex items-center gap-3"><span className="font-display text-5xl font-bold">{avg.toFixed(1)}</span><Stars value={avg} size="h-5 w-5" /></div>
+                        )}
+                        {reviewState === 'sent' ? (
+                            <p className="mt-6 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800">Thanks for your review!</p>
+                        ) : (
+                            <form onSubmit={submitReview} className="mt-8 space-y-3">
+                                <div className="flex gap-1" role="radiogroup" aria-label="Rating">
+                                    {[1, 2, 3, 4, 5].map(r => (
+                                        <button type="button" key={r} onClick={() => setReviewForm(f => ({ ...f, rating: r }))} aria-label={`${r} star`}>
+                                            <Star className={`h-7 w-7 ${r <= reviewForm.rating ? 'fill-accent text-accent' : 'text-line'}`} />
+                                        </button>
+                                    ))}
+                                </div>
+                                <input className="field" placeholder="Your name" value={reviewForm.customerName} onChange={e => setReviewForm(f => ({ ...f, customerName: e.target.value }))} />
+                                <textarea className="field resize-none" rows={3} placeholder="Share your experience" value={reviewForm.comment} onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))} />
+                                <button disabled={reviewState === 'sending'} className="btn-primary">Post review</button>
+                            </form>
+                        )}
+                    </div>
+                    <div className="space-y-4 lg:col-span-2">
+                        {reviews.length === 0 && <p className="rounded-2xl border border-dashed border-line p-10 text-center text-sm text-muted">No reviews yet — be the first to review this product.</p>}
+                        {reviews.slice(0, 8).map(r => (
+                            <article key={r.id} className="rounded-2xl bg-paper p-6">
+                                <div className="flex items-center justify-between">
+                                    <p className="font-semibold">{r.customerName}</p>
+                                    <Stars value={r.rating} />
+                                </div>
+                                <p className="mt-3 text-sm leading-relaxed text-muted">{r.comment}</p>
+                                <p className="mt-3 text-xs text-muted/70">{new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                            </article>
+                        ))}
+                    </div>
+                </div>
+            </section>
 
-            {/* WhatsApp floating button on product page too */}
-            {settings?.whatsappNumber && (
-                <WhatsAppButton
-                    phone={settings.whatsappNumber}
-                    message={`Hi, I'm interested in ${product.name} (${product.productCode}). Please share details.`}
-                />
+            {related.length > 0 && (
+                <section className="container-x py-16">
+                    <h2 className="font-display text-3xl font-bold">You may also like</h2>
+                    <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4">
+                        {related.map(p => <ProductCard key={p.id} product={p} />)}
+                    </div>
+                </section>
             )}
-        </div>
+        </>
     );
 };
 
