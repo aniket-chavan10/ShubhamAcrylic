@@ -84,6 +84,11 @@ body {
   }
 }
 
+/* Keeps bottom bars clear of the iPhone home indicator in the installed app */
+.pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
 .no-scrollbar {
   scrollbar-width: none;
 }

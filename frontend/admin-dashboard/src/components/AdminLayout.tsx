@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ChevronDown, ExternalLink, LogOut, Menu, Settings, User } from "lucide-react";
 import Sidebar from "./Sidebar";
 import BrandLogo from "./BrandLogo";
+import { InstallAppButton } from "./AppStatus";
 import { useBrand } from "../hooks/useBrand";
 import { fetchWithAuth } from "../utils/apiUtils";
 
@@ -98,6 +99,7 @@ const AdminLayout: FC<{ children: ReactNode; title?: string; actions?: ReactNode
                     <Link to="/site-settings" className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-paper" onClick={() => setIsDropdownOpen(false)}>
                       <Settings className="h-4 w-4 text-muted" /> Site settings
                     </Link>
+                    <InstallAppButton className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-paper [&>svg]:text-muted" onDone={() => setIsDropdownOpen(false)} />
                     <div className="my-1 border-t border-line" />
                     <button onClick={handleLogout} className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50">
                       <LogOut className="h-4 w-4" /> Logout

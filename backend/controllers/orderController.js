@@ -4,6 +4,7 @@ const Garment = require('../models/Garment');
 const SiteSettings = require('../models/SiteSettings');
 const { readVerificationToken } = require('./otpController');
 const { sendMail, layout, escapeHtml } = require('../utils/mailer');
+const { syncOrderStock } = require('../utils/inventory');
 
 const MAX_ORDERS_PER_EMAIL_PER_DAY = 5;
 const MAX_QTY = 500;
@@ -237,11 +238,26 @@ exports.updateOrder = async (req, res) => {
     if (!order) return res.status(404).json({ message: 'Order not found' });
     const { status, adminNotes } = req.body;
     const statuses = ['new', 'confirmed', 'in_production', 'shipped', 'delivered', 'cancelled'];
+    const statusChanged = statuses.includes(status) && status !== order.status;
     await order.update({
       ...(statuses.includes(status) ? { status } : {}),
       ...(adminNotes !== undefined ? { adminNotes } : {}),
     });
-    res.json(order);
+    // Deduct / return the linked plain garment in raw-material stock
+    let stock = [];
+    if (statusChanged) {
+      try {
+        stock = (await syncOrderStock(order, req.user?.id)).map(({ material, movement }) => ({
+          material: [material.name, material.color, material.size].filter(Boolean).join(' · '),
+          change: Number(movement.change),
+          balance: Number(movement.balanceAfter),
+          unit: material.unit,
+        }));
+      } catch (err) {
+        console.error('Order stock sync failed:', err.message);
+      }
+    }
+    res.json({ ...order.toJSON(), stock });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

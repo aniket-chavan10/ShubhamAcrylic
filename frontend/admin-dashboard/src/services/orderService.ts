@@ -79,7 +79,10 @@ export async function fetchOrder(id: number | string): Promise<Order> {
   return json(await fetchWithAuth(`/orders/${id}`), "Failed to load order");
 }
 
-export async function updateOrder(id: number, data: { status?: OrderStatus; adminNotes?: string }): Promise<Order> {
+/** Raw-material stock changes caused by a status update */
+export interface OrderStockChange { material: string; change: number; balance: number; unit: string }
+
+export async function updateOrder(id: number, data: { status?: OrderStatus; adminNotes?: string }): Promise<Order & { stock?: OrderStockChange[] }> {
   return json(await fetchWithAuth(`/orders/${id}`, { method: "PATCH", body: JSON.stringify(data) }), "Failed to update order");
 }
 

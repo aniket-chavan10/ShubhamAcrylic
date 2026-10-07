@@ -16,6 +16,8 @@ const Garment = require('./models/Garment');
 const Order = require('./models/Order');
 require('./models/EmailOtp');
 const Invoice = require('./models/Invoice');
+const RawMaterial = require('./models/RawMaterial');
+const StockMovement = require('./models/StockMovement');
 
 // ── Associations ────────────────────────────────────────────────────────────
 Product.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
@@ -27,6 +29,9 @@ Review.belongsTo(Product, { foreignKey: 'productId' });
 Enquiry.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 Order.belongsTo(Garment, { foreignKey: 'garmentId', as: 'garment', constraints: false });
 Invoice.belongsTo(Order, { foreignKey: 'orderId', as: 'order', constraints: false });
+RawMaterial.hasMany(StockMovement, { foreignKey: 'materialId', as: 'movements', constraints: false });
+StockMovement.belongsTo(RawMaterial, { foreignKey: 'materialId', as: 'material', constraints: false });
+RawMaterial.belongsTo(Garment, { foreignKey: 'garmentId', as: 'garment', constraints: false });
 
 const app = express();
 const path = require('path');
@@ -57,6 +62,7 @@ const garmentRoutes = require('./routes/garmentRoutes');
 const otpRoutes = require('./routes/otpRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes');
+const rawMaterialRoutes = require('./routes/rawMaterialRoutes');
 const garmentController = require('./controllers/garmentController');
 
 app.get('/', (req, res) => res.send('Backend API is running (MySQL)'));
@@ -72,6 +78,7 @@ app.use('/api/garments', garmentRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/raw-materials', rawMaterialRoutes);
 
 // ── Error handling ───────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {

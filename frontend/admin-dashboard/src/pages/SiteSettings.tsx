@@ -323,7 +323,7 @@ const SiteSettings: React.FC = () => {
         ))}
 
         {/* Save bar stays in reach on long pages and on phones */}
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-white/95 px-4 py-3 backdrop-blur lg:left-[272px]">
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-white/95 px-4 pt-3 pb-safe backdrop-blur lg:left-[272px]">
           <div className="flex max-w-4xl items-center justify-between gap-3 sm:px-4">
             <p className="flex min-w-0 items-center gap-1.5 truncate text-sm">
               {saved ? <><CheckCircle className="h-4 w-4 shrink-0 text-emerald-600" /> <span className="text-emerald-700">Settings saved</span></>

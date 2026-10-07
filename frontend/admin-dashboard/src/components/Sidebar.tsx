@@ -1,11 +1,13 @@
 import { FC, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import BrandLogo from "./BrandLogo";
+import { InstallAppButton } from "./AppStatus";
+import { useStockAlerts } from "../hooks/useStockAlerts";
 import {
-  FolderTree, Image, LayoutDashboard, LucideIcon, Mail, Package, Receipt, Settings, Shirt, ShoppingBag, Star, User, X,
+  Boxes, FolderTree, Image, LayoutDashboard, LucideIcon, Mail, Package, Receipt, Settings, Shirt, ShoppingBag, Star, User, X,
 } from "lucide-react";
 
-interface MenuItem { label: string; to: string; icon: LucideIcon; match?: string }
+interface MenuItem { label: string; to: string; icon: LucideIcon; badge?: "stock" }
 
 const groups: { title: string; items: MenuItem[] }[] = [
   {
@@ -29,6 +31,10 @@ const groups: { title: string; items: MenuItem[] }[] = [
       { label: "Reviews", to: "/reviews", icon: Star },
       { label: "Banners", to: "/banners", icon: Image },
     ],
+  },
+  {
+    title: "Inventory",
+    items: [{ label: "Raw Materials", to: "/inventory", icon: Boxes, badge: "stock" }],
   },
   {
     title: "Account",
@@ -56,6 +62,7 @@ const Sidebar: FC<SidebarProps> = ({ companyName, open, onClose }) => {
     return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
   }, [open, onClose]);
 
+  const stock = useStockAlerts();
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`));
 
   return (
@@ -83,8 +90,9 @@ const Sidebar: FC<SidebarProps> = ({ companyName, open, onClose }) => {
             <div key={group.title}>
               <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">{group.title}</p>
               <ul className="space-y-0.5">
-                {group.items.map(({ label, to, icon: Icon }) => {
+                {group.items.map(({ label, to, icon: Icon, badge }) => {
                   const active = isActive(to);
+                  const count = badge === "stock" ? stock.count : 0;
                   return (
                     <li key={to}>
                       <Link
@@ -93,7 +101,10 @@ const Sidebar: FC<SidebarProps> = ({ companyName, open, onClose }) => {
                         className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-white text-ink" : "text-white/65 hover:bg-white/[0.07] hover:text-white"}`}
                       >
                         <Icon className={`h-[18px] w-[18px] ${active ? "text-accent" : ""}`} />
-                        {label}
+                        <span className="flex-1">{label}</span>
+                        {count > 0 && (
+                          <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1.5 text-[11px] font-bold text-white" title={`${count} to buy`}>{count}</span>
+                        )}
                       </Link>
                     </li>
                   );
@@ -103,7 +114,10 @@ const Sidebar: FC<SidebarProps> = ({ companyName, open, onClose }) => {
           ))}
         </nav>
 
-        <div className="border-t border-white/10 px-5 py-4 text-[11px] text-white/30">© {new Date().getFullYear()} {companyName}</div>
+        <div className="space-y-3 border-t border-white/10 px-5 py-4 pb-safe">
+          <InstallAppButton className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15" />
+          <p className="text-[11px] text-white/30">© {new Date().getFullYear()} {companyName}</p>
+        </div>
       </aside>
     </>
   );

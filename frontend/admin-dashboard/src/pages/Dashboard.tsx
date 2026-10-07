@@ -2,7 +2,10 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import { PageLoader } from "../components/ui";
-import { AlertCircle, CheckCircle, ChevronRight, Clock, Image, LucideIcon, Mail, Package, Receipt, ShoppingBag, Shirt, Star, TrendingUp } from "lucide-react";
+import { useStockAlerts } from "../hooks/useStockAlerts";
+import { useBrand } from "../hooks/useBrand";
+import { buyListText, materialLabel } from "../services/inventoryService";
+import { AlertCircle, Boxes, CheckCircle, ChevronRight, Clock, Image, LucideIcon, Mail, MessageCircle, Package, Receipt, ShoppingBag, Shirt, Star, TrendingUp } from "lucide-react";
 import { fetchOrders, fetchOrderStats, Order } from "../services/orderService";
 import { fetchInvoices } from "../services/invoiceService";
 import { getImageUrl } from "../utils/imageUtils";
@@ -35,6 +38,8 @@ const Dashboard = () => {
 
   const [sales, setSales] = useState({ newOrders: 0, totalOrders: 0, orderValue: 0, billed: 0, received: 0, outstanding: 0 });
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const stock = useStockAlerts();
+  const { companyName } = useBrand();
 
   useEffect(() => {
     loadDashboardData();
@@ -158,6 +163,38 @@ const Dashboard = () => {
             <p className="text-xs text-muted">To be collected</p>
           </Link>
         </div>
+
+        {/* Raw materials to buy */}
+        {stock.count > 0 && (
+          <div className="a-card overflow-hidden border-amber-200">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-amber-50/60 p-5">
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-100 text-amber-700"><Boxes className="h-5 w-5" /></span>
+                <div>
+                  <h3 className="font-display text-lg font-bold">Raw material to buy</h3>
+                  <p className="text-sm text-muted">{stock.count} item{stock.count === 1 ? " is" : "s are"} at or below the alert level</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <a href={`https://wa.me/?text=${encodeURIComponent(buyListText(stock.items, companyName))}`} target="_blank" rel="noreferrer" className="a-btn bg-[#25D366] px-3 py-2 text-white hover:bg-[#1ebe5a]"><MessageCircle className="h-4 w-4" /> Send list</a>
+                <Link to="/inventory" className="a-btn-outline px-3 py-2">Open inventory</Link>
+              </div>
+            </div>
+            <ul className="divide-y divide-line">
+              {stock.items.slice(0, 6).map(m => (
+                <li key={m.id} className="flex items-center gap-3 px-5 py-3">
+                  <span className="h-7 w-7 shrink-0 rounded-full ring-1 ring-black/10" style={{ background: m.colorHex || "#f5f3ee" }} />
+                  <p className="min-w-0 flex-1 truncate text-sm font-medium">{materialLabel(m)}</p>
+                  <span className={`a-badge ${m.status === "out" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>
+                    {m.status === "out" ? "Out" : `${Number(m.quantity)} left`}
+                  </span>
+                  <span className="hidden w-28 text-right text-sm text-muted sm:block">buy <b className="text-ink">{m.suggestedBuy}</b> {m.unit}</span>
+                </li>
+              ))}
+            </ul>
+            {stock.count > 6 && <Link to="/inventory" className="block border-t border-line px-5 py-3 text-center text-sm font-semibold text-accent-dark hover:bg-paper/60">+ {stock.count - 6} more</Link>}
+          </div>
+        )}
 
         {recentOrders.length > 0 && (
           <div className="a-card">

@@ -309,7 +309,7 @@ const InvoiceEditor = () => {
         </aside>
       </div>
 
-      <div className="sticky bottom-0 z-20 -mx-4 mt-6 flex items-center justify-between gap-3 border-t border-line bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 xl:hidden">
+      <div className="sticky bottom-0 z-20 -mx-4 mt-6 flex items-center justify-between gap-3 border-t border-line bg-white/95 px-4 pt-3 pb-safe backdrop-blur sm:-mx-6 sm:px-6 xl:hidden">
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-wider text-muted">Grand total</p>
           <p className="truncate font-display text-xl font-bold">{inr(totals.grandTotal, !roundOff)}</p>

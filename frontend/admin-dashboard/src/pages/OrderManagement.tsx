@@ -4,6 +4,7 @@ import {
   BadgeCheck, Download, FileText, Mail, MessageCircle, Phone, Search, ShoppingBag, Trash2, X,
 } from "lucide-react";
 import AdminLayout from "../components/AdminLayout";
+import { refreshStockAlerts } from "../hooks/useStockAlerts";
 import { PageLoader } from "../components/ui";
 import {
   deleteOrder, fetchOrders, fetchOrderStats, Order, ORDER_STATUSES, OrderStatus, updateOrder,
@@ -25,13 +26,21 @@ function OrderDrawer({ order, onClose, onChanged, onDeleted }: {
   const navigate = useNavigate();
   const [notes, setNotes] = useState(order.adminNotes || "");
   const [saving, setSaving] = useState(false);
+  const [stockNote, setStockNote] = useState("");
 
   useEffect(() => setNotes(order.adminNotes || ""), [order.id, order.adminNotes]);
+  useEffect(() => setStockNote(""), [order.id]);
 
   const patch = async (data: { status?: OrderStatus; adminNotes?: string }) => {
     setSaving(true);
     try {
-      onChanged(await updateOrder(order.id, data));
+      const updated = await updateOrder(order.id, data);
+      // Linked raw material is deducted / returned automatically
+      if (updated.stock?.length) {
+        setStockNote(updated.stock.map(s => `${s.material}: ${s.change > 0 ? "+" : "−"}${Math.abs(s.change)} ${s.unit} (now ${s.balance})`).join(" · "));
+        refreshStockAlerts();
+      } else if (data.status) setStockNote("");
+      onChanged(updated);
     } catch (err) {
       alert((err as Error).message);
     } finally {
@@ -74,6 +83,7 @@ function OrderDrawer({ order, onClose, onChanged, onDeleted }: {
                 </button>
               ))}
             </div>
+            {stockNote && <p className="mt-3 rounded-lg bg-paper px-3 py-2 text-xs"><b>Stock updated</b> · {stockNote}</p>}
           </div>
 
           {/* Previews */}
