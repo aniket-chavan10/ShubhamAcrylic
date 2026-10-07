@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import EnquiryForm from '../components/EnquiryForm';
+import SmoothImage from '../components/SmoothImage';
+import { garmentPhoto, stockImage } from '../utils/stockImages';
 import { getBanners, getGarments, getProducts } from '../services/api';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import type { Garment, Product } from '../types';
@@ -41,9 +43,7 @@ export default function HomePage() {
 
   const hoodie = garments.find(g => g.style === 'hoodie');
   const showcase = garments[0];
-  // Hero uses a real photo (first banner, else the brand-story image) — the
-  // design-studio drawings stay in the studio, they are heavy to render.
-  const heroImage = banners[0]?.imageUrl || settings?.aboutImage1 || '';
+  const hero = stockImage('hero', [640, 960, 1400]);
   const examplePrints = showcase ? [
     showcase.placements.find(p => p.enabled && p.view === 'front' && p.w * p.h > 0.05) ?? showcase.placements.find(p => p.enabled && p.view === 'front'),
     showcase.placements.find(p => p.enabled && p.view === 'back'),
@@ -88,14 +88,8 @@ export default function HomePage() {
               <div className="absolute -bottom-16 -left-10 h-56 w-56 rounded-full bg-[#b9a7d6]/50 blur-3xl" />
             </div>
             <div className="relative px-6 pt-6 sm:px-10">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-paper-deep shadow-2xl shadow-ink/10 sm:aspect-[5/5] lg:aspect-[4/5]">
-                {heroImage ? (
-                  <img src={getImageUrl(heroImage)} alt={banners[0]?.title || 'Custom printed apparel'} decoding="async" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="grid h-full place-items-center bg-ink">
-                    <img src="/brand-logo.jpg" alt="" className="h-40 w-40 rounded-3xl object-contain" />
-                  </div>
-                )}
+              <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-[#d9d6d1] shadow-2xl shadow-ink/10 sm:aspect-square lg:aspect-[4/5]">
+                <SmoothImage {...hero} sizes="(min-width: 1024px) 45vw, 90vw" alt="Custom printed t-shirt" decoding="async" className="h-full w-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/40 via-transparent to-transparent" />
               </div>
             </div>
@@ -140,18 +134,19 @@ export default function HomePage() {
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             {garments.map((g, i) => (
               <Link key={g.id} to={`/customize/${g.key}`} className="group card flex flex-col overflow-hidden transition hover:-translate-y-1 hover:shadow-xl hover:shadow-ink/5">
-                <div className={`relative flex aspect-[4/3] flex-col justify-between p-6 sm:p-8 ${['bg-paper-deep', 'bg-[#e7e4f0]', 'bg-[#e3ebe5]'][i % 3]}`}>
-                  <div className="flex items-start justify-between">
-                    <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/80"><Shirt className="h-6 w-6" /></span>
-                    {g.fabric && <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold">{g.fabric}</span>}
+                <div className={`relative aspect-[4/3] overflow-hidden ${['bg-paper-deep', 'bg-[#e7e4f0]', 'bg-[#e3ebe5]'][i % 3]}`}>
+                  <div className="h-full w-full transition duration-700 ease-out group-hover:scale-105">
+                    <SmoothImage {...stockImage(garmentPhoto(g.style), [400, 640, 900])} sizes="(min-width: 768px) 33vw, 100vw" alt={g.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   </div>
-                  <div>
-                    <div className="flex -space-x-3">
-                      {g.colors.slice(0, 7).map(c => (
-                        <span key={c.hex} className="h-12 w-12 rounded-full shadow-sm ring-4 ring-white/80 transition duration-300 group-hover:translate-x-1 sm:h-14 sm:w-14" style={{ backgroundColor: c.hex }} title={c.name} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-ink/55 via-transparent to-transparent" />
+                  {g.fabric && <span className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold backdrop-blur">{g.fabric}</span>}
+                  <div className="absolute inset-x-4 bottom-4 flex items-center justify-between gap-3">
+                    <div className="flex -space-x-2">
+                      {g.colors.slice(0, 6).map(c => (
+                        <span key={c.hex} className="h-7 w-7 rounded-full ring-2 ring-white" style={{ backgroundColor: c.hex }} title={c.name} />
                       ))}
                     </div>
-                    <p className="mt-3 text-xs font-semibold text-ink/60">{g.colors.length} colours · {g.sizes.length} sizes · {g.placements.filter(p => p.enabled).length} print spots</p>
+                    <span className="text-xs font-semibold text-white/90">{g.colors.length} colours · {g.sizes.length} sizes</span>
                   </div>
                 </div>
                 <div className="flex flex-1 items-end justify-between gap-4 p-6">
