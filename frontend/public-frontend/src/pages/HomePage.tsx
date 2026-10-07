@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import {
   ArrowRight, ArrowUpRight, BadgeCheck, Droplets, Layers, Palette, Shirt, Sparkles, Truck, Upload, Users,
 } from 'lucide-react';
-import MockupImage from '../customizer/MockupImage';
 import ProductCard from '../components/ProductCard';
 import EnquiryForm from '../components/EnquiryForm';
 import { getBanners, getGarments, getProducts } from '../services/api';
@@ -42,6 +41,14 @@ export default function HomePage() {
 
   const hoodie = garments.find(g => g.style === 'hoodie');
   const showcase = garments[0];
+  // Hero uses a real photo (first banner, else the brand-story image) — the
+  // design-studio drawings stay in the studio, they are heavy to render.
+  const heroImage = banners[0]?.imageUrl || settings?.aboutImage1 || '';
+  const examplePrints = showcase ? [
+    showcase.placements.find(p => p.enabled && p.view === 'front' && p.w * p.h > 0.05) ?? showcase.placements.find(p => p.enabled && p.view === 'front'),
+    showcase.placements.find(p => p.enabled && p.view === 'back'),
+  ].filter((p): p is NonNullable<typeof p> => !!p) : [];
+  const exampleTotal = (Number(showcase?.basePrice) || 0) + examplePrints.reduce((s, p) => s + (Number(p.price) || 0), 0);
   const features = [
     { icon: Layers, title: settings?.feature1Title || 'Heavyweight cotton', text: settings?.feature1Desc || '180 to 350 GSM pre-shrunk combed cotton for maximum durability.' },
     { icon: Droplets, title: settings?.feature2Title || 'Precision printing', text: settings?.feature2Desc || 'Vibrant, crack-resistant prints with high detail.' },
@@ -80,9 +87,17 @@ export default function HomePage() {
               <div className="absolute -right-10 -top-10 h-64 w-64 rounded-full bg-accent/50 blur-3xl" />
               <div className="absolute -bottom-16 -left-10 h-56 w-56 rounded-full bg-[#b9a7d6]/50 blur-3xl" />
             </div>
-            <div className="relative grid grid-cols-5 items-end px-2 pt-6 sm:px-6">
-              <MockupImage garment={{ style: 'oversized-tee' }} color="#f3f1ea" className="col-span-2 -mr-10 mb-6 -rotate-6 drop-shadow-2xl" alt="" />
-              <MockupImage garment={hoodie ?? { style: 'hoodie' }} color="#141414" className="relative z-10 col-span-3 drop-shadow-2xl" alt="Custom printed hoodie" />
+            <div className="relative px-6 pt-6 sm:px-10">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-paper-deep shadow-2xl shadow-ink/10 sm:aspect-[5/5] lg:aspect-[4/5]">
+                {heroImage ? (
+                  <img src={getImageUrl(heroImage)} alt={banners[0]?.title || 'Custom printed apparel'} decoding="async" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="grid h-full place-items-center bg-ink">
+                    <img src="/brand-logo.jpg" alt="" className="h-40 w-40 rounded-3xl object-contain" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-ink/40 via-transparent to-transparent" />
+              </div>
             </div>
             <div className="absolute left-2 top-10 z-20 rounded-2xl bg-white px-4 py-3 shadow-xl ring-1 ring-line sm:left-4">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Live pricing</p>
@@ -124,16 +139,22 @@ export default function HomePage() {
           </div>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             {garments.map((g, i) => (
-              <Link key={g.id} to={`/customize/${g.key}`} className="group card overflow-hidden transition hover:-translate-y-1 hover:shadow-xl hover:shadow-ink/5">
-                <div className={`relative aspect-square p-8 ${['bg-paper-deep', 'bg-[#e7e4f0]', 'bg-[#e3ebe5]'][i % 3]}`}>
-                  <MockupImage garment={g} color={g.colors[0]?.hex ?? '#ffffff'} className="h-full w-full object-contain transition duration-500 group-hover:scale-105" alt={g.name} />
-                  <div className="absolute bottom-4 left-4 flex -space-x-1.5">
-                    {g.colors.slice(0, 6).map(c => (
-                      <span key={c.hex} className="h-5 w-5 rounded-full ring-2 ring-white" style={{ backgroundColor: c.hex }} title={c.name} />
-                    ))}
+              <Link key={g.id} to={`/customize/${g.key}`} className="group card flex flex-col overflow-hidden transition hover:-translate-y-1 hover:shadow-xl hover:shadow-ink/5">
+                <div className={`relative flex aspect-[4/3] flex-col justify-between p-6 sm:p-8 ${['bg-paper-deep', 'bg-[#e7e4f0]', 'bg-[#e3ebe5]'][i % 3]}`}>
+                  <div className="flex items-start justify-between">
+                    <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/80"><Shirt className="h-6 w-6" /></span>
+                    {g.fabric && <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold">{g.fabric}</span>}
+                  </div>
+                  <div>
+                    <div className="flex -space-x-3">
+                      {g.colors.slice(0, 7).map(c => (
+                        <span key={c.hex} className="h-12 w-12 rounded-full shadow-sm ring-4 ring-white/80 transition duration-300 group-hover:translate-x-1 sm:h-14 sm:w-14" style={{ backgroundColor: c.hex }} title={c.name} />
+                      ))}
+                    </div>
+                    <p className="mt-3 text-xs font-semibold text-ink/60">{g.colors.length} colours · {g.sizes.length} sizes · {g.placements.filter(p => p.enabled).length} print spots</p>
                   </div>
                 </div>
-                <div className="flex items-end justify-between gap-4 p-6">
+                <div className="flex flex-1 items-end justify-between gap-4 p-6">
                   <div>
                     <h3 className="font-display text-2xl font-bold">{g.name}</h3>
                     <p className="mt-1 text-sm text-muted">{g.tagline}</p>
@@ -143,6 +164,9 @@ export default function HomePage() {
                     <p className="font-display text-xl font-bold">{inr(g.basePrice)}</p>
                   </div>
                 </div>
+                <p className="flex items-center gap-1.5 border-t border-line px-6 py-4 text-sm font-semibold">
+                  Customise <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                </p>
               </Link>
             ))}
           </div>
@@ -191,24 +215,28 @@ export default function HomePage() {
               </ul>
               <Link to={`/customize/${showcase.key}`} className="btn-accent mt-10 px-8 py-4">Try it in the studio</Link>
             </div>
-            <div className="relative grid grid-cols-2 gap-4">
-              {(['front', 'back'] as const).map(v => (
-                <div key={v} className="relative rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
-                  <div className="relative">
-                    <MockupImage garment={showcase} view={v} color={showcase.colors[0]?.hex ?? '#141414'} className="w-full" alt={`${showcase.name} ${v}`} />
-                    {showcase.placements.filter(p => p.enabled && p.view === v).map(p => (
-                      <span
-                        key={p.key}
-                        className="absolute grid place-items-center rounded-md border-2 border-dashed border-accent bg-accent/10 text-[10px] font-bold uppercase tracking-wider text-accent"
-                        style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%`, width: `${p.w * 100}%`, height: `${p.h * 100}%` }}
-                      >
-                        <span className="hidden sm:inline">{p.key}</span>
-                      </span>
-                    ))}
-                  </div>
-                  <p className="mt-3 text-center text-xs font-semibold uppercase tracking-wider text-white/50">{v}</p>
+            <div className="relative mx-auto w-full max-w-md">
+              <div className="absolute -inset-6 rounded-[2.5rem] bg-accent/20 blur-3xl" />
+              <div className="relative rounded-3xl bg-white p-6 text-ink shadow-2xl sm:p-8">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted">Example order</p>
+                  <span className="flex -space-x-1.5">
+                    {showcase.colors.slice(0, 4).map(c => <span key={c.hex} className="h-5 w-5 rounded-full ring-2 ring-white" style={{ backgroundColor: c.hex }} />)}
+                  </span>
                 </div>
-              ))}
+                <p className="mt-2 font-display text-2xl font-bold">{showcase.name}</p>
+                <ul className="mt-6 space-y-3 text-sm">
+                  <li className="flex justify-between"><span className="text-muted">Base price</span><span className="font-semibold">{inr(showcase.basePrice)}</span></li>
+                  {examplePrints.map(p => (
+                    <li key={p.key} className="flex justify-between"><span className="text-muted">+ {p.label}</span><span className="font-semibold">{inr(p.price)}</span></li>
+                  ))}
+                </ul>
+                <div className="mt-5 flex items-baseline justify-between border-t border-dashed border-line pt-5">
+                  <span className="text-sm font-semibold">Per piece</span>
+                  <span className="font-display text-4xl font-bold text-accent">{inr(exampleTotal)}</span>
+                </div>
+                <p className="mt-3 text-xs text-muted">Add more print spots or bigger sizes and the total updates instantly in the studio.</p>
+              </div>
             </div>
           </div>
         </section>
