@@ -42,7 +42,7 @@ export async function renderTextArtwork(text: string, fontId: string, color: str
   const px = 220;
   try { await document.fonts.load(fontCss(font, px), text); } catch { /* fall back to system font */ }
 
-  const lines = text.split('\n').map(l => l.trimEnd()).filter((l, i, arr) => l || arr.length === 1);
+  const lines = text.split('\n').map(l => l.trimEnd()).filter((l, _index, arr) => l || arr.length === 1);
   const measure = document.createElement('canvas').getContext('2d')!;
   measure.font = fontCss(font, px);
   const lineHeight = px * 1.18;
