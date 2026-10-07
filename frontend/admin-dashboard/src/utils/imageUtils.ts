@@ -1,6 +1,6 @@
 export function getImageUrl(url?: string | null): string {
   if (!url) return "";
-  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:") || url.startsWith("blob:")) {
     return url;
   }
     // Derive the server base URL from the API URL (strip /api suffix)

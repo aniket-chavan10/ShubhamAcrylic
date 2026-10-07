@@ -1,6 +1,6 @@
 export function getImageUrl(url?: string | null): string {
   if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
     return url;
   }
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
