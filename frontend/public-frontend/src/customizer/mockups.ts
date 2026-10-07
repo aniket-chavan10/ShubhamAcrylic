@@ -288,6 +288,40 @@ export const loadImage = (src: string, crossOrigin = true): Promise<HTMLImageEle
     img.src = src;
   });
 
+/**
+ * Photo mockups must be a garment on a transparent background: the transparent
+ * outline is what gets tinted and what the 3D view inflates. This checks the
+ * image's border — if most of it is opaque, the photo still has a background.
+ */
+export function isTransparentMockup(img: HTMLImageElement): boolean {
+  const w = 100;
+  const h = Math.max(1, Math.round((w * img.height) / img.width));
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true })!;
+  ctx.drawImage(img, 0, 0, w, h);
+  const data = ctx.getImageData(0, 0, w, h).data;
+  let clear = 0;
+  let total = 0;
+  const sample = (x: number, y: number) => { total++; if (data[(y * w + x) * 4 + 3] < 16) clear++; };
+  for (let x = 0; x < w; x++) { sample(x, 0); sample(x, h - 1); }
+  for (let y = 1; y < h - 1; y++) { sample(0, y); sample(w - 1, y); }
+  return clear / total >= 0.6;
+}
+
+const transparencyCache = new Map<string, Promise<boolean>>();
+
+/** Cached {@link isTransparentMockup} for an uploaded photo URL (false if it fails to load) */
+export function mockupPhotoUsable(url: string): Promise<boolean> {
+  let job = transparencyCache.get(url);
+  if (!job) {
+    job = loadImage(url).then(isTransparentMockup, () => false);
+    transparencyCache.set(url, job);
+  }
+  return job;
+}
+
 const cache = new Map<string, Promise<HTMLCanvasElement>>();
 
 /**

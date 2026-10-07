@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, MessageCircle, Pencil, Printer } from "lucide-react";
-import { fetchInvoice, Invoice } from "../services/invoiceService";
+import { ArrowLeft, MessageCircle, Pencil, Printer } from "lucide-react";
+import { fetchInvoice, Invoice, INVOICE_STATUSES } from "../services/invoiceService";
 import { getSiteSettings } from "../services/siteSettingsService";
 import { getImageUrl } from "../utils/imageUtils";
+import BrandLogo from "../components/BrandLogo";
+import { PageLoader } from "../components/ui";
 import { formatDate, inr, waNumber } from "../utils/format";
+import { lineAmount } from "../utils/invoiceMath";
 import { amountInWords } from "../utils/numberToWords";
 
 interface Settings {
@@ -18,7 +21,30 @@ interface Settings {
   upiId?: string;
 }
 
-/** A4 printable invoice. Use the browser's "Save as PDF" to share a PDF. */
+const r2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
+/** 1234.5 → "1,234.50" (the ₹ sign is in the column header) */
+const num = (n: number | string) =>
+  (Number(n) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/**
+ * Spread `total` over `weights` in proportion, rounded to paise, with any
+ * rounding difference put on the last non-zero line so the column adds up.
+ */
+function allocate(total: number, weights: number[]): number[] {
+  const sum = weights.reduce((s, w) => s + w, 0);
+  if (!sum) return weights.map(() => 0);
+  const parts = weights.map(w => r2((total * w) / sum));
+  const diff = r2(total - parts.reduce((s, p) => s + p, 0));
+  const last = weights.map(w => w !== 0).lastIndexOf(true);
+  if (last >= 0) parts[last] = r2(parts[last] + diff);
+  return parts;
+}
+
+// Table cell styles
+const cell = "border border-neutral-300 px-1.5 py-1.5 align-top";
+const head = "border border-neutral-300 bg-neutral-100 px-1.5 py-1.5 text-[9px] font-semibold uppercase tracking-wide text-neutral-700";
+
+/** A4 printable GST invoice. Use the browser's "Save as PDF" to share a PDF. */
 const InvoicePrint = () => {
   const { id } = useParams<{ id: string }>();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -37,19 +63,51 @@ const InvoicePrint = () => {
   }, [invoice]);
 
   if (error) return <div className="grid min-h-screen place-items-center text-red-600">{error}</div>;
-  if (!invoice) return <div className="grid min-h-screen place-items-center"><Loader2 className="h-6 w-6 animate-spin text-muted" /></div>;
+  if (!invoice) return <PageLoader className="min-h-screen" />;
 
   const brand = settings.companyName || "Astitva Creations";
   const tax = Number(invoice.taxPercent) || 0;
+  const igst = invoice.taxMode === "igst";
   const taxTotal = Number(invoice.taxTotal) || 0;
   const grand = Number(invoice.grandTotal) || 0;
   const paid = Number(invoice.amountPaid) || 0;
-  const balance = Math.max(0, grand - paid);
-  const gross = invoice.items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.rate) || 0), 0);
-  const subtotal = Number(invoice.subtotal) || 0;
+  const balance = Math.max(0, r2(grand - paid));
+  const shipping = Number(invoice.shipping) || 0;
+  const roundOff = Number(invoice.roundOffAmount) || 0;
   const title = tax > 0 && settings.gstin ? "Tax Invoice" : "Invoice";
-  const hasHsn = invoice.items.some(it => it.hsn);
-  const hasLineDiscount = invoice.items.some(it => Number(it.discountPct) > 0);
+  const statusLabel = INVOICE_STATUSES.find(s => s.value === invoice.status)?.label ?? invoice.status;
+
+  // ── Line-wise breakdown: the invoice-level discount and tax are spread over
+  //    the items in proportion, matching the totals saved on the invoice.
+  const items = invoice.items.filter(it => String(it.description || "").trim());
+  const net = items.map(it => lineAmount({ ...it, qty: Number(it.qty), rate: Number(it.rate), discountPct: Number(it.discountPct) }));
+  const extraDiscount = allocate(Number(invoice.discountTotal) || 0, net);
+  const taxable = net.map((n, i) => r2(n - extraDiscount[i]));
+  const taxes = allocate(taxTotal, taxable);
+  const rows = items.map((it, i) => {
+    const gross = r2((Number(it.qty) || 0) * (Number(it.rate) || 0));
+    const half = r2(taxes[i] / 2);
+    return {
+      it,
+      gross,
+      discount: r2(gross - taxable[i]),
+      taxable: taxable[i],
+      cgst: half,
+      sgst: r2(taxes[i] - half),
+      tax: taxes[i],
+      total: r2(taxable[i] + taxes[i]),
+    };
+  });
+  const sum = (key: "gross" | "discount" | "taxable" | "cgst" | "sgst" | "tax" | "total") =>
+    r2(rows.reduce((s, r) => s + r[key], 0));
+  const units = new Set(items.map(it => (it.unit || "").trim().toLowerCase()));
+  const totalQty = units.size === 1 ? items.reduce((s, it) => s + (Number(it.qty) || 0), 0) : null;
+
+  const hasHsn = items.some(it => it.hsn);
+  const hasDiscount = sum("discount") > 0;
+  const hasTax = tax > 0;
+  // Description column gets whatever is left; numeric columns are fixed width
+  const colCount = 5 + (hasHsn ? 1 : 0) + (hasDiscount ? 1 : 0) + (hasTax ? (igst ? 2 : 4) + 1 : 0);
 
   const share = invoice.customerPhone
     ? `https://wa.me/${waNumber(invoice.customerPhone)}?text=${encodeURIComponent(
@@ -58,183 +116,242 @@ const InvoicePrint = () => {
     : "";
 
   return (
-    <div className="min-h-screen bg-paper-deep py-6 print:bg-white print:py-0">
+    <div className="min-h-screen bg-paper-deep py-4 sm:py-6 print:bg-white print:py-0">
       {/* Toolbar */}
-      <div className="no-print mx-auto mb-5 flex max-w-[210mm] flex-wrap items-center justify-between gap-3 px-4">
+      <div className="no-print mx-auto mb-4 flex max-w-[210mm] flex-wrap items-center justify-between gap-3 px-3 sm:mb-5 sm:px-4">
         <Link to="/invoices" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-ink"><ArrowLeft className="h-4 w-4" /> Invoices</Link>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link to={`/invoices/${invoice.id}/edit`} className="a-btn-outline"><Pencil className="h-4 w-4" /> Edit</Link>
           {share && <a href={share} target="_blank" rel="noreferrer" className="a-btn bg-[#25D366] text-white hover:bg-[#1ebe5a]"><MessageCircle className="h-4 w-4" /> WhatsApp</a>}
           <button onClick={() => window.print()} className="a-btn-primary"><Printer className="h-4 w-4" /> Print / PDF</button>
         </div>
       </div>
 
-      {/* A4 sheet */}
-      <article className="print-page relative mx-auto flex min-h-[297mm] w-full max-w-[210mm] flex-col overflow-hidden bg-white text-[12.5px] leading-relaxed text-ink shadow-xl">
-        {invoice.status === "paid" && (
-          <div className="pointer-events-none absolute right-10 top-44 rotate-[-14deg] rounded-xl border-4 border-emerald-600/70 px-5 py-1.5 font-display text-4xl font-extrabold uppercase tracking-widest text-emerald-600/70">Paid</div>
-        )}
-        {invoice.status === "cancelled" && (
-          <div className="pointer-events-none absolute right-10 top-44 rotate-[-14deg] rounded-xl border-4 border-red-600/60 px-5 py-1.5 font-display text-4xl font-extrabold uppercase tracking-widest text-red-600/60">Cancelled</div>
+      {/* A4 sheet (scrolls sideways on phones so the table never squashes) */}
+      <p className="no-print mb-2 px-3 text-center text-xs text-muted sm:hidden">Swipe sideways to see the full invoice</p>
+      <div className="overflow-x-auto px-3 pb-2 sm:px-4 print:overflow-visible print:p-0">
+      <article className="print-page relative mx-auto flex min-h-[297mm] w-[210mm] min-w-[210mm] flex-col bg-white px-[12mm] py-[11mm] font-sans text-[10.5px] leading-snug text-neutral-900 shadow-xl">
+        {(invoice.status === "paid" || invoice.status === "cancelled") && (
+          <div className={`pointer-events-none absolute right-[16mm] top-[52mm] rotate-[-12deg] rounded border-[3px] px-4 py-1 text-2xl font-extrabold uppercase tracking-[0.2em] ${invoice.status === "paid" ? "border-emerald-700/50 text-emerald-700/50" : "border-red-700/50 text-red-700/50"}`}>
+            {invoice.status}
+          </div>
         )}
 
-        {/* Brand header */}
-        <header className="flex items-start justify-between gap-6 bg-ink px-10 py-8 text-white">
-          <div className="flex items-center gap-4">
-            {settings.logoUrl ? (
-              <img src={getImageUrl(settings.logoUrl)} alt="" className="h-16 w-16 rounded-xl bg-white object-contain p-1" />
-            ) : (
-              <div className="grid h-16 w-16 place-items-center rounded-xl bg-accent font-display text-3xl font-extrabold">{brand.charAt(0)}</div>
-            )}
-            <div>
-              <h1 className="font-display text-2xl font-extrabold uppercase tracking-tight">{brand}</h1>
-              <p className="text-[11px] uppercase tracking-[0.2em] text-white/50">Custom Printed Apparel</p>
+        {/* ── Seller & title ──────────────────────────────────────────── */}
+        <header className="flex items-start justify-between gap-8 border-b-2 border-neutral-900 pb-4">
+          <div className="flex min-w-0 gap-4">
+            <BrandLogo src={getImageUrl(settings.logoUrl)} className="h-16 w-16" />
+            <div className="min-w-0">
+              <h1 className="text-[18px] font-extrabold uppercase leading-tight tracking-tight">{brand}</h1>
+              {settings.address && <p className="mt-1 whitespace-pre-line text-neutral-600">{settings.address}</p>}
+              <p className="mt-0.5 text-neutral-600">
+                {[settings.phone && `Ph: ${settings.phone}`, settings.email].filter(Boolean).join("  |  ")}
+              </p>
+              {settings.gstin && <p className="mt-0.5"><span className="text-neutral-600">GSTIN:</span> <b>{settings.gstin}</b></p>}
             </div>
           </div>
-          <div className="text-right">
-            <p className="font-display text-3xl font-bold uppercase tracking-wide text-accent">{title}</p>
-            <p className="mt-1 font-semibold">{invoice.invoiceNumber}</p>
+          <div className="shrink-0 text-right">
+            <p className="text-[20px] font-extrabold uppercase tracking-[0.08em]">{title}</p>
+            <p className="mt-0.5 text-[9.5px] uppercase tracking-wider text-neutral-500">Original for recipient</p>
           </div>
         </header>
 
-        <div className="flex-1 px-10 py-8">
-          {/* Parties */}
-          <section className="grid grid-cols-3 gap-6 border-b border-line pb-6">
-            <div>
-              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-muted">From</p>
-              <p className="font-semibold">{brand}</p>
-              {settings.address && <p className="whitespace-pre-line text-muted">{settings.address}</p>}
-              {settings.phone && <p className="text-muted">Ph: {settings.phone}</p>}
-              {settings.email && <p className="text-muted">{settings.email}</p>}
-              {settings.gstin && <p className="mt-1 font-semibold">GSTIN: {settings.gstin}</p>}
-            </div>
-            <div>
-              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Bill to</p>
-              <p className="font-semibold">{invoice.customerName}</p>
-              {invoice.customerAddress && <p className="whitespace-pre-line text-muted">{invoice.customerAddress}</p>}
-              {invoice.customerPhone && <p className="text-muted">Ph: {invoice.customerPhone}</p>}
-              {invoice.customerEmail && <p className="text-muted">{invoice.customerEmail}</p>}
-              {invoice.customerGstin && <p className="mt-1 font-semibold">GSTIN: {invoice.customerGstin}</p>}
-            </div>
-            <div className="space-y-1 text-right">
-              <p><span className="text-muted">Invoice date:</span> <b>{formatDate(invoice.invoiceDate)}</b></p>
-              {invoice.dueDate && <p><span className="text-muted">Due date:</span> <b>{formatDate(invoice.dueDate)}</b></p>}
-              <p><span className="text-muted">Order type:</span> <b>{invoice.source === "website" ? "Website" : "Direct"}</b></p>
-            </div>
-          </section>
-
-          {/* Items */}
-          <table className="mt-6 w-full border-collapse">
-            <thead>
-              <tr className="border-b-2 border-ink text-left text-[10px] font-bold uppercase tracking-[0.14em]">
-                <th className="w-8 py-2.5">#</th>
-                <th className="py-2.5">Description</th>
-                {hasHsn && <th className="py-2.5">HSN</th>}
-                <th className="py-2.5 text-right">Qty</th>
-                <th className="py-2.5 text-right">Rate</th>
-                {hasLineDiscount && <th className="py-2.5 text-right">Disc.</th>}
-                <th className="py-2.5 text-right">Amount</th>
-              </tr>
-            </thead>
+        {/* ── Buyer & invoice details ─────────────────────────────────── */}
+        <section className="mt-4 grid grid-cols-2 border border-neutral-300">
+          <div className="border-r border-neutral-300 p-3">
+            <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-neutral-500">Bill to / Ship to</p>
+            <p className="text-[12px] font-bold">{invoice.customerName}</p>
+            {invoice.customerAddress && <p className="mt-0.5 whitespace-pre-line text-neutral-700">{invoice.customerAddress}</p>}
+            {invoice.customerPhone && <p className="mt-0.5 text-neutral-700">Ph: {invoice.customerPhone}</p>}
+            {invoice.customerEmail && <p className="text-neutral-700">{invoice.customerEmail}</p>}
+            {invoice.customerGstin && <p className="mt-0.5"><span className="text-neutral-600">GSTIN:</span> <b>{invoice.customerGstin}</b></p>}
+          </div>
+          <table className="w-full self-start">
             <tbody>
-              {invoice.items.map((it, i) => {
-                const amount = (Number(it.qty) || 0) * (Number(it.rate) || 0) * (1 - (Number(it.discountPct) || 0) / 100);
-                return (
-                  <tr key={i} className="border-b border-line align-top">
-                    <td className="py-3 text-muted">{i + 1}</td>
-                    <td className="py-3 pr-4 font-medium">{it.description}</td>
-                    {hasHsn && <td className="py-3 text-muted">{it.hsn}</td>}
-                    <td className="py-3 text-right">{Number(it.qty)} {it.unit}</td>
-                    <td className="py-3 text-right">{inr(it.rate, true)}</td>
-                    {hasLineDiscount && <td className="py-3 text-right">{Number(it.discountPct) ? `${Number(it.discountPct)}%` : "—"}</td>}
-                    <td className="py-3 text-right font-semibold">{inr(amount, true)}</td>
-                  </tr>
-                );
-              })}
+              <Detail label="Invoice No." value={invoice.invoiceNumber} bold />
+              <Detail label="Invoice Date" value={formatDate(invoice.invoiceDate)} />
+              {invoice.dueDate && <Detail label="Due Date" value={formatDate(invoice.dueDate)} />}
+              {invoice.orderId && <Detail label="Order Ref." value={`#${invoice.orderId}`} />}
+              <Detail label="Order Type" value={invoice.source === "website" ? "Website order" : "Direct sale"} />
+              <Detail label="Payment Status" value={statusLabel} last />
             </tbody>
           </table>
+        </section>
 
-          {/* Totals */}
-          <section className="mt-6 grid grid-cols-2 gap-10">
-            <div className="space-y-4">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Amount in words</p>
-                <p className="mt-1 font-medium">{amountInWords(grand)}</p>
-              </div>
-              {(settings.bankDetails || settings.upiId) && (
-                <div className="rounded-xl bg-paper p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Payment details</p>
-                  {settings.bankDetails && <p className="mt-1 whitespace-pre-line">{settings.bankDetails}</p>}
-                  {settings.upiId && <p className="mt-1">UPI: <b>{settings.upiId}</b></p>}
-                </div>
-              )}
-              {invoice.notes && (
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Notes</p>
-                  <p className="mt-1 whitespace-pre-line">{invoice.notes}</p>
-                </div>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Line label="Sub total" value={inr(hasLineDiscount ? gross : subtotal, true)} />
-              {hasLineDiscount && <Line label="Item discounts" value={`− ${inr(gross - subtotal, true)}`} />}
-              {Number(invoice.discountTotal) > 0 && (
-                <Line label={`Discount${invoice.discountType === "percent" ? ` (${Number(invoice.discountValue)}%)` : ""}`} value={`− ${inr(invoice.discountTotal, true)}`} />
-              )}
-              {tax > 0 && (invoice.taxMode === "igst"
-                ? <Line label={`IGST @ ${tax}%`} value={inr(taxTotal, true)} />
+        {/* ── Items ───────────────────────────────────────────────────── */}
+        <table className="mt-4 w-full table-fixed border-collapse text-[10px]">
+          {/* Fixed numeric columns; the description takes the remaining width */}
+          <colgroup>
+            <col className="w-6" />
+            <col />
+            {hasHsn && <col className="w-[50px]" />}
+            <col className="w-[44px]" />
+            <col className="w-[56px]" />
+            {hasDiscount && <col className="w-[50px]" />}
+            {hasTax && <col className="w-[60px]" />}
+            {hasTax && (igst ? [0] : [0, 1]).map(i => <Fragment key={i}><col className="w-[36px]" /><col className="w-[50px]" /></Fragment>)}
+            <col className="w-[64px]" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th rowSpan={hasTax ? 2 : 1} className={`${head} text-center`}>Sl.</th>
+              <th rowSpan={hasTax ? 2 : 1} className={`${head} text-left`}>Description</th>
+              {hasHsn && <th rowSpan={hasTax ? 2 : 1} className={`${head} text-center`}>HSN/SAC</th>}
+              <th rowSpan={hasTax ? 2 : 1} className={`${head} text-right`}>Qty</th>
+              <th rowSpan={hasTax ? 2 : 1} className={`${head} text-right`}>Rate (₹)</th>
+              {hasDiscount && <th rowSpan={hasTax ? 2 : 1} className={`${head} text-right`}>Disc. (₹)</th>}
+              {hasTax && <th rowSpan={2} className={`${head} text-right`}>Taxable Value (₹)</th>}
+              {hasTax && (igst
+                ? <th colSpan={2} className={`${head} text-center`}>IGST</th>
                 : <>
-                  <Line label={`CGST @ ${tax / 2}%`} value={inr(taxTotal / 2, true)} />
-                  <Line label={`SGST @ ${tax / 2}%`} value={inr(taxTotal / 2, true)} />
+                  <th colSpan={2} className={`${head} text-center`}>CGST</th>
+                  <th colSpan={2} className={`${head} text-center`}>SGST</th>
                 </>)}
-              {Number(invoice.shipping) > 0 && <Line label="Shipping & handling" value={inr(invoice.shipping, true)} />}
-              {Number(invoice.roundOffAmount) !== 0 && <Line label="Round off" value={inr(invoice.roundOffAmount, true)} />}
-              <div className="mt-2 flex items-baseline justify-between rounded-xl bg-ink px-4 py-3 text-white">
-                <span className="text-xs font-bold uppercase tracking-[0.18em]">Total</span>
-                <span className="font-display text-2xl font-bold">{inr(grand, true)}</span>
+              <th rowSpan={hasTax ? 2 : 1} className={`${head} text-right`}>Amount (₹)</th>
+            </tr>
+            {hasTax && (
+              <tr>
+                {(igst ? [0] : [0, 1]).map(i => (
+                  <Subhead key={i} />
+                ))}
+              </tr>
+            )}
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="break-inside-avoid">
+                <td className={`${cell} text-center text-neutral-600`}>{i + 1}</td>
+                <td className={`${cell} font-medium`}>{r.it.description}</td>
+                {hasHsn && <td className={`${cell} text-center`}>{r.it.hsn || "—"}</td>}
+                <td className={`${cell} whitespace-nowrap text-right`}>{Number(r.it.qty)} {r.it.unit}</td>
+                <td className={`${cell} text-right`}>{num(r.it.rate)}</td>
+                {hasDiscount && <td className={`${cell} text-right`}>{r.discount ? num(r.discount) : "—"}</td>}
+                {hasTax && <td className={`${cell} text-right`}>{num(r.taxable)}</td>}
+                {hasTax && (igst
+                  ? <><td className={`${cell} text-right text-neutral-600`}>{tax}%</td><td className={`${cell} text-right`}>{num(r.tax)}</td></>
+                  : <>
+                    <td className={`${cell} text-right text-neutral-600`}>{tax / 2}%</td><td className={`${cell} text-right`}>{num(r.cgst)}</td>
+                    <td className={`${cell} text-right text-neutral-600`}>{tax / 2}%</td><td className={`${cell} text-right`}>{num(r.sgst)}</td>
+                  </>)}
+                <td className={`${cell} text-right font-semibold`}>{num(r.total)}</td>
+              </tr>
+            ))}
+            <tr className="bg-neutral-100 font-bold">
+              <td className={cell} />
+              <td className={`${cell} text-right uppercase tracking-wide`}>Total</td>
+              {hasHsn && <td className={cell} />}
+              <td className={`${cell} whitespace-nowrap text-right`}>{totalQty !== null ? `${totalQty} ${items[0]?.unit || ""}` : ""}</td>
+              <td className={cell} />
+              {hasDiscount && <td className={`${cell} text-right`}>{num(sum("discount"))}</td>}
+              {hasTax && <td className={`${cell} text-right`}>{num(sum("taxable"))}</td>}
+              {hasTax && (igst
+                ? <><td className={cell} /><td className={`${cell} text-right`}>{num(sum("tax"))}</td></>
+                : <>
+                  <td className={cell} /><td className={`${cell} text-right`}>{num(sum("cgst"))}</td>
+                  <td className={cell} /><td className={`${cell} text-right`}>{num(sum("sgst"))}</td>
+                </>)}
+              <td className={`${cell} text-right`}>{num(sum("total"))}</td>
+            </tr>
+            <tr>
+              <td colSpan={colCount} className={cell}>
+                <span className="text-neutral-600">Amount chargeable (in words): </span>
+                <b>{amountInWords(grand)}</b>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* ── Payment details & totals ────────────────────────────────── */}
+        <section className="mt-4 grid grid-cols-[1fr_250px] gap-4">
+          <div className="space-y-3">
+            {(settings.bankDetails || settings.upiId) && (
+              <div className="border border-neutral-300 p-3">
+                <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-neutral-500">Bank / payment details</p>
+                {settings.bankDetails && <p className="whitespace-pre-line">{settings.bankDetails}</p>}
+                {settings.upiId && <p className="mt-0.5">UPI ID: <b>{settings.upiId}</b></p>}
               </div>
+            )}
+            {invoice.notes && (
+              <div>
+                <p className="mb-0.5 text-[9px] font-semibold uppercase tracking-wider text-neutral-500">Notes</p>
+                <p className="whitespace-pre-line text-neutral-700">{invoice.notes}</p>
+              </div>
+            )}
+          </div>
+          <table className="w-full self-start border-collapse">
+            <tbody>
+              <Total label="Gross Amount" value={num(sum("gross"))} />
+              {hasDiscount && <Total label="Less: Discount" value={`− ${num(sum("discount"))}`} />}
+              {hasTax && <Total label="Taxable Value" value={num(sum("taxable"))} />}
+              {hasTax && (igst
+                ? <Total label={`IGST @ ${tax}%`} value={num(sum("tax"))} />
+                : <>
+                  <Total label={`CGST @ ${tax / 2}%`} value={num(sum("cgst"))} />
+                  <Total label={`SGST @ ${tax / 2}%`} value={num(sum("sgst"))} />
+                </>)}
+              {shipping > 0 && <Total label="Shipping & Handling" value={num(shipping)} />}
+              {roundOff !== 0 && <Total label="Round Off" value={`${roundOff > 0 ? "+" : "−"} ${num(Math.abs(roundOff))}`} />}
+              <tr className="border-x border-neutral-300 border-y-2 border-y-neutral-900">
+                <td className="px-2.5 py-2 text-[11px] font-bold uppercase tracking-wider">Grand Total</td>
+                <td className="px-2.5 py-2 text-right text-[14px] font-extrabold">{inr(grand, true)}</td>
+              </tr>
               {paid > 0 && (
                 <>
-                  <Line label="Amount received" value={inr(paid, true)} />
-                  <Line label="Balance due" value={inr(balance, true)} bold />
+                  <Total label="Amount Received" value={num(paid)} />
+                  <Total label="Balance Due" value={inr(balance, true)} bold />
                 </>
               )}
-            </div>
-          </section>
+            </tbody>
+          </table>
+        </section>
 
-          {/* Terms & signature */}
-          <section className="mt-10 grid grid-cols-2 items-end gap-10">
-            <div>
-              {invoice.terms && (
-                <>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Terms & conditions</p>
-                  <ol className="mt-1 list-decimal space-y-0.5 pl-4 text-[11px] text-muted">
-                    {invoice.terms.split("\n").filter(Boolean).map((t, i) => <li key={i}>{t}</li>)}
-                  </ol>
-                </>
-              )}
-            </div>
-            <div className="text-right">
-              <p className="text-[11px] text-muted">For <b className="text-ink">{brand}</b></p>
-              <div className="mt-14 inline-block border-t border-ink px-6 pt-1.5 text-[11px] font-semibold">Authorised Signatory</div>
-            </div>
-          </section>
-        </div>
+        {/* ── Terms & signature ───────────────────────────────────────── */}
+        <section className="mt-4 grid grid-cols-[1fr_250px] border border-neutral-300">
+          <div className="border-r border-neutral-300 p-3">
+            {invoice.terms && (
+              <>
+                <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-neutral-500">Terms & conditions</p>
+                <ol className="list-decimal space-y-0.5 pl-4 text-[9.5px] text-neutral-700">
+                  {invoice.terms.split("\n").filter(Boolean).map((t, i) => <li key={i}>{t}</li>)}
+                </ol>
+              </>
+            )}
+          </div>
+          <div className="flex flex-col justify-between p-3 text-right">
+            <p className="text-[10px]">For <b>{brand}</b></p>
+            <p className="mt-12 border-t border-neutral-400 pt-1 text-center text-[9.5px] font-semibold">Authorised Signatory</p>
+          </div>
+        </section>
 
-        <footer className="flex items-center justify-between border-t-4 border-accent bg-paper px-10 py-4 text-[11px] text-muted">
-          <span>Thank you for your business!</span>
-          <span>{[settings.phone, settings.email].filter(Boolean).join("  ·  ")}</span>
+        <footer className="mt-auto pt-6 text-center text-[9px] text-neutral-500">
+          <p>This is a computer-generated invoice.</p>
+          <p className="mt-0.5">Thank you for your business!{settings.phone || settings.email ? ` For any queries, contact ${[settings.phone, settings.email].filter(Boolean).join(" / ")}.` : ""}</p>
         </footer>
       </article>
+      </div>
     </div>
   );
 };
 
-const Line = ({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) => (
-  <div className={`flex justify-between px-1 ${bold ? "font-bold" : ""}`}>
-    <span className="text-muted">{label}</span>
-    <span>{value}</span>
-  </div>
+const Detail = ({ label, value, bold = false, last = false }: { label: string; value: string; bold?: boolean; last?: boolean }) => (
+  <tr className={last ? "" : "border-b border-neutral-200"}>
+    <td className="w-[42%] px-3 py-1.5 text-neutral-600">{label}</td>
+    <td className={`px-3 py-1.5 ${bold ? "font-bold" : "font-medium"}`}>{value}</td>
+  </tr>
+);
+
+const Subhead = () => (
+  <>
+    <th className={`${head} text-right`}>Rate</th>
+    <th className={`${head} text-right`}>Amt (₹)</th>
+  </>
+);
+
+const Total = ({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) => (
+  <tr className={`border border-neutral-300 ${bold ? "font-bold" : ""}`}>
+    <td className="px-2.5 py-1.5 text-neutral-700">{label}</td>
+    <td className="px-2.5 py-1.5 text-right">{value}</td>
+  </tr>
 );
 
 export default InvoicePrint;

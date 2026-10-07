@@ -1,7 +1,7 @@
-import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
-  AlertTriangle, Check, Crosshair, ImagePlus, Info, Loader2, MessageCircle, Minus, Move, Plus, RefreshCw, Trash2, Type,
+  AlertTriangle, Check, Crosshair, ImagePlus, Info, Loader2, MessageCircle, Minus, Move, Plus, RefreshCw, Rotate3d, Trash2, Type,
 } from 'lucide-react';
 import DesignCanvas from '../customizer/DesignCanvas';
 import CheckoutModal, { CustomerDetails } from '../customizer/CheckoutModal';
@@ -14,6 +14,9 @@ import { errorMessage, getGarments } from '../services/api';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import type { Garment, PlacedOrder, Placement, PrintDesign, PrintTransform, View } from '../types';
 import { inr, waLink } from '../utils/format';
+
+// three.js is only downloaded when the customer opens the 3D view
+const Garment3D = lazy(() => import('../customizer/Garment3D'));
 
 const MAX_QTY = 500;
 
@@ -39,6 +42,7 @@ export default function CustomizePage() {
   const [size, setSize] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [view, setView] = useState<View>('front');
+  const [show3d, setShow3d] = useState(false);
   const [designs, setDesigns] = useState<Record<string, PrintDesign>>({});
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [textDraft, setTextDraft] = useState<TextDraft>({ text: '', font: TEXT_FONTS[0].id, color: '#ffffff' });
@@ -303,30 +307,46 @@ export default function CustomizePage() {
                 {(['front', 'back'] as View[]).map(v => (
                   <button
                     key={v}
-                    onClick={() => setView(v)}
-                    className={`rounded-full px-4 py-1.5 text-xs font-semibold capitalize transition ${view === v ? 'bg-ink text-white' : 'text-muted hover:text-ink'}`}
+                    onClick={() => { setView(v); setShow3d(false); }}
+                    className={`rounded-full px-4 py-1.5 text-xs font-semibold capitalize transition ${!show3d && view === v ? 'bg-ink text-white' : 'text-muted hover:text-ink'}`}
                   >
                     {v}
                   </button>
                 ))}
+                <button
+                  onClick={() => setShow3d(true)}
+                  className={`inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-xs font-semibold transition ${show3d ? 'bg-ink text-white' : 'text-muted hover:text-ink'}`}
+                >
+                  <Rotate3d className="h-3.5 w-3.5" /> 3D
+                </button>
               </div>
               <div className="absolute right-4 top-4 z-10 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-muted shadow-sm ring-1 ring-line">
                 {colorName}
               </div>
               <div className="mx-auto max-w-[560px] pt-8 sm:pt-4">
-                <DesignCanvas
-                  garment={garment}
-                  view={view}
-                  colorHex={colorHex}
-                  designs={designs}
-                  activeKey={activeKey}
-                  onSelect={onCanvasSelect}
-                  onTransform={onTransform}
-                />
+                {/* Kept mounted while in 3D so switching back is instant */}
+                <div className={show3d ? 'hidden' : ''}>
+                  <DesignCanvas
+                    garment={garment}
+                    view={view}
+                    colorHex={colorHex}
+                    designs={designs}
+                    activeKey={activeKey}
+                    onSelect={onCanvasSelect}
+                    onTransform={onTransform}
+                  />
+                </div>
+                {show3d && (
+                  <Suspense fallback={<div className="grid w-full place-items-center" style={{ aspectRatio: '1000 / 1150' }}><Loader2 className="h-8 w-8 animate-spin text-accent" /></div>}>
+                    <Garment3D garment={garment} colorHex={colorHex} designs={designs} facing={view} />
+                  </Suspense>
+                )}
               </div>
             </div>
             <p className="mt-3 flex items-center justify-center gap-2 text-center text-xs text-muted">
-              <Move className="h-3.5 w-3.5" /> Drag to move · pull a corner to resize or rotate · dashed boxes are the print areas
+              {show3d
+                ? <><Rotate3d className="h-3.5 w-3.5" /> Drag to rotate · pinch or Ctrl + scroll to zoom · switch to Front / Back to move your prints</>
+                : <><Move className="h-3.5 w-3.5" /> Drag to move · pull a corner to resize or rotate · dashed boxes are the print areas</>}
             </p>
           </div>
         </div>

@@ -6,7 +6,8 @@ import AdminLayout from "../components/AdminLayout";
 import {
   deleteGarment, fetchGarments, Garment, GarmentColor, GarmentSize, GarmentStyle, Placement, saveGarment,
 } from "../services/garmentService";
-import { MOCKUP_H, MOCKUP_W, renderMockup } from "../utils/mockups";
+import { isTransparentMockup, loadImage, MOCKUP_H, MOCKUP_W, renderMockup } from "../utils/mockups";
+import { PageLoader } from "../components/ui";
 import { getImageUrl } from "../utils/imageUtils";
 import { inr } from "../utils/format";
 
@@ -136,6 +137,24 @@ const GarmentManagement = () => {
   const [backFile, setBackFile] = useState<File | null>(null);
   const [removeFront, setRemoveFront] = useState(false);
   const [removeBack, setRemoveBack] = useState(false);
+  const [photoWarning, setPhotoWarning] = useState<{ front?: string; back?: string }>({});
+
+  // Uploaded photos need a transparent background for colour tinting and the 3D view
+  const checkPhoto = async (view: "front" | "back", file: File | null) => {
+    setPhotoWarning(w => ({ ...w, [view]: undefined }));
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await loadImage(url, false);
+      if (!isTransparentMockup(img)) {
+        setPhotoWarning(w => ({ ...w, [view]: "This photo has a solid background. Remove the background (save as a transparent PNG) — otherwise colours won't tint correctly and the 3D view will use the built-in drawing." }));
+      }
+    } catch {
+      setPhotoWarning(w => ({ ...w, [view]: "Could not read this image." }));
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  };
   const [previewColor, setPreviewColor] = useState("#141414");
   const [selectedZone, setSelectedZone] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -161,6 +180,7 @@ const GarmentManagement = () => {
     const d = g ? toDraft(g) : blankDraft();
     setDraft(d);
     setFrontFile(null);
+    setPhotoWarning({});
     setBackFile(null);
     setRemoveFront(false);
     setRemoveBack(false);
@@ -247,7 +267,7 @@ const GarmentManagement = () => {
       </p>
 
       {loading ? (
-        <div className="grid h-64 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-muted" /></div>
+        <PageLoader />
       ) : (
         <div className="grid gap-6 xl:grid-cols-[280px_1fr]">
           {/* Garment list */}
@@ -283,7 +303,7 @@ const GarmentManagement = () => {
                     <div className="flex items-center justify-between">
                       <h2 className="font-display text-lg font-bold">{draft.id ? "Garment details" : "New garment"}</h2>
                       <button onClick={() => set("isActive", !draft.isActive)}
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${draft.isActive ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${draft.isActive ? "bg-emerald-50 text-emerald-700" : "bg-paper text-muted"}`}>
                         {draft.isActive ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
                         {draft.isActive ? "Visible on website" : "Hidden"}
                       </button>
@@ -296,7 +316,7 @@ const GarmentManagement = () => {
                       </div>
                       <div>
                         <label className="a-label">Mockup drawing</label>
-                        <select className="a-input" value={draft.style} onChange={e => set("style", e.target.value as GarmentStyle)}>
+                        <select className="a-select" value={draft.style} onChange={e => set("style", e.target.value as GarmentStyle)}>
                           {STYLES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                         </select>
                       </div>
@@ -317,7 +337,7 @@ const GarmentManagement = () => {
                         <div key={i} className="flex items-center gap-2">
                           <input type="color" value={c.hex} onChange={e => setColor(i, { hex: e.target.value })} className="h-10 w-12 cursor-pointer rounded-lg border border-line bg-white p-1" />
                           <input className="a-input" value={c.name} onChange={e => setColor(i, { name: e.target.value })} placeholder="Colour name" />
-                          <input className="a-input w-28 font-mono text-xs uppercase" value={c.hex} onChange={e => setColor(i, { hex: e.target.value })} />
+                          <input className="a-input hidden w-28 font-mono text-xs uppercase sm:block" value={c.hex} onChange={e => setColor(i, { hex: e.target.value })} />
                           <button onClick={() => set("colors", draft.colors.filter((_, j) => j !== i))} className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600" aria-label="Remove colour"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       ))}
@@ -358,8 +378,8 @@ const GarmentManagement = () => {
 
                   {/* Placements */}
                   <section className="a-card p-5 sm:p-6">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
                         <h2 className="font-display text-lg font-bold">Print placements & prices</h2>
                         <p className="mt-1 text-sm text-muted">Bigger areas usually cost more. Drag the boxes on the preview to position them.</p>
                       </div>
@@ -374,7 +394,7 @@ const GarmentManagement = () => {
                             <div><label className="a-label">Label shown to customer</label><input className="a-input" value={p.label} onChange={e => setPlacement(i, { label: e.target.value })} /></div>
                             <div>
                               <label className="a-label">Side</label>
-                              <select className="a-input" value={p.view} onChange={e => setPlacement(i, { view: e.target.value as "front" | "back" })}>
+                              <select className="a-select" value={p.view} onChange={e => setPlacement(i, { view: e.target.value as "front" | "back" })}>
                                 <option value="front">Front</option><option value="back">Back</option>
                               </select>
                             </div>
@@ -389,8 +409,8 @@ const GarmentManagement = () => {
                               </button>
                             </div>
                           </div>
-                          <div className="mt-3 grid grid-cols-5 gap-2 text-xs">
-                            <div><label className="a-label">Key</label><input className="a-input px-2 py-1.5 font-mono text-xs" value={p.key} onChange={e => setPlacement(i, { key: e.target.value })} /></div>
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-5">
+                            <div className="col-span-2 sm:col-span-1"><label className="a-label">Key</label><input className="a-input px-2 py-1.5 font-mono text-xs" value={p.key} onChange={e => setPlacement(i, { key: e.target.value })} /></div>
                             {(["x", "y", "w", "h"] as const).map(k => (
                               <div key={k}>
                                 <label className="a-label">{{ x: "Left %", y: "Top %", w: "Width %", h: "Height %" }[k]}</label>
@@ -434,8 +454,8 @@ const GarmentManagement = () => {
 
                   <section className="a-card p-5">
                     <h2 className="font-display text-lg font-bold">Photo mockups <span className="text-xs font-normal text-muted">(optional)</span></h2>
-                    <p className="mt-1 text-sm text-muted">Upload a <b>white</b> garment photo on a <b>transparent PNG</b> background ({MOCKUP_W}×{MOCKUP_H}px works best). It will be tinted to every colour automatically. Leave empty to use the built-in drawing.</p>
-                    <div className="mt-4 grid grid-cols-2 gap-3">
+                    <p className="mt-1 text-sm text-muted">Upload a <b>white</b> garment photo on a <b>transparent PNG</b> background ({MOCKUP_W}×{MOCKUP_H}px works best). It will be tinted to every colour automatically and shaped into the 3D view. Use the same size and position for the front and back photos. Leave empty to use the built-in drawing.</p>
+                    <div className="mt-4 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
                       {(["front", "back"] as const).map(v => {
                         const file = v === "front" ? frontFile : backFile;
                         const existing = v === "front" ? shownFront : shownBack;
@@ -448,13 +468,20 @@ const GarmentManagement = () => {
                               <input type="file" accept="image/png,image/webp" className="hidden" onChange={e => {
                                 const f = e.target.files?.[0] ?? null;
                                 if (v === "front") { setFrontFile(f); setRemoveFront(false); } else { setBackFile(f); setRemoveBack(false); }
+                                checkPhoto(v, f);
                                 e.target.value = "";
                               }} />
                             </label>
                             {(file || existing) && (
                               <button className="mt-1 block w-full text-xs text-red-600 hover:underline" onClick={() => {
                                 if (v === "front") { setFrontFile(null); setRemoveFront(true); } else { setBackFile(null); setRemoveBack(true); }
+                                checkPhoto(v, null);
                               }}>Use built-in</button>
+                            )}
+                            {photoWarning[v] && (
+                              <p className="mt-2 flex gap-1.5 rounded-lg bg-amber-50 p-2 text-left text-[11px] leading-snug text-amber-800">
+                                <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" /> {photoWarning[v]}
+                              </p>
                             )}
                           </div>
                         );
@@ -465,7 +492,7 @@ const GarmentManagement = () => {
               </div>
 
               {/* Save bar */}
-              <div className="sticky bottom-4 z-20 flex items-center justify-between gap-3 rounded-2xl border border-line bg-white/95 p-3 shadow-lg backdrop-blur">
+              <div className="sticky bottom-3 z-20 flex items-center justify-between gap-3 rounded-2xl border border-line bg-white/95 p-3 shadow-lg backdrop-blur">
                 {draft.id ? (
                   <button onClick={remove} className="a-btn text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /> Delete</button>
                 ) : <span />}

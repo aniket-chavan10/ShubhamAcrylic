@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { API_URL } from "../utils/apiUtils";
-import { getSiteSettings } from "../services/siteSettingsService";
-import { getImageUrl } from "../utils/imageUtils";
+import BrandLogo from "../components/BrandLogo";
+import { useBrand } from "../hooks/useBrand";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -9,21 +10,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [companyName, setCompanyName] = useState("Astitva Creations");
-  const [logoUrl, setLogoUrl] = useState("");
-
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const data = await getSiteSettings();
-        if (data.companyName) setCompanyName(data.companyName);
-        if (data.logoUrl) setLogoUrl(getImageUrl(data.logoUrl));
-      } catch (err) {
-        console.error("Login settings error:", err);
-      }
-    };
-    fetchSettings();
-  }, []);
+  const { companyName } = useBrand();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,80 +36,36 @@ const Login = () => {
   };
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center relative bg-slate-100"
-      style={{
-        backgroundImage: 'url("/login-bg.jpg")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
+    <div
+      className="relative flex min-h-screen items-center justify-center bg-paper px-4 py-10"
+      style={{ backgroundImage: 'url("/login-bg.jpg")', backgroundSize: "cover", backgroundPosition: "center" }}
     >
-      
-      {/* Decorative Overlay to ensure text readability */}
-      <div className="absolute inset-0 bg-white/40 backdrop-blur-sm"></div>
+      <div className="absolute inset-0 bg-paper/60 backdrop-blur-sm" />
 
-      <div className="w-full max-w-md rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.12)] bg-white/90 backdrop-blur-xl border border-white/50 p-10 flex flex-col items-center relative z-10">
-        {/* Brand/Logo Accent */}
-        <div className="flex flex-col items-center mb-8">
-          {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt="Logo"
-              className="h-16 w-auto object-contain mb-4 drop-shadow-md"
-            />
-          ) : (
-            <div className="bg-gradient-to-tr from-indigo-600 to-blue-500 w-16 h-16 rounded-2xl flex items-center justify-center text-white font-extrabold text-3xl mb-4 shadow-lg shadow-indigo-500/30 ring-4 ring-white">
-              {companyName.charAt(0)}
-            </div>
-          )}
-          <h2 className="text-3xl font-extrabold text-gray-900 mb-1 tracking-tight text-center">{companyName}</h2>
-          <div className="text-sm text-indigo-600 font-bold tracking-widest uppercase">Admin Portal</div>
+      <div className="relative z-10 w-full max-w-md rounded-3xl border border-line bg-white p-7 shadow-2xl sm:p-10">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <BrandLogo className="mb-4 h-20 w-20 rounded-2xl ring-1 ring-line" />
+          <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">{companyName}</h1>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-accent-dark">Admin portal</p>
         </div>
-        
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5 w-full">
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block mb-1.5 text-sm font-bold text-gray-700">Email Address</label>
-            <input
-              type="email"
-              autoComplete="username"
-              className="w-full px-5 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 transition text-sm bg-white text-gray-900 placeholder-gray-400 font-medium"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              placeholder="admin@example.com"
-            />
+            <label htmlFor="email" className="a-label">Email address</label>
+            <input id="email" type="email" autoComplete="username" className="a-input py-3" value={email} onChange={e => setEmail(e.target.value)} required placeholder="admin@example.com" />
           </div>
           <div>
-            <label className="block mb-1.5 text-sm font-bold text-gray-700">Password</label>
-            <input
-              type="password"
-              autoComplete="current-password"
-              className="w-full px-5 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 transition text-sm bg-white text-gray-900 placeholder-gray-400 font-medium"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-            />
+            <label htmlFor="password" className="a-label">Password</label>
+            <input id="password" type="password" autoComplete="current-password" className="a-input py-3" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" />
           </div>
-          {error && (
-            <div className="text-red-600 text-center text-sm rounded-lg bg-red-50 border border-red-200 py-3 mt-2 font-medium">
-              {error}
-            </div>
-          )}
-          <button
-            type="submit"
-            className="w-full py-3.5 mt-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl font-bold text-base hover:from-indigo-700 hover:to-blue-700 transition-all shadow-lg shadow-indigo-200 active:scale-[0.98]"
-            disabled={loading}
-          >
-            {loading ? "Authenticating..." : "Sign In"}
+          {error && <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-medium text-red-700">{error}</p>}
+          <button type="submit" className="a-btn-primary mt-2 w-full py-3.5 text-base" disabled={loading}>
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
-        
-        {/* Footer */}
-        <div className="mt-8 text-xs text-gray-400 text-center font-medium">
-          © {new Date().getFullYear()} {companyName}. All rights reserved.
-        </div>
+
+        <p className="mt-8 text-center text-xs text-muted">© {new Date().getFullYear()} {companyName}. All rights reserved.</p>
       </div>
     </div>
   );

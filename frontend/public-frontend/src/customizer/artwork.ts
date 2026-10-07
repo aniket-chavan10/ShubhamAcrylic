@@ -98,20 +98,21 @@ export const zoneRect = (p: Placement) => ({
   height: p.h * MOCKUP_H,
 });
 
-/** Draw the final design for one side of the garment (mockup + all prints) */
-export async function composeView(
+/**
+ * Draw one side of the garment (mockup + all prints) on a transparent
+ * 1000×1150 canvas. Used for the order preview and the 3D view's textures.
+ */
+export async function renderView(
   garment: Garment,
   view: View,
   colorHex: string,
   designs: Record<string, PrintDesign>,
-): Promise<Blob> {
+): Promise<HTMLCanvasElement> {
   const mockup = await renderMockup(garment, view, colorHex, getImageUrl);
   const canvas = document.createElement('canvas');
   canvas.width = MOCKUP_W;
   canvas.height = MOCKUP_H;
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = '#f5f3ee';
-  ctx.fillRect(0, 0, MOCKUP_W, MOCKUP_H);
   ctx.drawImage(mockup, 0, 0);
 
   for (const placement of garment.placements) {
@@ -131,6 +132,24 @@ export async function composeView(
     ctx.drawImage(img, -w / 2, -h / 2, w, h);
     ctx.restore();
   }
+  return canvas;
+}
+
+/** Final design for one side of the garment as a JPEG for the print team */
+export async function composeView(
+  garment: Garment,
+  view: View,
+  colorHex: string,
+  designs: Record<string, PrintDesign>,
+): Promise<Blob> {
+  const art = await renderView(garment, view, colorHex, designs);
+  const canvas = document.createElement('canvas');
+  canvas.width = MOCKUP_W;
+  canvas.height = MOCKUP_H;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#f5f3ee';
+  ctx.fillRect(0, 0, MOCKUP_W, MOCKUP_H);
+  ctx.drawImage(art, 0, 0);
   return canvasToBlob(canvas, 'image/jpeg', 0.9);
 }
 

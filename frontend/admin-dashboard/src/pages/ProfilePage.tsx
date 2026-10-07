@@ -1,7 +1,22 @@
 import { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
 import { getMe, changePassword, listAdmins, createAdmin, deleteAdmin } from "../services/profileService";
-import { User, KeyRound, UserPlus, Shield, Trash2, CheckCircle2, AlertCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, KeyRound, Loader2, Shield, Trash2, User, UserPlus, Users } from "lucide-react";
+import BrandLogo from "../components/BrandLogo";
+import { PageLoader } from "../components/ui";
+
+type Msg = { type: "success" | "error"; text: string } | null;
+
+const Notice = ({ msg }: { msg: Msg }) => msg && (
+  <div className={`mb-4 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium ${msg.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-red-200 bg-red-50 text-red-700"}`}>
+    {msg.type === "success" ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
+    {msg.text}
+  </div>
+);
+
+const RoleBadge = ({ master }: { master?: boolean }) => (master
+  ? <span className="a-badge bg-accent-soft text-accent-dark"><Shield className="h-3 w-3" /> Master admin</span>
+  : <span className="a-badge bg-paper text-muted"><User className="h-3 w-3" /> Admin</span>);
 
 export default function ProfilePage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -12,14 +27,14 @@ export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [passMsg, setPassMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [passMsg, setPassMsg] = useState<Msg>(null);
   const [passSubmitting, setPassSubmitting] = useState(false);
 
   // New admin state
   const [newUsername, setNewUsername] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newAdminPassword, setNewAdminPassword] = useState("");
-  const [adminMsg, setAdminMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [adminMsg, setAdminMsg] = useState<Msg>(null);
   const [adminSubmitting, setAdminSubmitting] = useState(false);
 
   const fetchData = async () => {
@@ -93,230 +108,89 @@ export default function ProfilePage() {
     }
   };
 
+  const pwField = (id: string, label: string, value: string, set: (v: string) => void, autoComplete: string, placeholder = "") => (
+    <div>
+      <label htmlFor={id} className="a-label">{label}</label>
+      <input id={id} type="password" required autoComplete={autoComplete} placeholder={placeholder} value={value} onChange={(e) => set(e.target.value)} className="a-input" />
+    </div>
+  );
+
   if (loading) {
-    return (
-      <AdminLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-        </div>
-      </AdminLayout>
-    );
+    return <AdminLayout title="My Profile"><PageLoader /></AdminLayout>;
   }
 
   return (
-    <AdminLayout>
-      <div className="max-w-6xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-3xl font-extrabold text-gray-900">Admin Profile & Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage your credentials and secondary admin accounts</p>
-        </div>
-
-        {/* ── Section 1: Current User Profile Card ────────────────────────────────── */}
-        <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-black text-2xl flex items-center justify-center shadow-lg">
-              {currentUser?.username?.[0]?.toUpperCase() || "A"}
+    <AdminLayout title="My Profile">
+      <div className="max-w-5xl space-y-5 sm:space-y-6">
+        {/* Current user */}
+        <div className="a-card flex items-center gap-4 p-5 sm:p-6">
+          <BrandLogo className="h-14 w-14 rounded-2xl ring-1 ring-line sm:h-16 sm:w-16" />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="truncate font-display text-xl font-bold">{currentUser?.username}</h2>
+              <RoleBadge master={currentUser?.isMaster} />
             </div>
-            <div>
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl font-bold text-gray-800">{currentUser?.username}</h2>
-                {currentUser?.isMaster ? (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-800 border border-amber-300">
-                    <Shield size={12} /> MASTER ADMIN
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
-                    <User size={12} /> Standard Admin
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-gray-500 mt-1">{currentUser?.email}</p>
-            </div>
+            <p className="truncate text-sm text-muted">{currentUser?.email}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* ── Section 2: Change Password ────────────────────────────────────── */}
-          <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
-                <KeyRound className="text-indigo-600" size={20} />
-                <h3 className="text-lg font-bold text-gray-800">Change Password</h3>
-              </div>
-
-              {passMsg && (
-                <div
-                  className={`p-3.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2 ${
-                    passMsg.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"
-                  }`}
-                >
-                  {passMsg.type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                  {passMsg.text}
-                </div>
-              )}
-
-              <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Current Password</label>
-                  <input
-                    type="password"
-                    required
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">New Password</label>
-                  <input
-                    type="password"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Confirm New Password</label>
-                  <input
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={passSubmitting}
-                  className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition duration-150 disabled:opacity-50 text-sm mt-2"
-                >
-                  {passSubmitting ? "Updating..." : "Update Password"}
-                </button>
-              </form>
-            </div>
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:gap-6">
+          {/* Change password */}
+          <div className="a-card p-5 sm:p-6">
+            <h3 className="mb-4 flex items-center gap-2 font-display text-lg font-bold"><KeyRound className="h-5 w-5" /> Change password</h3>
+            <Notice msg={passMsg} />
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              {pwField("current-password", "Current password", currentPassword, setCurrentPassword, "current-password")}
+              {pwField("new-password", "New password", newPassword, setNewPassword, "new-password", "At least 6 characters")}
+              {pwField("confirm-password", "Confirm new password", confirmPassword, setConfirmPassword, "new-password")}
+              <button type="submit" disabled={passSubmitting} className="a-btn-primary w-full">
+                {passSubmitting && <Loader2 className="h-4 w-4 animate-spin" />} {passSubmitting ? "Updating…" : "Update password"}
+              </button>
+            </form>
           </div>
 
-          {/* ── Section 3: Create Secondary Admin ─────────────────────────────── */}
-          <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
-                <UserPlus className="text-indigo-600" size={20} />
-                <h3 className="text-lg font-bold text-gray-800">Create New Admin Account</h3>
+          {/* New admin */}
+          <div className="a-card p-5 sm:p-6">
+            <h3 className="mb-4 flex items-center gap-2 font-display text-lg font-bold"><UserPlus className="h-5 w-5" /> Add an admin</h3>
+            <Notice msg={adminMsg} />
+            <form onSubmit={handleCreateAdminSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="new-username" className="a-label">Username</label>
+                <input id="new-username" type="text" required placeholder="e.g. store_manager" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="a-input" />
               </div>
-
-              {adminMsg && (
-                <div
-                  className={`p-3.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2 ${
-                    adminMsg.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"
-                  }`}
-                >
-                  {adminMsg.type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                  {adminMsg.text}
-                </div>
-              )}
-
-              <form onSubmit={handleCreateAdminSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Username</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. client_admin"
-                    value={newUsername}
-                    onChange={(e) => setNewUsername(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="e.g. client@astitvacreations.com"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Initial Password</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="Set starting password"
-                    value={newAdminPassword}
-                    onChange={(e) => setNewAdminPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={adminSubmitting}
-                  className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition duration-150 disabled:opacity-50 text-sm mt-2"
-                >
-                  {adminSubmitting ? "Creating..." : "Create Admin User"}
-                </button>
-              </form>
-            </div>
+              <div>
+                <label htmlFor="new-email" className="a-label">Email address</label>
+                <input id="new-email" type="email" required placeholder="name@astitvacreations.shop" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="a-input" />
+              </div>
+              {pwField("new-admin-password", "Initial password", newAdminPassword, setNewAdminPassword, "new-password", "They can change it after signing in")}
+              <button type="submit" disabled={adminSubmitting} className="a-btn-accent w-full">
+                {adminSubmitting && <Loader2 className="h-4 w-4 animate-spin" />} {adminSubmitting ? "Creating…" : "Create admin"}
+              </button>
+            </form>
           </div>
         </div>
 
-        {/* ── Section 4: All Admin Accounts Table ─────────────────────────────────── */}
-        <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 pb-3 border-b border-gray-100">All Registered Admins</h3>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                  <th className="py-3 px-4">User</th>
-                  <th className="py-3 px-4">Email</th>
-                  <th className="py-3 px-4">Role</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 text-sm">
-                {admins.map((admin) => (
-                  <tr key={admin.id} className="hover:bg-gray-50/80 transition-colors">
-                    <td className="py-3 px-4 font-semibold text-gray-800 flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">
-                        {admin.username[0]?.toUpperCase()}
-                      </div>
-                      {admin.username}
-                    </td>
-                    <td className="py-3 px-4 text-gray-600">{admin.email}</td>
-                    <td className="py-3 px-4">
-                      {admin.isMaster ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300">
-                          <Shield size={10} /> MASTER
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-700">
-                          Standard
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      {!admin.isMaster && admin.id !== currentUser?.id && (
-                        <button
-                          onClick={() => handleDeleteAdmin(admin.id, admin.username)}
-                          className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition"
-                          title="Delete Admin"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        {/* All admins */}
+        <div className="a-card overflow-hidden">
+          <h3 className="flex items-center gap-2 border-b border-line px-5 py-4 font-display text-lg font-bold sm:px-6"><Users className="h-5 w-5" /> All admins</h3>
+          <ul className="divide-y divide-line">
+            {admins.map((admin) => (
+              <li key={admin.id} className="flex items-center gap-3 px-5 py-3 sm:px-6">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-paper text-sm font-bold">{admin.username?.[0]?.toUpperCase()}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{admin.username}{admin.id === currentUser?.id && <span className="font-normal text-muted"> (you)</span>}</p>
+                  <p className="truncate text-xs text-muted">{admin.email}</p>
+                </div>
+                <RoleBadge master={admin.isMaster} />
+                {!admin.isMaster && admin.id !== currentUser?.id ? (
+                  <button onClick={() => handleDeleteAdmin(admin.id, admin.username)} className="a-icon-btn-danger -mr-2" title="Delete admin"><Trash2 className="h-4 w-4" /></button>
+                ) : <span className="w-7" />}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </AdminLayout>
   );
+
 }

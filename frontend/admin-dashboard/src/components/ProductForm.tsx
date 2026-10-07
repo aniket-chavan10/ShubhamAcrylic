@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { getAllCategories } from "../services/categoryService";
-import { X, ImagePlus, Shirt } from "lucide-react";
+import { X, ImagePlus, Loader2, Shirt, Tag } from "lucide-react";
+import { Toggle } from "./ui";
 import { getImageUrl } from "../utils/imageUtils";
 
 const SPORT_TYPES = ["Football", "Cricket", "Basketball", "Volleyball", "Hockey", "Kabaddi", "Athletics", "Generic"];
@@ -193,291 +194,150 @@ const ProductForm = ({
     }
   };
 
-  return (
-    <div className="flex w-full bg-transparent">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white rounded-3xl shadow-2xl w-full flex flex-col md:flex-row gap-10 p-6 max-h-[85vh] overflow-auto"
-      >
-        {/* ── Left: Text Fields ──────────────────────────────────────── */}
-        <div className="flex-1 grid grid-cols-2 gap-x-8 gap-y-5 overflow-auto">
+  const Field = ({ label, children, wide = false }: { label: string; children: React.ReactNode; wide?: boolean }) => (
+    <div className={wide ? "sm:col-span-2" : ""}>
+      <label className="a-label">{label}</label>
+      {children}
+    </div>
+  );
 
-          {/* Product Code badge (edit mode) */}
-          {mode === "edit" && initialValues?.productCode && (
-            <div className="col-span-2">
-              <label className="block mb-1 text-xs font-semibold text-gray-500">Product Code (Auto-generated)</label>
-              <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold px-3 py-2 rounded-lg text-sm">
-                🏷️ {initialValues.productCode}
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-8 lg:flex-row">
+      {/* ── Details ───────────────────────────────────────────────── */}
+      <div className="grid flex-1 grid-cols-1 content-start gap-x-5 gap-y-4 sm:grid-cols-2">
+        {mode === "edit" && initialValues?.productCode && (
+          <div className="sm:col-span-2">
+            <span className="a-badge bg-paper font-mono text-muted"><Tag className="h-3 w-3" /> {initialValues.productCode}</span>
+          </div>
+        )}
+
+        {Field({ label: "Product name *", children: (
+          <input name="name" type="text" value={form.name} onChange={handleChange} required placeholder="e.g. India Cricket Jersey 2024" className="a-input" />
+        ) })}
+        {Field({ label: "Category *", children: (
+          <select name="category" value={form.category} onChange={handleChange} required className="a-select">
+            <option value="">Select category</option>
+            {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+          </select>
+        ) })}
+        {Field({ label: "Sport type", children: (
+          <select name="sportType" value={form.sportType} onChange={handleChange} className="a-select">
+            <option value="">Select sport</option>
+            {SPORT_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        ) })}
+        {Field({ label: "Fabric", children: (
+          <select name="fabric" value={form.fabric} onChange={handleChange} className="a-select">
+            <option value="">Select fabric</option>
+            {FABRICS.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
+        ) })}
+        {Field({ label: "Gender", children: (
+          <select name="gender" value={form.gender} onChange={handleChange} className="a-select">
+            {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+        ) })}
+        {Field({ label: "Fit type", children: (
+          <select name="fitType" value={form.fitType} onChange={handleChange} className="a-select">
+            {FIT_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
+        ) })}
+        {Field({ label: "Price (₹) *", children: (
+          <input name="price" type="number" inputMode="decimal" value={form.price} onChange={handleChange} required min={0} className="a-input" />
+        ) })}
+        {Field({ label: "Stock *", children: (
+          <input name="stockQuantity" type="number" inputMode="numeric" value={form.stockQuantity} onChange={handleChange} required min={0} className="a-input" />
+        ) })}
+        {Field({ label: "Primary colour", children: (
+          <input name="color" type="text" value={form.color} onChange={handleChange} placeholder="e.g. Blue, Red & White" className="a-input" />
+        ) })}
+        {Field({ label: "Tags (comma-separated)", children: (
+          <input name="tags" type="text" value={form.tags} onChange={handleChange} placeholder="jersey, cricket, india, blue" className="a-input" />
+        ) })}
+
+        <div className="sm:col-span-2">
+          <label className="a-label">Available sizes</label>
+          <div className="flex flex-wrap gap-2">
+            {SIZES.map(size => (
+              <button key={size} type="button" onClick={() => toggleSize(size)}
+                className={`min-w-12 rounded-xl border px-3 py-2 text-sm font-semibold transition ${form.availableSizes.includes(size) ? "border-ink bg-ink text-white" : "border-line bg-white hover:border-ink"}`}>
+                {size}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <label className="flex items-center gap-3 text-sm font-medium sm:col-span-2">
+          <Toggle checked={!!form.isCustomizable} onChange={(v) => setForm((p: any) => ({ ...p, isCustomizable: v }))} label="Customisable" />
+          Customisable by the customer
+        </label>
+
+        {Field({ label: "Description *", wide: true, children: (
+          <textarea name="description" rows={4} value={form.description} onChange={handleChange} required
+            placeholder="Describe the product — team, occasion, material features…" className="a-input resize-y" />
+        ) })}
+      </div>
+
+      {/* ── Images & actions ──────────────────────────────────────── */}
+      <div className="flex w-full flex-col gap-5 lg:w-80 lg:shrink-0">
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <label className="a-label mb-0">Product images ({previews.length}/5)</label>
+            {previews.length < 5 && previews.length > 0 && (
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-1 text-xs font-semibold text-accent-dark hover:underline">
+                <ImagePlus className="h-3.5 w-3.5" /> Add image
+              </button>
+            )}
+          </div>
+
+          <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageFiles} className="hidden" />
+
+          {previews.length === 0 ? (
+            <button type="button" onClick={() => fileInputRef.current?.click()}
+              className="flex h-44 w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-line text-muted transition hover:border-ink hover:text-ink">
+              <Shirt className="mb-2 h-8 w-8" strokeWidth={1.5} />
+              <span className="text-xs font-medium">Click to add product images (max 5)</span>
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <div className="relative h-56 overflow-hidden rounded-2xl border border-line bg-paper">
+                <img src={previews.find(p => p.isMain)?.src || previews[0]?.src} alt="Main" className="h-full w-full object-contain p-3" />
+                <span className="a-badge absolute left-2 top-2 bg-ink text-[10px] text-white">Main</span>
               </div>
+              <div className="flex flex-wrap gap-2">
+                {previews.map((p, i) => (
+                  <div key={i} className="group relative">
+                    <button type="button" onClick={() => setMainImage(i)}
+                      className={`h-14 w-14 overflow-hidden rounded-xl border-2 transition ${p.isMain ? "border-ink" : "border-line hover:border-muted"}`}>
+                      <img src={p.src} alt={`img-${i}`} className="h-full w-full object-cover" />
+                    </button>
+                    <button type="button" onClick={() => removeImage(i)} aria-label="Remove image"
+                      className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-red-600 text-white shadow transition lg:opacity-0 lg:group-hover:opacity-100">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {previews.length < 5 && (
+                  <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Add image"
+                    className="grid h-14 w-14 place-items-center rounded-xl border-2 border-dashed border-line text-muted transition hover:border-ink hover:text-ink">
+                    <ImagePlus className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-muted">Tap a thumbnail to make it the main image.</p>
             </div>
           )}
-
-          {/* Name */}
-          <div>
-            <label className="block mb-1 text-xs font-semibold text-gray-700">Product Name *</label>
-            <input
-              name="name" type="text" value={form.name} onChange={handleChange} required
-              placeholder="e.g. India Cricket Jersey 2024"
-              className="border border-gray-300 rounded-lg w-full px-3 py-2 focus:ring-indigo-400 focus:outline-none text-gray-700 transition text-sm"
-            />
-          </div>
-
-          {/* Category */}
-          <div>
-            <label className="block mb-1 text-xs font-semibold text-gray-700">Category *</label>
-            <select
-              name="category" value={form.category} onChange={handleChange} required
-              className="border border-gray-300 rounded-lg w-full px-3 py-2 focus:ring-indigo-400 focus:outline-none text-gray-700 bg-white text-sm"
-            >
-              <option value="">Select Category</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Sport Type */}
-          <div>
-            <label className="block mb-1 text-xs font-semibold text-gray-700">Sport Type</label>
-            <select
-              name="sportType" value={form.sportType} onChange={handleChange}
-              className="border border-gray-300 rounded-lg w-full px-3 py-2 focus:ring-indigo-400 focus:outline-none text-gray-700 bg-white text-sm"
-            >
-              <option value="">Select Sport</option>
-              {SPORT_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-
-          {/* Fabric */}
-          <div>
-            <label className="block mb-1 text-xs font-semibold text-gray-700">Fabric</label>
-            <select
-              name="fabric" value={form.fabric} onChange={handleChange}
-              className="border border-gray-300 rounded-lg w-full px-3 py-2 focus:ring-indigo-400 focus:outline-none text-gray-700 bg-white text-sm"
-            >
-              <option value="">Select Fabric</option>
-              {FABRICS.map(f => <option key={f} value={f}>{f}</option>)}
-            </select>
-          </div>
-
-          {/* Gender */}
-          <div>
-            <label className="block mb-1 text-xs font-semibold text-gray-700">Gender</label>
-            <select
-              name="gender" value={form.gender} onChange={handleChange}
-              className="border border-gray-300 rounded-lg w-full px-3 py-2 focus:ring-indigo-400 focus:outline-none text-gray-700 bg-white text-sm"
-            >
-              {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
-          </div>
-
-          {/* Fit Type */}
-          <div>
-            <label className="block mb-1 text-xs font-semibold text-gray-700">Fit Type</label>
-            <select
-              name="fitType" value={form.fitType} onChange={handleChange}
-              className="border border-gray-300 rounded-lg w-full px-3 py-2 focus:ring-indigo-400 focus:outline-none text-gray-700 bg-white text-sm"
-            >
-              {FIT_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
-            </select>
-          </div>
-
-          {/* Price */}
-          <div>
-            <label className="block mb-1 text-xs font-semibold text-gray-700">Price (₹) *</label>
-            <input
-              name="price" type="number" value={form.price} onChange={handleChange} required min={0}
-              className="border border-gray-300 rounded-lg w-full px-3 py-2 text-sm"
-            />
-          </div>
-
-          {/* Stock */}
-          <div>
-            <label className="block mb-1 text-xs font-semibold text-gray-700">Stock *</label>
-            <input
-              name="stockQuantity" type="number" value={form.stockQuantity} onChange={handleChange} required min={0}
-              className="border border-gray-300 rounded-lg w-full px-3 py-2 text-sm"
-            />
-          </div>
-
-          {/* Color */}
-          <div>
-            <label className="block mb-1 text-xs font-semibold text-gray-700">Primary Color</label>
-            <input
-              name="color" type="text" value={form.color} onChange={handleChange}
-              placeholder="e.g. Blue, Red & White"
-              className="border border-gray-300 rounded-lg w-full px-3 py-2 text-sm"
-            />
-          </div>
-
-          {/* Customizable Toggle */}
-          <div className="flex items-center gap-3 mt-1">
-            <label className="text-xs font-semibold text-gray-700">Customizable?</label>
-            <button
-              type="button"
-              onClick={() => setForm((p: any) => ({ ...p, isCustomizable: !p.isCustomizable }))}
-              className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none ${
-                form.isCustomizable ? "bg-indigo-600" : "bg-gray-300"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                  form.isCustomizable ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </button>
-            <span className="text-xs text-gray-500">{form.isCustomizable ? "Yes" : "No"}</span>
-          </div>
-
-          {/* Available Sizes */}
-          <div className="col-span-2">
-            <label className="block mb-2 text-xs font-semibold text-gray-700">Available Sizes</label>
-            <div className="flex flex-wrap gap-2">
-              {SIZES.map(size => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => toggleSize(size)}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
-                    form.availableSizes.includes(size)
-                      ? "bg-indigo-600 text-white border-indigo-600 shadow-sm scale-105"
-                      : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Tags */}
-          <div>
-            <label className="block mb-1 text-xs font-semibold text-gray-700">Tags (comma-separated)</label>
-            <input
-              name="tags" type="text" value={form.tags} onChange={handleChange}
-              placeholder="jersey, cricket, india, blue"
-              className="border border-gray-300 rounded-lg w-full px-3 py-2 text-sm"
-            />
-          </div>
-
-          {/* Description */}
-          <div className="col-span-2">
-            <label className="block mb-1 text-xs font-semibold text-gray-700">Description *</label>
-            <textarea
-              name="description" rows={3} value={form.description} onChange={handleChange} required
-              placeholder="Describe the jersey — team, occasion, material features..."
-              className="border border-gray-300 rounded-lg w-full px-3 py-2 resize-none focus:ring-indigo-400 focus:outline-none text-gray-700 text-sm"
-            />
-          </div>
         </div>
 
-        {/* ── Right: Images + Buttons ──────────────────────────────────── */}
-        <div className="flex flex-col gap-5 min-w-[300px] max-w-[360px]">
-          {/* Image upload area */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-gray-700">
-                Product Images ({previews.length}/5)
-              </label>
-              {previews.length < 5 && (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1 text-xs text-indigo-600 font-semibold hover:text-indigo-800 transition"
-                >
-                  <ImagePlus size={14} /> Add Image
-                </button>
-              )}
-            </div>
-
-            <input
-              ref={fileInputRef} type="file" accept="image/*" multiple
-              onChange={handleImageFiles} className="hidden"
-            />
-
-            {previews.length === 0 ? (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full h-44 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl text-gray-400 hover:border-indigo-400 hover:text-indigo-400 transition"
-              >
-                <Shirt size={32} className="mb-2 opacity-50" />
-                <span className="text-xs">Click to add jersey images (max 5)</span>
-              </button>
-            ) : (
-              <div className="space-y-2">
-                <div className="relative h-48 bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
-                  <img
-                    src={previews.find(p => p.isMain)?.src || previews[0]?.src}
-                    alt="Main"
-                    className="w-full h-full object-contain p-3"
-                  />
-                  <span className="absolute top-2 left-2 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    MAIN
-                  </span>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  {previews.map((p, i) => (
-                    <div key={i} className="relative group">
-                      <button
-                        type="button"
-                        onClick={() => setMainImage(i)}
-                        className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition ${
-                          p.isMain ? 'border-indigo-600' : 'border-gray-200 hover:border-gray-400'
-                        }`}
-                      >
-                        <img src={p.src} alt={`img-${i}`} className="w-full h-full object-cover" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeImage(i)}
-                        className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
-                  ))}
-                  {previews.length < 5 && (
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-14 h-14 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-indigo-400 hover:text-indigo-400 transition"
-                    >
-                      <ImagePlus size={18} />
-                    </button>
-                  )}
-                </div>
-                <p className="text-[10px] text-gray-400">Click thumbnail to set as main image</p>
-              </div>
-            )}
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex gap-3 mt-auto">
-            <button
-              type="submit"
-              disabled={submitting}
-              className={`flex-1 py-3 rounded-xl font-bold shadow-lg transition text-center ${
-                submitting ? "bg-gray-400 text-gray-700 cursor-not-allowed" : "bg-indigo-600 text-white hover:bg-indigo-700"
-              }`}
-            >
-              {submitting
-                ? (mode === "edit" ? "Updating..." : "Adding...")
-                : (mode === "edit" ? "Update Product" : "Add Product")}
-            </button>
-            {onCancel && (
-              <button
-                type="button"
-                onClick={onCancel}
-                className="flex-1 py-3 bg-gray-50 border border-gray-300 text-gray-600 rounded-xl font-semibold hover:bg-gray-100 transition"
-              >
-                Cancel
-              </button>
-            )}
-          </div>
+        <div className="mt-auto flex gap-2">
+          <button type="submit" disabled={submitting} className="a-btn-primary flex-1">
+            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {submitting ? (mode === "edit" ? "Updating…" : "Adding…") : (mode === "edit" ? "Update product" : "Add product")}
+          </button>
+          {onCancel && <button type="button" onClick={onCancel} className="a-btn-outline">Cancel</button>}
         </div>
-      </form>
-    </div>
+      </div>
+    </form>
   );
 };
 

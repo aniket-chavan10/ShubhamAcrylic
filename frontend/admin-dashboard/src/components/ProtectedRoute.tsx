@@ -1,6 +1,8 @@
 import { FC, ReactNode, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { API_URL } from "../utils/apiUtils";
+import BrandLogo from "./BrandLogo";
+import { Spinner } from "./ui";
 
 const ProtectedRoute: FC<{ children: ReactNode }> = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -38,11 +40,9 @@ const ProtectedRoute: FC<{ children: ReactNode }> = ({ children }) => {
 
     if (isAuthenticated === null) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="relative w-16 h-16">
-                    <div className="absolute inset-0 border-4 border-indigo-200 rounded-full animate-ping" />
-                    <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                </div>
+            <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-paper">
+                <BrandLogo className="h-16 w-16 rounded-2xl ring-1 ring-line" />
+                <Spinner />
             </div>
         );
     }

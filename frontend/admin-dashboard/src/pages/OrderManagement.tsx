@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  BadgeCheck, Download, FileText, Loader2, Mail, MessageCircle, Phone, Search, ShoppingBag, Trash2, X,
+  BadgeCheck, Download, FileText, Mail, MessageCircle, Phone, Search, ShoppingBag, Trash2, X,
 } from "lucide-react";
 import AdminLayout from "../components/AdminLayout";
+import { PageLoader } from "../components/ui";
 import {
   deleteOrder, fetchOrders, fetchOrderStats, Order, ORDER_STATUSES, OrderStatus, updateOrder,
 } from "../services/orderService";
@@ -53,7 +54,7 @@ function OrderDrawer({ order, onClose, onChanged, onDeleted }: {
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-ink/40 backdrop-blur-sm" onClick={onClose}>
       <aside className="h-full w-full max-w-2xl overflow-y-auto bg-paper shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-white px-6 py-4">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-white px-4 py-3 sm:px-6 sm:py-4">
           <div>
             <p className="text-xs text-muted">{formatDateTime(order.createdAt)}</p>
             <h2 className="font-display text-xl font-bold">{order.orderNumber}</h2>
@@ -61,7 +62,7 @@ function OrderDrawer({ order, onClose, onChanged, onDeleted }: {
           <button onClick={onClose} className="rounded-full p-2 hover:bg-paper" aria-label="Close"><X className="h-5 w-5" /></button>
         </div>
 
-        <div className="space-y-5 p-6">
+        <div className="space-y-4 p-4 sm:space-y-5 sm:p-6">
           {/* Status */}
           <div className="a-card p-4">
             <p className="a-label">Status</p>
@@ -188,19 +189,19 @@ const OrderManagement = () => {
 
   return (
     <AdminLayout title="Website Orders">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="a-card p-5"><p className="a-label">Total orders</p><p className="font-display text-3xl font-bold">{stats?.total ?? "—"}</p></div>
-        <div className="a-card p-5"><p className="a-label">Awaiting action</p><p className="font-display text-3xl font-bold text-accent">{stats?.byStatus.new ?? 0}</p></div>
-        <div className="a-card p-5"><p className="a-label">Order value (excl. cancelled)</p><p className="font-display text-3xl font-bold">{inr(stats?.revenue ?? 0)}</p></div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+        <div className="a-card p-4 sm:p-5"><p className="a-label">Total orders</p><p className="font-display text-3xl font-bold">{stats?.total ?? "—"}</p></div>
+        <div className="a-card p-4 sm:p-5"><p className="a-label">Awaiting action</p><p className="font-display text-3xl font-bold text-accent">{stats?.byStatus.new ?? 0}</p></div>
+        <div className="a-card col-span-2 p-4 sm:col-span-1 sm:p-5"><p className="a-label">Order value (excl. cancelled)</p><p className="font-display text-3xl font-bold">{inr(stats?.revenue ?? 0)}</p></div>
       </div>
 
       <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-2">
+        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
           {[{ value: "" as const, label: "All" }, ...ORDER_STATUSES].map(s => {
             const count = s.value ? stats?.byStatus[s.value as OrderStatus] : undefined;
             return (
               <button key={s.value} onClick={() => { setStatus(s.value); setPage(1); }}
-                className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${status === s.value ? "border-ink bg-ink text-white" : "border-line bg-white hover:border-ink"}`}>
+                className={`shrink-0 ${status === s.value ? "a-chip-active" : "a-chip"}`}>
                 {s.label}
                 {count ? <span className="ml-1.5 opacity-60">{count}</span> : null}
               </button>
@@ -215,7 +216,7 @@ const OrderManagement = () => {
 
       <div className="a-card mt-4 overflow-hidden">
         {loading && orders.length === 0 ? (
-          <div className="grid h-48 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-muted" /></div>
+          <PageLoader className="h-48" />
         ) : orders.length === 0 ? (
           <div className="py-16 text-center">
             <ShoppingBag className="mx-auto h-10 w-10 text-muted" strokeWidth={1.25} />
@@ -223,7 +224,31 @@ const OrderManagement = () => {
             <p className="text-sm text-muted">Orders from the website design studio will appear here.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Phones: cards */}
+          <ul className="divide-y divide-line md:hidden">
+            {orders.map(o => (
+              <li key={o.id}>
+                <button onClick={() => setSelected(o)} className="flex w-full items-center gap-3 p-4 text-left transition hover:bg-paper/60">
+                  {o.previews?.front
+                    ? <img src={getImageUrl(o.previews.front)} alt="" className="h-14 w-12 shrink-0 rounded-lg bg-paper object-cover" />
+                    : <span className="h-14 w-12 shrink-0 rounded-lg bg-paper" />}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="truncate font-semibold">{o.customerName}</p>
+                      <p className="shrink-0 font-semibold">{inr(o.total)}</p>
+                    </div>
+                    <p className="truncate text-xs text-muted">{o.orderNumber} · {formatDateTime(o.createdAt)}</p>
+                    <div className="mt-1.5 flex items-center justify-between gap-2">
+                      <p className="truncate text-xs text-muted">{o.garmentName} × {o.quantity} · {o.size}</p>
+                      <StatusBadge status={o.status} />
+                    </div>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[760px] text-sm">
               <thead className="border-b border-line bg-paper/60 text-left text-[11px] uppercase tracking-wider text-muted">
                 <tr>
@@ -260,11 +285,12 @@ const OrderManagement = () => {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
       {pages > 1 && (
-        <div className="mt-4 flex items-center justify-end gap-2 text-sm">
+        <div className="mt-4 flex items-center justify-center gap-2 text-sm sm:justify-end">
           <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="a-btn-outline px-3 py-1.5">Previous</button>
           <span className="text-muted">Page {page} of {pages}</span>
           <button disabled={page >= pages} onClick={() => setPage(p => p + 1)} className="a-btn-outline px-3 py-1.5">Next</button>

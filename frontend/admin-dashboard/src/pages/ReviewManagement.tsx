@@ -1,20 +1,28 @@
 import { useState, useEffect } from 'react';
-import { Trash2, Star, Package } from 'lucide-react';
+import { Package, Star, Trash2 } from 'lucide-react';
 import * as reviewService from '../services/reviewService';
 import AdminLayout from '../components/AdminLayout';
+import { EmptyState, PageLoader } from '../components/ui';
+import { formatDateTime } from '../utils/format';
 
+// Shape returned by GET /reviews/all (Sequelize, Product included)
 interface Review {
-    _id: string;
-    productId: {
-        _id: string;
-        name: string;
-        imageUrl: string;
-    };
+    id: number;
+    productId: number;
+    Product?: { id: number; name: string } | null;
     customerName: string;
     rating: number;
     comment: string;
     createdAt: string;
 }
+
+const Stars = ({ rating }: { rating: number }) => (
+    <span className="flex" aria-label={`${rating} out of 5`}>
+        {[...Array(5)].map((_, i) => (
+            <Star key={i} className={`h-4 w-4 ${i < rating ? 'fill-accent text-accent' : 'text-line'}`} />
+        ))}
+    </span>
+);
 
 const ReviewManagement = () => {
     const [reviews, setReviews] = useState<Review[]>([]);
@@ -22,143 +30,64 @@ const ReviewManagement = () => {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        fetchReviews();
+        reviewService.getAllReviews()
+            .then((response) => {
+                const data = response?.data ?? response ?? [];
+                setReviews(Array.isArray(data) ? data : []);
+            })
+            .catch((err) => setError(`Failed to load reviews: ${err.message}`))
+            .finally(() => setLoading(false));
     }, []);
 
-    const fetchReviews = async () => {
-        try {
-            console.log('Fetching reviews...');
-            const response = await reviewService.getAllReviews();
-            console.log('Review response:', response);
-
-            // Handle different response formats
-            const reviewsData = response.data || response || [];
-            console.log('Reviews data:', reviewsData);
-
-            setReviews(Array.isArray(reviewsData) ? reviewsData : []);
-            setLoading(false);
-        } catch (err: any) {
-            console.error('Review fetch error:', err);
-            setError(`Failed to load reviews: ${err.message}`);
-            setLoading(false);
-        }
-    };
-
-    const handleDelete = async (id: string) => {
+    const handleDelete = async (id: number) => {
         if (!confirm('Are you sure you want to delete this review?')) return;
-
         try {
-            await reviewService.deleteReview(id);
-            setReviews(reviews.filter(review => review._id !== id));
-        } catch (err) {
+            await reviewService.deleteReview(String(id));
+            setReviews(list => list.filter(review => review.id !== id));
+        } catch {
             alert('Failed to delete review');
         }
     };
 
-    if (loading) return (
-        <AdminLayout>
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-        </AdminLayout>
-    );
-
-    if (error) return (
-        <AdminLayout>
-            <div className="text-red-500 text-center">{error}</div>
-        </AdminLayout>
-    );
+    const average = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
 
     return (
-        <AdminLayout>
-            <div className="p-6">
-                <div className="mb-6">
-                    <h1 className="text-3xl font-bold text-gray-900">Review Management</h1>
-                    <p className="text-gray-600 mt-2">Manage customer reviews for all products</p>
-                </div>
+        <AdminLayout title="Reviews">
+            <div className="mb-5 grid grid-cols-2 gap-3 sm:max-w-md sm:gap-4">
+                <div className="a-card p-4 sm:p-5"><p className="a-label">Total reviews</p><p className="font-display text-2xl font-bold sm:text-3xl">{reviews.length}</p></div>
+                <div className="a-card p-4 sm:p-5"><p className="a-label">Average rating</p><p className="font-display text-2xl font-bold sm:text-3xl">{average ? average.toFixed(1) : '—'}<span className="text-base text-muted"> / 5</span></p></div>
+            </div>
 
-                <div className="bg-white rounded-lg shadow overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold text-gray-900">
-                                All Reviews ({reviews.length})
-                            </h2>
-                        </div>
-                    </div>
-
-                    {reviews.length === 0 ? (
-                        <div className="p-12 text-center text-gray-500">
-                            <Star className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                            <p>No reviews yet</p>
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-gray-200">
-                            {reviews.map((review) => (
-                                <div key={review._id} className="p-6 hover:bg-gray-50 transition-colors">
-                                    <div className="flex gap-4">
-                                        <div className="flex-shrink-0">
-                                            <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-                                                {review.productId ? (
-                                                    <img
-                                                        src={review.productId.imageUrl || 'https://via.placeholder.com/80'}
-                                                        alt={review.productId.name}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <Package className="w-8 h-8 text-gray-400" />
-                                                )}
+            <div className="a-card overflow-hidden">
+                {loading ? (
+                    <PageLoader />
+                ) : error ? (
+                    <p className="p-6 text-center text-sm text-red-600">{error}</p>
+                ) : reviews.length === 0 ? (
+                    <EmptyState icon={Star} title="No reviews yet" text="Customer reviews from product pages will appear here." />
+                ) : (
+                    <ul className="divide-y divide-line">
+                        {reviews.map((review) => (
+                            <li key={review.id} className="flex gap-3 p-4 sm:gap-4 sm:p-5">
+                                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-paper text-muted"><Package className="h-5 w-5" /></span>
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <p className="truncate font-semibold">{review.Product?.name ?? 'Product deleted'}</p>
+                                            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+                                                <Stars rating={review.rating} />
+                                                <span>by <b className="font-semibold text-ink">{review.customerName}</b></span>
                                             </div>
                                         </div>
-
-                                        <div className="flex-1">
-                                            <div className="flex items-start justify-between mb-2">
-                                                <div>
-                                                    <h3 className="font-semibold text-gray-900">
-                                                        {review.productId ? review.productId.name : 'Product Deleted'}
-                                                    </h3>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <div className="flex text-yellow-400">
-                                                            {[...Array(5)].map((_, i) => (
-                                                                <Star
-                                                                    key={i}
-                                                                    size={16}
-                                                                    fill={i < review.rating ? "currentColor" : "none"}
-                                                                    className={i < review.rating ? "text-yellow-400" : "text-gray-300"}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                        <span className="text-sm text-gray-600">
-                                                            by <strong>{review.customerName}</strong>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => handleDelete(review._id)}
-                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                    title="Delete review"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </div>
-
-                                            <p className="text-gray-700 mb-2">{review.comment}</p>
-
-                                            <p className="text-sm text-gray-500">
-                                                {new Date(review.createdAt).toLocaleDateString('en-US', {
-                                                    year: 'numeric',
-                                                    month: 'long',
-                                                    day: 'numeric',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                })}
-                                            </p>
-                                        </div>
+                                        <button onClick={() => handleDelete(review.id)} className="a-icon-btn-danger -mr-2" title="Delete review"><Trash2 className="h-4 w-4" /></button>
                                     </div>
+                                    {review.comment && <p className="mt-2 text-sm">{review.comment}</p>}
+                                    <p className="mt-1.5 text-xs text-muted">{formatDateTime(review.createdAt)}</p>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </div>
         </AdminLayout>
     );

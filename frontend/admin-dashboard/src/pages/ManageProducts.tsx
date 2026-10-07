@@ -3,7 +3,8 @@ import { fetchProducts, addProduct, updateProduct, deleteProduct } from "../serv
 import AdminLayout from "../components/AdminLayout";
 import ProductForm from "../components/ProductForm";
 import ProductTable from "../components/ProductTable";
-import { Plus } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
+import { PageLoader } from "../components/ui";
 
 const ManageProducts = () => {
   const [products, setProducts] = useState<any[]>([]);
@@ -17,7 +18,6 @@ const ManageProducts = () => {
       try {
         setLoading(true);
         const fetchedProducts = await fetchProducts();
-        console.log("API response:", fetchedProducts);
 
         let productsArray: any[] = [];
 
@@ -120,62 +120,34 @@ const ManageProducts = () => {
     }
   };
 
+  const backToList = () => {
+    setEditingProduct(null);
+    setViewMode("list");
+  };
+
   return (
-    <AdminLayout>
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <span className="inline-block w-1 h-8 rounded-full bg-blue-600"></span>
-          <h2 className="text-3xl font-bold text-blue-900 tracking-tight">Manage Products</h2>
+    <AdminLayout
+      title={viewMode === "form" ? (editingProduct ? "Edit product" : "New product") : "Products"}
+      actions={viewMode === "list"
+        ? <button onClick={handleAddNew} className="a-btn-accent"><Plus className="h-4 w-4" /> <span className="hidden sm:inline">Add product</span></button>
+        : <button onClick={backToList} className="a-btn-outline"><ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">All products</span></button>}
+    >
+      {error && <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+
+      {viewMode === "form" ? (
+        <div className="a-card p-5 sm:p-6">
+          <ProductForm
+            initialValues={editingProduct}
+            onSubmit={handleFormSubmit}
+            mode={editingProduct ? "edit" : "add"}
+            onCancel={backToList}
+          />
         </div>
-
-        {viewMode === "list" && (
-          <button
-            onClick={handleAddNew}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-lg hover:shadow-blue-200 active:scale-95"
-          >
-            <Plus size={20} />
-            Add New Product
-          </button>
-        )}
-      </div>
-
-      <div className="w-full max-w-7xl pb-16 min-h-[75vh]">
-        <div className="bg-white rounded-3xl shadow-2xl px-10 py-12">
-          <div className="flex items-center gap-3 mb-8">
-            <span className="inline-block w-1 h-8 rounded-full bg-blue-600"></span>
-            <h2 className="text-2xl font-bold text-blue-900 tracking-tight">
-              {viewMode === "form"
-                ? editingProduct
-                  ? "Edit Product"
-                  : "Add New Product"
-                : "All Products"}
-            </h2>
-          </div>
-
-          {loading && <p>Loading products...</p>}
-          {error && <p className="text-red-600">Error: {error}</p>}
-
-          {viewMode === "form" && (
-            <ProductForm
-              initialValues={editingProduct}
-              onSubmit={handleFormSubmit}
-              mode={editingProduct ? "edit" : "add"}
-              onCancel={() => {
-                setEditingProduct(null);
-                setViewMode("list");
-              }}
-            />
-          )}
-
-          {viewMode === "list" && (
-            <ProductTable
-              products={products}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          )}
-        </div>
-      </div>
+      ) : loading ? (
+        <div className="a-card"><PageLoader /></div>
+      ) : (
+        <ProductTable products={products} onEdit={handleEdit} onDelete={handleDelete} onAdd={handleAddNew} />
+      )}
     </AdminLayout>
   );
 };

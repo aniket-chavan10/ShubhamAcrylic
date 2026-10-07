@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Loader2, Plus, Printer, Save, Target, Trash2 } from "lucide-react";
 import AdminLayout from "../components/AdminLayout";
+import { PageLoader } from "../components/ui";
 import { fetchInvoice, fetchNextInvoiceNumber, InvoiceStatus, saveInvoice } from "../services/invoiceService";
 import { fetchOrder } from "../services/orderService";
 import { fetchGarments } from "../services/garmentService";
@@ -154,7 +155,7 @@ const InvoiceEditor = () => {
   const num = (v: string) => Math.max(0, Number(v) || 0);
 
   if (loading) {
-    return <AdminLayout title="Invoice"><div className="grid h-64 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-muted" /></div></AdminLayout>;
+    return <AdminLayout title="Invoice"><PageLoader /></AdminLayout>;
   }
 
   return (
@@ -164,13 +165,13 @@ const InvoiceEditor = () => {
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           {/* Header */}
-          <section className="a-card grid gap-4 p-5 sm:grid-cols-4 sm:p-6">
+          <section className="a-card grid gap-4 p-5 sm:grid-cols-2 sm:p-6 2xl:grid-cols-4">
             <div><label className="a-label">Invoice no.</label><input className="a-input font-semibold" value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} /></div>
             <div><label className="a-label">Invoice date</label><input type="date" className="a-input" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} /></div>
             <div><label className="a-label">Due date</label><input type="date" className="a-input" value={dueDate} onChange={e => setDueDate(e.target.value)} /></div>
             <div>
               <label className="a-label">Order source</label>
-              <select className="a-input" value={source} onChange={e => setSource(e.target.value as "website" | "manual")}>
+              <select className="a-select" value={source} onChange={e => setSource(e.target.value as "website" | "manual")}>
                 <option value="manual">Offline / direct</option>
                 <option value="website">Website order</option>
               </select>
@@ -203,9 +204,9 @@ const InvoiceEditor = () => {
                 <div key={i} className="grid grid-cols-6 gap-2 rounded-xl bg-paper/60 p-3 lg:grid-cols-[1fr_80px_70px_100px_70px_100px_32px] lg:items-center lg:bg-transparent lg:p-0">
                   <input list="invoice-products" className="a-input col-span-6 lg:col-span-1" placeholder="e.g. Custom Hoodie – Black, L" value={it.description} onChange={e => onDescription(i, e.target.value)} />
                   <input className="a-input col-span-2 lg:col-span-1" placeholder="HSN" value={it.hsn} onChange={e => setItem(i, { hsn: e.target.value })} />
-                  <input className="a-input col-span-2 lg:col-span-1" type="number" min={0} value={it.qty} onChange={e => setItem(i, { qty: num(e.target.value) })} aria-label="Quantity" />
-                  <input className="a-input col-span-2 lg:col-span-1" type="number" min={0} value={it.rate} onChange={e => setItem(i, { rate: num(e.target.value) })} aria-label="Rate" />
-                  <input className="a-input col-span-2 lg:col-span-1" type="number" min={0} max={100} value={it.discountPct} onChange={e => setItem(i, { discountPct: Math.min(100, num(e.target.value)) })} aria-label="Discount percent" />
+                  <input className="a-input col-span-2 lg:col-span-1" type="number" inputMode="decimal" min={0} placeholder="Qty" value={it.qty} onChange={e => setItem(i, { qty: num(e.target.value) })} aria-label="Quantity" />
+                  <input className="a-input col-span-2 lg:col-span-1" type="number" inputMode="decimal" min={0} placeholder="Rate ₹" value={it.rate} onChange={e => setItem(i, { rate: num(e.target.value) })} aria-label="Rate" />
+                  <input className="a-input col-span-2 lg:col-span-1" type="number" inputMode="decimal" min={0} max={100} placeholder="Disc %" value={it.discountPct} onChange={e => setItem(i, { discountPct: Math.min(100, num(e.target.value)) })} aria-label="Discount percent" />
                   <p className="col-span-3 self-center text-right font-semibold lg:col-span-1">{inr(lineAmount(it), true)}</p>
                   <button onClick={() => setItems(list => (list.length > 1 ? list.filter((_, j) => j !== i) : [blankItem()]))}
                     className="col-span-1 grid place-items-center rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600" aria-label="Remove item">
@@ -241,7 +242,7 @@ const InvoiceEditor = () => {
                 <input className="a-input w-20" type="number" min={0} value={taxPercent} onChange={e => setTaxPercent(num(e.target.value))} aria-label="Custom GST percent" />
               </div>
               {taxPercent > 0 && (
-                <div className="mt-2 flex gap-4 text-sm">
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
                   <label className="flex items-center gap-1.5"><input type="radio" checked={taxMode === "cgst_sgst"} onChange={() => setTaxMode("cgst_sgst")} /> CGST + SGST (same state)</label>
                   <label className="flex items-center gap-1.5"><input type="radio" checked={taxMode === "igst"} onChange={() => setTaxMode("igst")} /> IGST</label>
                 </div>
@@ -297,7 +298,7 @@ const InvoiceEditor = () => {
 
           {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="hidden grid-cols-2 gap-2 xl:grid">
             <button onClick={() => save(false)} disabled={saving} className="a-btn-outline">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save
             </button>
@@ -306,6 +307,19 @@ const InvoiceEditor = () => {
             </button>
           </div>
         </aside>
+      </div>
+
+      <div className="sticky bottom-0 z-20 -mx-4 mt-6 flex items-center justify-between gap-3 border-t border-line bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 xl:hidden">
+        <div className="min-w-0">
+          <p className="text-[11px] uppercase tracking-wider text-muted">Grand total</p>
+          <p className="truncate font-display text-xl font-bold">{inr(totals.grandTotal, !roundOff)}</p>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <button onClick={() => save(false)} disabled={saving} className="a-btn-outline px-3">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save
+          </button>
+          <button onClick={() => save(true)} disabled={saving} className="a-btn-accent px-3"><Printer className="h-4 w-4" /> <span className="hidden min-[400px]:inline">Save &</span> print</button>
+        </div>
       </div>
     </AdminLayout>
   );

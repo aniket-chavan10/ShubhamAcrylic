@@ -1,15 +1,19 @@
 import { useState } from "react";
-import { Package } from "lucide-react";
+import { Package, Pencil, Plus, Trash2 } from "lucide-react";
+import { EmptyState } from "./ui";
+import { inr } from "../utils/format";
 import { getImageUrl } from "../utils/imageUtils";
 
 const ProductTable = ({
   products,
   onEdit,
   onDelete,
+  onAdd,
 }: {
   products: any[] | undefined;
   onEdit: (product: any) => void;
   onDelete: (id: number) => void;
+  onAdd?: () => void;
 }) => {
   const safeProducts = Array.isArray(products) ? products : [];
 
@@ -49,139 +53,124 @@ const ProductTable = ({
     return [];
   };
 
+  const catName = (p: any) => (typeof p.category === "object" ? p.category?.name : p.category);
+  const mainImage = (p: any) => p.imageUrl || p.images?.find((i: any) => i.isMain)?.imageUrl || p.images?.[0]?.imageUrl;
+
+  const Thumb = ({ product, size = "h-14 w-14" }: { product: any; size?: string }) => (
+    <div className="relative shrink-0">
+      {mainImage(product)
+        ? <img src={getImageUrl(mainImage(product))} alt={product.name} className={`${size} rounded-xl border border-line bg-paper object-cover`} />
+        : <div className={`${size} grid place-items-center rounded-xl bg-paper text-muted`}><Package className="h-5 w-5" /></div>}
+      {product.images?.length > 1 && (
+        <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-ink px-1 text-[9px] font-bold text-white">{product.images.length}</span>
+      )}
+    </div>
+  );
+
+  const Stock = ({ qty }: { qty: number }) => (
+    <span className={`a-badge ${qty < 5 ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{qty} in stock</span>
+  );
+
+  const Actions = ({ product }: { product: any }) => (
+    <div className="flex justify-end gap-1">
+      <button className="a-icon-btn" onClick={() => onEdit(product)} title="Edit"><Pencil className="h-4 w-4" /></button>
+      <button className="a-icon-btn-danger" onClick={() => onDelete(product.id)} title="Delete"><Trash2 className="h-4 w-4" /></button>
+    </div>
+  );
+
+  if (safeProducts.length === 0) {
+    return (
+      <div className="a-card">
+        <EmptyState icon={Package} title="No products yet" text="Add your first product to show it in the shop.">
+          {onAdd && <button onClick={onAdd} className="a-btn-primary"><Plus className="h-4 w-4" /> Add product</button>}
+        </EmptyState>
+      </div>
+    );
+  }
+
   return (
-    <div className="mt-6">
-      {/* Category tabs */}
-      <div className="flex gap-2 mb-5 flex-wrap">
+    <div>
+      {/* Category filter */}
+      <div className="no-scrollbar -mx-4 mb-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
         {categories.map((category) => (
-          <button
-            key={category}
-            className={`px-4 py-2 rounded-full font-medium border transition
-              ${activeTab === category
-                ? "bg-blue-600 text-white shadow border-blue-600"
-                : "bg-gray-50 hover:bg-blue-50 text-gray-700 border-gray-200"
-              }`}
-            onClick={() => setActiveTab(category)}
-          >
-            {category}
+          <button key={category} onClick={() => setActiveTab(category)} className={`shrink-0 ${activeTab === category ? "a-chip-active" : "a-chip"}`}>
+            {category || "Uncategorised"}
           </button>
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-lg overflow-x-auto p-2">
-        <table className="w-full min-w-[900px]">
-          <thead>
-            <tr className="bg-gray-100 text-gray-700 text-sm border-b border-gray-200">
-              <th className="py-3 px-3 text-left font-medium">Image</th>
-              <th className="py-3 px-3 text-left font-medium">Code</th>
-              <th className="py-3 px-3 text-left font-medium">Name</th>
-              <th className="py-3 px-3 text-left font-medium">Category</th>
-              <th className="py-3 px-3 text-left font-medium">Price</th>
-              <th className="py-3 px-3 text-left font-medium">Stock</th>
-              <th className="py-3 px-3 text-left font-medium">Tags</th>
-              <th className="py-3 px-3 text-left font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredProducts.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="py-6 text-center text-gray-400">
-                  No products in this category.
-                </td>
-              </tr>
-            ) : (
-              filteredProducts.map((product) => {
-                const mainImage = product.imageUrl
-                  || product.images?.find((i: any) => i.isMain)?.imageUrl
-                  || product.images?.[0]?.imageUrl;
+      <div className="a-card overflow-hidden">
+        {filteredProducts.length === 0 ? (
+          <p className="py-12 text-center text-sm text-muted">No products in this category.</p>
+        ) : (
+          <>
+            {/* Phones: stacked cards */}
+            <ul className="divide-y divide-line md:hidden">
+              {filteredProducts.map((product) => (
+                <li key={product.id} className="flex gap-3 p-4">
+                  <Thumb product={product} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold">{product.name}</p>
+                        <p className="truncate text-xs text-muted">{[product.productCode, catName(product)].filter(Boolean).join(" · ")}</p>
+                      </div>
+                      <p className="shrink-0 font-semibold">{inr(product.price)}</p>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <Stock qty={product.stockQuantity} />
+                      <div className="-mr-2"><Actions product={product} /></div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
 
-                return (
-                  <tr
-                    key={product.id}
-                    className="border-b border-gray-100 hover:bg-blue-50 transition group"
-                  >
-                    <td className="py-2 px-3">
-                      <div className="relative">
-                        {mainImage ? (
-                          <img
-                            src={getImageUrl(mainImage)}
-                            alt={product.name}
-                            className="w-14 h-14 rounded-lg object-cover border border-gray-200 group-hover:border-blue-400 transition"
-                          />
-                        ) : (
-                          <div className="w-14 h-14 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 text-xs">
-                            No img
-                          </div>
-                        )}
-                        {product.images?.length > 1 && (
-                          <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                            {product.images.length}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-2 px-3">
-                      {product.productCode && (
-                        <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full border border-gray-200 whitespace-nowrap">
-                          <Package size={10} /> {product.productCode}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2 px-3 font-semibold text-gray-900">
-                      {product.name}
-                      <div className="text-xs text-gray-400 font-normal">
-                        {[product.materialType, product.size].filter(Boolean).join(", ")}
-                      </div>
-                    </td>
-                    <td className="py-2 px-3 text-sm">
-                      {typeof product.category === "object" ? product.category?.name : product.category}
-                    </td>
-                    <td className="py-2 px-3">
-                      <span className="text-blue-600 font-bold">₹{product.price}</span>
-                    </td>
-                    <td className="py-2 px-3">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-bold ${
-                          product.stockQuantity < 5
-                            ? "bg-red-100 text-red-600"
-                            : "bg-green-50 text-green-700"
-                        }`}
-                      >
-                        {product.stockQuantity}
-                      </span>
-                    </td>
-                    <td className="py-2 px-3">
-                      <div className="flex flex-wrap gap-1">
-                        {normalizeTags(product.tags).slice(0, 3).map((tag: string) => (
-                          <span
-                            key={tag}
-                            className="bg-blue-100 rounded-full px-2 py-0.5 text-xs text-blue-700 font-semibold"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="py-2 px-3">
-                      <button
-                        className="mr-2 px-3 py-1 bg-yellow-100 hover:bg-yellow-200 rounded text-yellow-900 text-xs font-bold transition"
-                        onClick={() => onEdit(product)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="px-3 py-1 bg-red-100 hover:bg-red-200 rounded text-red-900 text-xs font-bold transition"
-                        onClick={() => onDelete(product.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
+            {/* Tablets & desktop: table */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[820px] text-sm">
+                <thead className="border-b border-line bg-paper/60">
+                  <tr>
+                    <th className="a-th">Product</th>
+                    <th className="a-th">Code</th>
+                    <th className="a-th">Category</th>
+                    <th className="a-th text-right">Price</th>
+                    <th className="a-th">Stock</th>
+                    <th className="a-th">Tags</th>
+                    <th className="a-th" />
                   </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {filteredProducts.map((product) => (
+                    <tr key={product.id} className="transition hover:bg-paper/60">
+                      <td className="a-td">
+                        <div className="flex items-center gap-3">
+                          <Thumb product={product} size="h-12 w-12" />
+                          <div className="min-w-0">
+                            <p className="font-semibold">{product.name}</p>
+                            <p className="text-xs text-muted">{[product.materialType, product.size].filter(Boolean).join(", ")}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="a-td">{product.productCode && <span className="a-badge bg-paper font-mono text-muted">{product.productCode}</span>}</td>
+                      <td className="a-td">{catName(product) || "—"}</td>
+                      <td className="a-td text-right font-semibold">{inr(product.price)}</td>
+                      <td className="a-td"><Stock qty={product.stockQuantity} /></td>
+                      <td className="a-td">
+                        <div className="flex flex-wrap gap-1">
+                          {normalizeTags(product.tags).slice(0, 3).map((tag: string) => (
+                            <span key={tag} className="a-badge bg-accent-soft font-medium text-accent-dark">{tag}</span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="a-td"><Actions product={product} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -33,11 +33,17 @@ body {
   .a-label {
     @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted;
   }
+  .a-select {
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition focus:border-ink focus:ring-4 focus:ring-ink/5 disabled:bg-paper cursor-pointer appearance-none bg-[length:16px] bg-[right_0.75rem_center] bg-no-repeat pr-9;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6a66' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
   .a-btn,
   .a-btn-primary,
   .a-btn-accent,
-  .a-btn-outline {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  .a-btn-outline,
+  .a-btn-danger,
+  .a-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-50;
   }
   .a-btn-primary {
     @apply bg-ink text-white hover:bg-ink-soft;
@@ -48,9 +54,44 @@ body {
   .a-btn-outline {
     @apply border border-line bg-white text-ink hover:border-ink;
   }
+  .a-btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700;
+  }
+  .a-btn-ghost {
+    @apply text-muted hover:bg-ink/5 hover:text-ink;
+  }
+  /* Small square icon button used in table rows and card corners */
+  .a-icon-btn {
+    @apply inline-grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-paper hover:text-ink disabled:opacity-40;
+  }
+  .a-icon-btn-danger {
+    @apply inline-grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40;
+  }
+  .a-badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap;
+  }
+  .a-th {
+    @apply px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted;
+  }
+  .a-td {
+    @apply px-4 py-3 align-middle;
+  }
+  .a-chip {
+    @apply rounded-full border border-line bg-white px-3.5 py-1.5 text-sm font-medium transition hover:border-ink;
+  }
+  .a-chip-active {
+    @apply rounded-full border border-ink bg-ink px-3.5 py-1.5 text-sm font-medium text-white transition;
+  }
 }
 
-/* ── Printing (invoices) ─────────────────────────────────────────────────── */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Printing (invoices)─────────────────────────────────────────────────── */
 @media print {
   @page {
     size: A4;

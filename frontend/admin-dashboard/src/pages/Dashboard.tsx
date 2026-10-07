@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
-import { Package, Mail, Star, Image, TrendingUp, Clock, CheckCircle, AlertCircle, Receipt, ShoppingBag, Shirt } from "lucide-react";
+import { PageLoader } from "../components/ui";
+import { AlertCircle, CheckCircle, ChevronRight, Clock, Image, LucideIcon, Mail, Package, Receipt, ShoppingBag, Shirt, Star, TrendingUp } from "lucide-react";
 import { fetchOrders, fetchOrderStats, Order } from "../services/orderService";
 import { fetchInvoices } from "../services/invoiceService";
 import { getImageUrl } from "../utils/imageUtils";
-import { inr } from "../utils/format";
+import { formatDate, inr } from "../utils/format";
 import { fetchProducts } from "../services/productService";
 import { fetchEnquiries } from "../services/enquiryService";
 import * as reviewService from "../services/reviewService";
@@ -99,27 +100,21 @@ const Dashboard = () => {
     }
   };
 
-  const StatCard = ({ icon: Icon, title, value, subtitle, color }: any) => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-gray-600 font-medium">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
-          {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
-        </div>
-        <div className={`p-3 rounded-lg ${color}`}>
-          <Icon className="w-6 h-6 text-white" />
-        </div>
+  const StatCard = ({ icon: Icon, title, value, subtitle, to, tone = "" }: { icon: LucideIcon; title: string; value: number; subtitle: string; to: string; tone?: string }) => (
+    <Link to={to} className="a-card flex items-start justify-between gap-3 p-5 transition hover:border-ink">
+      <div className="min-w-0">
+        <p className="a-label">{title}</p>
+        <p className={`font-display text-3xl font-bold ${tone}`}>{value}</p>
+        <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
       </div>
-    </div>
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-paper text-ink"><Icon className="h-5 w-5" /></span>
+    </Link>
   );
 
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
+        <PageLoader />
       </AdminLayout>
     );
   }
@@ -128,10 +123,10 @@ const Dashboard = () => {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="relative overflow-hidden rounded-2xl bg-ink p-8 text-white">
+        <div className="relative overflow-hidden rounded-2xl bg-ink p-6 text-white sm:p-8">
           <div className="absolute -right-10 -top-16 h-56 w-56 rounded-full bg-accent/40 blur-3xl" />
           <p className="relative text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Dashboard</p>
-          <h2 className="relative mt-2 font-display text-3xl font-bold tracking-tight">Welcome back!</h2>
+          <h2 className="relative mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">Welcome back!</h2>
           <p className="relative mt-1 text-white/60">Here's what's happening with your business today.</p>
           <div className="relative mt-6 flex flex-wrap gap-2">
             <Link to="/invoices/new" className="a-btn-accent"><Receipt className="h-4 w-4" /> New invoice</Link>
@@ -141,25 +136,25 @@ const Dashboard = () => {
         </div>
 
         {/* Sales */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Link to="/orders" className="a-card p-5 transition hover:border-ink">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <Link to="/orders" className="a-card p-4 transition hover:border-ink sm:p-5">
             <p className="a-label">New website orders</p>
-            <p className="font-display text-3xl font-bold text-accent">{sales.newOrders}</p>
+            <p className="truncate font-display text-2xl font-bold text-accent sm:text-3xl">{sales.newOrders}</p>
             <p className="text-xs text-muted">{sales.totalOrders} orders in total</p>
           </Link>
-          <div className="a-card p-5">
+          <div className="a-card p-4 sm:p-5">
             <p className="a-label">Website order value</p>
-            <p className="font-display text-3xl font-bold">{inr(sales.orderValue)}</p>
+            <p className="truncate font-display text-2xl font-bold sm:text-3xl">{inr(sales.orderValue)}</p>
             <p className="text-xs text-muted">Excluding cancelled</p>
           </div>
-          <Link to="/invoices" className="a-card p-5 transition hover:border-ink">
+          <Link to="/invoices" className="a-card p-4 transition hover:border-ink sm:p-5">
             <p className="a-label">Invoiced</p>
-            <p className="font-display text-3xl font-bold">{inr(sales.billed)}</p>
+            <p className="truncate font-display text-2xl font-bold sm:text-3xl">{inr(sales.billed)}</p>
             <p className="text-xs text-muted">{inr(sales.received)} received</p>
           </Link>
-          <Link to="/invoices" className="a-card p-5 transition hover:border-ink">
+          <Link to="/invoices" className="a-card p-4 transition hover:border-ink sm:p-5">
             <p className="a-label">Outstanding</p>
-            <p className="font-display text-3xl font-bold text-red-600">{inr(sales.outstanding)}</p>
+            <p className="truncate font-display text-2xl font-bold text-red-600 sm:text-3xl">{inr(sales.outstanding)}</p>
             <p className="text-xs text-muted">To be collected</p>
           </Link>
         </div>
@@ -172,7 +167,7 @@ const Dashboard = () => {
             </div>
             <div className="divide-y divide-line">
               {recentOrders.map(o => (
-                <Link key={o.id} to="/orders" className="flex items-center gap-4 p-4 hover:bg-paper/60">
+                <Link key={o.id} to="/orders" className="flex items-center gap-3 p-4 hover:bg-paper/60 sm:gap-4">
                   {o.previews?.front
                     ? <img src={getImageUrl(o.previews.front)} alt="" className="h-12 w-11 rounded-lg bg-paper object-cover" />
                     : <span className="h-12 w-11 rounded-lg bg-paper" />}
@@ -180,164 +175,88 @@ const Dashboard = () => {
                     <p className="truncate text-sm font-semibold">{o.customerName} <span className="font-normal text-muted">· {o.orderNumber}</span></p>
                     <p className="truncate text-xs text-muted">{o.garmentName} × {o.quantity} · {o.colorName} · {o.size}</p>
                   </div>
-                  <p className="text-sm font-semibold">{inr(o.total)}</p>
+                  <p className="shrink-0 text-sm font-semibold">{inr(o.total)}</p>
                 </Link>
               ))}
             </div>
           </div>
         )}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <StatCard
-            icon={Package}
-            title="Total Products"
-            value={stats.totalProducts}
-            subtitle={stats.lowStockProducts > 0 ? `${stats.lowStockProducts} low stock` : "All stocked"}
-            color="bg-blue-600"
-          />
-          <StatCard
-            icon={Mail}
-            title="Total Enquiries"
-            value={stats.totalEnquiries}
-            subtitle={stats.pendingEnquiries > 0 ? `${stats.pendingEnquiries} pending` : "All resolved"}
-            color={stats.pendingEnquiries > 0 ? "bg-yellow-600" : "bg-green-600"}
-          />
-          <StatCard
-            icon={Star}
-            title="Customer Reviews"
-            value={stats.totalReviews}
-            subtitle="Total reviews received"
-            color="bg-purple-600"
-          />
-          <StatCard
-            icon={Image}
-            title="Active Banners"
-            value={stats.activeBanners}
-            subtitle="Currently displayed"
-            color="bg-indigo-600"
-          />
-          <StatCard
-            icon={TrendingUp}
-            title="Low Stock Alert"
-            value={stats.lowStockProducts}
-            subtitle="Products need restock"
-            color={stats.lowStockProducts > 5 ? "bg-red-600" : "bg-orange-600"}
-          />
-          <StatCard
-            icon={CheckCircle}
-            title="Resolved Enquiries"
-            value={stats.totalEnquiries - stats.pendingEnquiries}
-            subtitle="All time resolved"
-            color="bg-green-600"
-          />
+        {/* Catalogue & enquiries */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+          <StatCard icon={Package} title="Total products" value={stats.totalProducts} to="/products"
+            subtitle={stats.lowStockProducts > 0 ? `${stats.lowStockProducts} low on stock` : "All stocked"} />
+          <StatCard icon={Mail} title="Enquiries" value={stats.totalEnquiries} to="/enquiry-management"
+            subtitle={stats.pendingEnquiries > 0 ? `${stats.pendingEnquiries} pending` : "All resolved"} tone={stats.pendingEnquiries > 0 ? "text-accent" : ""} />
+          <StatCard icon={Star} title="Customer reviews" value={stats.totalReviews} to="/reviews" subtitle="Total reviews received" />
+          <StatCard icon={Image} title="Active banners" value={stats.activeBanners} to="/banners" subtitle="Showing on the home page" />
+          <StatCard icon={TrendingUp} title="Low stock" value={stats.lowStockProducts} to="/products"
+            subtitle="Products under 5 in stock" tone={stats.lowStockProducts > 0 ? "text-red-600" : ""} />
+          <StatCard icon={CheckCircle} title="Resolved enquiries" value={stats.totalEnquiries - stats.pendingEnquiries} to="/enquiry-management" subtitle="All time" />
         </div>
 
-        {/* Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Enquiries */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Enquiries</h3>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Recent enquiries */}
+          <div className="a-card">
+            <div className="flex items-center justify-between border-b border-line p-5">
+              <h3 className="font-display text-lg font-bold">Recent enquiries</h3>
+              <Link to="/enquiry-management" className="text-sm font-semibold text-accent-dark hover:underline">View all</Link>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-line">
               {recentEnquiries.length === 0 ? (
-                <p className="p-6 text-center text-gray-500">No enquiries yet</p>
+                <p className="p-6 text-center text-sm text-muted">No enquiries yet</p>
               ) : (
                 recentEnquiries.map((enquiry) => (
-                  <div key={enquiry._id} className="p-4 hover:bg-gray-50 transition">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900">{enquiry.name}</p>
-                        <p className="text-sm text-gray-600 truncate mt-1">{enquiry.message}</p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {new Date(enquiry.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div>
-                        {enquiry.status === "pending" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
-                            <Clock className="w-3 h-3" />
-                            Pending
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                            <CheckCircle className="w-3 h-3" />
-                            Resolved
-                          </span>
-                        )}
-                      </div>
+                  <Link key={enquiry.id ?? enquiry._id} to="/enquiry-management" className="flex items-start justify-between gap-3 p-4 transition hover:bg-paper/60">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold">{enquiry.name}</p>
+                      <p className="mt-0.5 truncate text-sm text-muted">{enquiry.message}</p>
+                      <p className="mt-0.5 text-xs text-muted">{formatDate(enquiry.createdAt)}</p>
                     </div>
-                  </div>
+                    {enquiry.status === "pending" ? (
+                      <span className="a-badge bg-amber-50 text-amber-700"><Clock className="h-3 w-3" /> Pending</span>
+                    ) : (
+                      <span className="a-badge bg-emerald-50 text-emerald-700"><CheckCircle className="h-3 w-3" /> Resolved</span>
+                    )}
+                  </Link>
                 ))
               )}
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-            <div className="space-y-3">
-              <a
-                href="/products"
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 transition border border-gray-200"
-              >
-                <Package className="w-5 h-5 text-blue-600" />
-                <div>
-                  <p className="font-medium text-gray-900">Manage Products</p>
-                  <p className="text-sm text-gray-600">Add, edit, or remove products</p>
-                </div>
-              </a>
-              <a
-                href="/enquiry-management"
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition border border-gray-200"
-              >
-                <Mail className="w-5 h-5 text-green-600" />
-                <div>
-                  <p className="font-medium text-gray-900">View Enquiries</p>
-                  <p className="text-sm text-gray-600">Respond to customer enquiries</p>
-                </div>
-              </a>
-              <a
-                href="/reviews"
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 transition border border-gray-200"
-              >
-                <Star className="w-5 h-5 text-purple-600" />
-                <div>
-                  <p className="font-medium text-gray-900">Manage Reviews</p>
-                  <p className="text-sm text-gray-600">Monitor customer feedback</p>
-                </div>
-              </a>
-              <a
-                href="/banners"
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50 transition border border-gray-200"
-              >
-                <Image className="w-5 h-5 text-indigo-600" />
-                <div>
-                  <p className="font-medium text-gray-900">Update Banners</p>
-                  <p className="text-sm text-gray-600">Manage homepage carousel</p>
-                </div>
-              </a>
+          {/* Quick actions */}
+          <div className="a-card p-5">
+            <h3 className="mb-4 font-display text-lg font-bold">Quick actions</h3>
+            <div className="space-y-2">
+              {[
+                { to: "/products", icon: Package, title: "Manage products", text: "Add, edit or remove products" },
+                { to: "/enquiry-management", icon: Mail, title: "View enquiries", text: "Respond to customer enquiries" },
+                { to: "/reviews", icon: Star, title: "Manage reviews", text: "Monitor customer feedback" },
+                { to: "/banners", icon: Image, title: "Update banners", text: "Manage the home page carousel" },
+              ].map(({ to, icon: Icon, title, text }) => (
+                <Link key={to} to={to} className="flex items-center gap-3 rounded-xl border border-line p-3 transition hover:border-ink">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-paper"><Icon className="h-[18px] w-[18px]" /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold">{title}</span>
+                    <span className="block text-xs text-muted">{text}</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-muted" />
+                </Link>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Alerts */}
         {(stats.pendingEnquiries > 0 || stats.lowStockProducts > 0) && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-yellow-900">Attention Required</h4>
-                <ul className="mt-2 space-y-1 text-sm text-yellow-800">
-                  {stats.pendingEnquiries > 0 && (
-                    <li>• You have {stats.pendingEnquiries} pending enquiries to review</li>
-                  )}
-                  {stats.lowStockProducts > 0 && (
-                    <li>• {stats.lowStockProducts} products are running low on stock</li>
-                  )}
-                </ul>
-              </div>
+          <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <div>
+              <h4 className="font-semibold text-amber-900">Needs your attention</h4>
+              <ul className="mt-1 space-y-0.5 text-sm text-amber-800">
+                {stats.pendingEnquiries > 0 && <li>• {stats.pendingEnquiries} pending enquiries to review</li>}
+                {stats.lowStockProducts > 0 && <li>• {stats.lowStockProducts} products are running low on stock</li>}
+              </ul>
             </div>
           </div>
         )}

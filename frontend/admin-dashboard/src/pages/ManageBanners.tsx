@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
 import * as bannerService from "../services/bannerService";
 import { getImageUrl } from "../utils/imageUtils";
+import { ImageIcon, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { EmptyState, Modal, PageLoader, Toggle } from "../components/ui";
 
 const ManageBanners = () => {
     const [banners, setBanners] = useState<any[]>([]);
@@ -123,172 +125,95 @@ const ManageBanners = () => {
     };
 
     return (
-        <AdminLayout>
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                    <span className="inline-block w-1 h-8 rounded-full bg-blue-600"></span>
-                    <h2 className="text-3xl font-bold text-blue-900 tracking-tight">Manage Banners</h2>
-                </div>
-                <button
-                    onClick={handleAddNew}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
-                >
-                    Add New Banner
-                </button>
-            </div>
+        <AdminLayout
+            title="Banners"
+            actions={<button onClick={handleAddNew} className="a-btn-accent"><Plus className="h-4 w-4" /> <span className="hidden sm:inline">Add banner</span></button>}
+        >
+            <p className="mb-5 text-sm text-muted">Slides shown in the home page carousel, in order. Inactive banners are hidden from the website.</p>
 
             {isFormOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                            <h3 className="text-xl font-bold text-gray-800">
-                                {editingBanner ? "Edit Banner" : "Add New Banner"}
-                            </h3>
-                            <button onClick={() => setIsFormOpen(false)} className="text-gray-500 hover:text-gray-700">
-                                ✕
-                            </button>
+                <Modal
+                    title={editingBanner ? "Edit banner" : "New banner"}
+                    onClose={() => setIsFormOpen(false)}
+                    size="lg"
+                    footer={<>
+                        <button type="button" onClick={() => setIsFormOpen(false)} className="a-btn-outline">Cancel</button>
+                        <button type="submit" form="banner-form" className="a-btn-primary">{editingBanner ? "Update banner" : "Create banner"}</button>
+                    </>}
+                >
+                    <form id="banner-form" onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="a-label">Banner image *</label>
+                            <label className="group relative flex h-44 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-line bg-paper/50 transition hover:border-ink">
+                                {preview
+                                    ? <img src={getImageUrl(preview)} alt="Preview" className="h-full w-full object-cover" />
+                                    : <span className="flex flex-col items-center text-sm text-muted"><Upload className="mb-2 h-6 w-6" /> Click to choose an image</span>}
+                                {preview && <span className="a-badge absolute bottom-2 right-2 bg-white/90 text-ink shadow">Change image</span>}
+                                <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                            </label>
                         </div>
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                                    <input
-                                        type="text"
-                                        value={title}
-                                        onChange={(e) => setTitle(e.target.value)}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
-                                    <input
-                                        type="text"
-                                        value={subtitle}
-                                        onChange={(e) => setSubtitle(e.target.value)}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Link (Optional)</label>
-                                    <input
-                                        type="text"
-                                        value={link}
-                                        onChange={(e) => setLink(e.target.value)}
-                                        placeholder="/products"
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Order</label>
-                                    <input
-                                        type="number"
-                                        value={order}
-                                        onChange={(e) => setOrder(parseInt(e.target.value))}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    id="isActive"
-                                    checked={isActive}
-                                    onChange={(e) => setIsActive(e.target.checked)}
-                                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                                />
-                                <label htmlFor="isActive" className="text-sm font-medium text-gray-700">Active</label>
-                            </div>
-
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Banner Image *</label>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageChange}
-                                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                />
-                                {preview && (
-                                    <div className="mt-4">
-                                        <img src={getImageUrl(preview)} alt="Preview" className="w-full h-48 object-cover rounded-lg border border-gray-200" />
-                                    </div>
-                                )}
+                                <label className="a-label">Title</label>
+                                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="a-input" />
                             </div>
-
-                            <div className="pt-4 flex gap-3">
-                                <button
-                                    type="submit"
-                                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
-                                >
-                                    {editingBanner ? "Update Banner" : "Create Banner"}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsFormOpen(false)}
-                                    className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-200 transition"
-                                >
-                                    Cancel
-                                </button>
+                            <div>
+                                <label className="a-label">Subtitle</label>
+                                <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} className="a-input" />
                             </div>
-                        </form>
-                    </div>
-                </div>
+                            <div>
+                                <label className="a-label">Link (optional)</label>
+                                <input type="text" value={link} onChange={(e) => setLink(e.target.value)} placeholder="/products" className="a-input" />
+                            </div>
+                            <div>
+                                <label className="a-label">Order</label>
+                                <input type="number" inputMode="numeric" value={order} onChange={(e) => setOrder(parseInt(e.target.value) || 0)} className="a-input" />
+                            </div>
+                        </div>
+                        <label className="flex items-center gap-3 text-sm font-medium">
+                            <Toggle checked={isActive} onChange={setIsActive} label="Active" /> Active (show on the website)
+                        </label>
+                    </form>
+                </Modal>
             )}
 
-            <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
-                {loading ? (
-                    <p className="p-8 text-center text-gray-500">Loading banners...</p>
-                ) : error ? (
-                    <p className="p-8 text-center text-red-500">{error}</p>
-                ) : banners.length === 0 ? (
-                    <p className="p-8 text-center text-gray-500">No banners found. Add one to get started!</p>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-                        {banners.map((banner) => (
-                            <div key={banner.id || banner._id} className="bg-gray-50 rounded-xl overflow-hidden shadow-sm border border-gray-100 group">
-                                <div className="relative h-48">
-                                    <img src={getImageUrl(banner.imageUrl)} alt={banner.title} className="w-full h-full object-cover" />
-                                    <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={() => handleEdit(banner)}
-                                            className="p-2 bg-white rounded-full shadow-md text-blue-600 hover:text-blue-800"
-                                        >
-                                            ✎
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(banner.id || banner._id)}
-                                            className="p-2 bg-white rounded-full shadow-md text-red-600 hover:text-red-800"
-                                        >
-                                            🗑
-                                        </button>
-                                    </div>
-                                    {!banner.isActive && (
-                                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                                            <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Inactive</span>
-                                        </div>
-                                    )}
+            {loading ? (
+                <div className="a-card"><PageLoader /></div>
+            ) : error ? (
+                <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+            ) : banners.length === 0 ? (
+                <div className="a-card">
+                    <EmptyState icon={ImageIcon} title="No banners yet" text="Add a banner to show it in the home page carousel.">
+                        <button onClick={handleAddNew} className="a-btn-primary"><Plus className="h-4 w-4" /> Add banner</button>
+                    </EmptyState>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {banners.map((banner) => (
+                        <div key={banner.id || banner._id} className="a-card overflow-hidden">
+                            <div className="relative aspect-[16/9] bg-paper">
+                                <img src={getImageUrl(banner.imageUrl)} alt={banner.title} className={`h-full w-full object-cover ${banner.isActive ? "" : "opacity-40 grayscale"}`} />
+                                <span className="a-badge absolute left-2 top-2 bg-white/90 text-ink shadow">#{banner.order}</span>
+                                {!banner.isActive && <span className="a-badge absolute right-2 top-2 bg-ink text-white">Hidden</span>}
+                            </div>
+                            <div className="flex items-start gap-3 p-4">
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate font-semibold">{banner.title || "Untitled"}</p>
+                                    <p className="truncate text-sm text-muted">{banner.subtitle || "No subtitle"}</p>
+                                    <label className="mt-2 flex items-center gap-2 text-xs font-medium text-muted">
+                                        <Toggle checked={banner.isActive} onChange={() => handleToggleActive(banner)} label="Active" />
+                                        {banner.isActive ? "Showing" : "Hidden"}
+                                    </label>
                                 </div>
-                                <div className="p-4">
-                                    <h3 className="font-bold text-gray-900 truncate">{banner.title || "No Title"}</h3>
-                                    <p className="text-sm text-gray-500 truncate">{banner.subtitle || "No Subtitle"}</p>
-                                    <div className="mt-3 flex justify-between items-center text-xs">
-                                        <span className="text-gray-400">Order: {banner.order}</span>
-                                        <button
-                                            onClick={() => handleToggleActive(banner)}
-                                            className={`px-3 py-1 rounded-full text-xs font-semibold transition ${banner.isActive
-                                                    ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
-                                                }`}
-                                        >
-                                            {banner.isActive ? 'Deactivate' : 'Activate'}
-                                        </button>
-                                    </div>
+                                <div className="-mr-2 flex">
+                                    <button onClick={() => handleEdit(banner)} className="a-icon-btn" title="Edit"><Pencil className="h-4 w-4" /></button>
+                                    <button onClick={() => handleDelete(banner.id || banner._id)} className="a-icon-btn-danger" title="Delete"><Trash2 className="h-4 w-4" /></button>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                )}
-            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </AdminLayout>
     );
 };

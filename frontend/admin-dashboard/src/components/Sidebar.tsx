@@ -1,5 +1,6 @@
-import { FC } from "react";
+import { FC, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import BrandLogo from "./BrandLogo";
 import {
   FolderTree, Image, LayoutDashboard, LucideIcon, Mail, Package, Receipt, Settings, Shirt, ShoppingBag, Star, User, X,
 } from "lucide-react";
@@ -40,31 +41,33 @@ const groups: { title: string; items: MenuItem[] }[] = [
 
 interface SidebarProps {
   companyName: string;
-  logoUrl: string;
   open: boolean;
   onClose: () => void;
 }
 
-const Sidebar: FC<SidebarProps> = ({ companyName, logoUrl, open, onClose }) => {
+const Sidebar: FC<SidebarProps> = ({ companyName, open, onClose }) => {
   const { pathname } = useLocation();
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
+  }, [open, onClose]);
+
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`));
 
   return (
     <>
       {open && <div className="fixed inset-0 z-40 bg-ink/50 backdrop-blur-sm lg:hidden" onClick={onClose} />}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-68 flex-col bg-ink text-white transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 flex max-w-[85vw] flex-col bg-ink text-white transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
         style={{ width: 272 }}
       >
         <div className="flex items-center justify-between gap-3 px-5 py-6">
           <Link to="/" className="flex min-w-0 items-center gap-3" onClick={onClose}>
-            {logoUrl ? (
-              <img src={logoUrl} alt="" className="h-10 w-10 shrink-0 rounded-xl bg-white object-contain p-0.5" />
-            ) : (
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent font-display text-lg font-extrabold">
-                {companyName.charAt(0)}
-              </span>
-            )}
+            <BrandLogo className="h-10 w-10 rounded-xl p-0.5" />
             <span className="min-w-0">
               <span className="block truncate font-display text-[15px] font-extrabold uppercase tracking-tight">{companyName}</span>
               <span className="block text-[11px] text-white/40">Admin dashboard</span>

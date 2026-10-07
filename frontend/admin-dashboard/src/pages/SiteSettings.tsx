@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import AdminLayout from "../components/AdminLayout";
 import { getSiteSettings, updateSiteSettings } from "../services/siteSettingsService";
 import { getImageUrl } from "../utils/imageUtils";
-import { Save, Building2, MessageCircle, Mail, Phone, MapPin, ImagePlus, CheckCircle, AlertCircle, Share2, BookOpen, Sparkles, Image } from "lucide-react";
+import { AlertCircle, BookOpen, Building2, CheckCircle, Image, Loader2, LucideIcon, MapPin, Phone, Save, Share2, Sparkles, Upload } from "lucide-react";
+import { PageLoader } from "../components/ui";
+import { setBrand } from "../hooks/useBrand";
 
 const SiteSettings: React.FC = () => {
   const [settings, setSettings] = useState({
@@ -177,6 +179,7 @@ const SiteSettings: React.FC = () => {
       });
 
       setLogoPreview(getImageUrl(updated.logoUrl));
+      setBrand({ companyName: updated.companyName || "", logoUrl: getImageUrl(updated.logoUrl) });
       setAboutImage1Preview(getImageUrl(updated.aboutImage1));
       setAboutImage2Preview(getImageUrl(updated.aboutImage2));
 
@@ -193,468 +196,145 @@ const SiteSettings: React.FC = () => {
     }
   };
 
-  if (loading) {
+  type Key = keyof typeof settings;
+
+  // Plain render helpers (not components) so inputs keep focus while typing
+  const field = (name: Key, label: string, opts: { type?: string; placeholder?: string; hint?: string; required?: boolean; rows?: number; wide?: boolean } = {}) => (
+    <div className={opts.wide ? "sm:col-span-2" : ""}>
+      <label htmlFor={name} className="a-label">{label}</label>
+      {opts.rows ? (
+        <textarea id={name} name={name} rows={opts.rows} value={settings[name]} onChange={handleChange} placeholder={opts.placeholder} className="a-input resize-y" />
+      ) : (
+        <input id={name} name={name} type={opts.type || "text"} value={settings[name]} onChange={handleChange} placeholder={opts.placeholder} required={opts.required} className="a-input" />
+      )}
+      {opts.hint && <p className="mt-1 text-xs text-muted">{opts.hint}</p>}
+    </div>
+  );
+
+  const section = (icon: LucideIcon, title: string, text: string, body: React.ReactNode) => {
+    const Icon = icon;
     return (
-      <AdminLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-600 border-t-transparent" />
+      <section className="a-card p-5 sm:p-6">
+        <div className="mb-5 flex items-start gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-paper"><Icon className="h-[18px] w-[18px]" /></span>
+          <div>
+            <h3 className="font-display text-lg font-bold leading-tight">{title}</h3>
+            <p className="text-sm text-muted">{text}</p>
+          </div>
         </div>
-      </AdminLayout>
+        {body}
+      </section>
     );
+  };
+
+  const showcase = (n: 1 | 2, preview: string, inputRef: React.RefObject<HTMLInputElement>, onFile: (e: React.ChangeEvent<HTMLInputElement>) => void, setPreview: (v: string) => void) => {
+    const name = `aboutImage${n}` as Key;
+    return (
+      <div className="space-y-2">
+        <p className="a-label">Showcase image {n}</p>
+        <button type="button" onClick={() => inputRef.current?.click()}
+          className="group relative block h-40 w-full overflow-hidden rounded-2xl border border-line bg-paper">
+          {preview ? <img src={preview} alt={`Showcase ${n}`} className="h-full w-full object-cover" /> : <span className="text-sm text-muted">No image</span>}
+          <span className="a-badge absolute bottom-2 right-2 bg-white/90 text-ink shadow"><Upload className="h-3 w-3" /> Change</span>
+        </button>
+        <input ref={inputRef} type="file" accept="image/*" onChange={onFile} className="hidden" />
+        <input name={name} type="text" value={settings[name]} onChange={(e) => { handleChange(e); setPreview(e.target.value); }} className="a-input" placeholder="…or paste an image URL" />
+      </div>
+    );
+  };
+
+  if (loading) {
+    return <AdminLayout title="Site Settings"><PageLoader /></AdminLayout>;
   }
 
   return (
-    <AdminLayout>
-      <div className="max-w-4xl">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <span className="inline-block w-1 h-8 rounded-full bg-indigo-600" />
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Site Settings</h2>
-            <p className="text-gray-500 text-sm mt-0.5">Manage brand story, company info, logo, images, and social links</p>
-          </div>
-        </div>
+    <AdminLayout title="Site Settings">
+      <form onSubmit={handleSubmit} className="max-w-4xl space-y-5 pb-24">
+        <p className="text-sm text-muted">Brand, contact details, home page story and social links used across the website and invoices.</p>
 
-        {saved && (
-          <div className="mb-6 flex items-center gap-2 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 font-semibold text-sm">
-            <CheckCircle size={18} /> Settings saved successfully!
-          </div>
-        )}
         {error && (
-          <div className="mb-6 flex items-center gap-2 p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 font-semibold text-sm">
-            <AlertCircle size={18} /> {error}
+          <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+            <AlertCircle className="h-4 w-4 shrink-0" /> {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-3xl shadow-xl p-8 space-y-8">
-
-          {/* Company Logo */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <ImagePlus size={18} className="text-indigo-600" /> Company Logo
-            </h3>
-            <div className="flex items-center gap-6">
-              <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden">
-                {logoPreview ? (
-                  <img src={logoPreview} alt="Logo" className="w-full h-full object-contain p-2" />
-                ) : (
-                  <span className="text-xs text-gray-400 text-center px-2">No logo</span>
-                )}
-              </div>
+        {section(Building2, "Brand", "Your logo appears in the admin, on the website and on printed invoices.", (
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-2xl border border-line bg-paper">
+              {logoPreview ? <img src={logoPreview} alt="Logo" className="h-full w-full object-contain p-1.5" /> : <span className="text-xs text-muted">No logo</span>}
+            </div>
+            <div className="flex-1 space-y-4">
               <div>
                 <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
-                <button
-                  type="button"
-                  onClick={() => logoInputRef.current?.click()}
-                  className="px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 font-semibold rounded-lg text-sm hover:bg-indigo-100 transition"
-                >
-                  Upload Logo
-                </button>
-                <p className="text-xs text-gray-400 mt-2">PNG, JPG or WebP. Recommended: 200×200px</p>
+                <button type="button" onClick={() => logoInputRef.current?.click()} className="a-btn-outline"><Upload className="h-4 w-4" /> Upload logo</button>
+                <p className="mt-1.5 text-xs text-muted">PNG, JPG or WebP. A square image of at least 200×200 px works best.</p>
               </div>
+              {field("companyName", "Company name *", { required: true, placeholder: "e.g. Astitva Creations" })}
             </div>
           </div>
+        ))}
 
-          <hr className="border-gray-100" />
-
-          {/* Company Info */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <Building2 size={18} className="text-indigo-600" /> Company Information
-            </h3>
-            <div className="grid grid-cols-1 gap-5">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Company Name *</label>
-                <input
-                  name="companyName"
-                  type="text"
-                  value={settings.companyName}
-                  onChange={handleChange}
-                  required
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
-                  placeholder="e.g. Astitva Creations"
-                />
-              </div>
+        {section(BookOpen, "Brand story", "The story section, its two images and four feature cards on the home page.", (
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {showcase(1, aboutImage1Preview, aboutImage1InputRef, handleAboutImage1Change, setAboutImage1Preview)}
+              {showcase(2, aboutImage2Preview, aboutImage2InputRef, handleAboutImage2Change, setAboutImage2Preview)}
             </div>
-          </div>
-
-          <hr className="border-gray-100" />
-
-          {/* OUR BRAND STORY & HIGHLIGHTS */}
-          <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 space-y-6">
-            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <BookOpen size={20} className="text-indigo-600" /> Our Brand Story & Images
-            </h3>
-            <p className="text-xs text-gray-500">Edit the Brand Story section, text content, and 2 showcase images displayed on your homepage.</p>
-
-            {/* Brand Story Images Upload */}
-            <div className="space-y-3 pt-2">
-              <h4 className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
-                <Image size={16} className="text-indigo-600" /> Brand Story Showcase Images (Upload or Paste URL)
-              </h4>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Image 1 */}
-                <div className="p-4 bg-white rounded-xl border border-gray-200 space-y-3">
-                  <span className="text-xs font-bold text-indigo-600 uppercase">Showcase Image 1</span>
-                  <div className="w-full h-36 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
-                    {aboutImage1Preview ? (
-                      <img src={aboutImage1Preview} alt="Showcase 1" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No Image</div>
-                    )}
-                  </div>
-                  <div>
-                    <input ref={aboutImage1InputRef} type="file" accept="image/*" onChange={handleAboutImage1Change} className="hidden" />
-                    <button
-                      type="button"
-                      onClick={() => aboutImage1InputRef.current?.click()}
-                      className="w-full py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 font-semibold rounded-lg text-xs hover:bg-indigo-100 transition"
-                    >
-                      Upload Image 1 File
-                    </button>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-gray-500 mb-1">Or paste Image 1 URL:</label>
-                    <input
-                      name="aboutImage1"
-                      type="text"
-                      value={settings.aboutImage1}
-                      onChange={(e) => {
-                        handleChange(e);
-                        setAboutImage1Preview(e.target.value);
-                      }}
-                      className="w-full border border-gray-300 rounded-lg px-2.5 py-1 text-xs outline-none"
-                      placeholder="https://..."
-                    />
-                  </div>
-                </div>
-
-                {/* Image 2 */}
-                <div className="p-4 bg-white rounded-xl border border-gray-200 space-y-3">
-                  <span className="text-xs font-bold text-indigo-600 uppercase">Showcase Image 2</span>
-                  <div className="w-full h-36 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
-                    {aboutImage2Preview ? (
-                      <img src={aboutImage2Preview} alt="Showcase 2" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No Image</div>
-                    )}
-                  </div>
-                  <div>
-                    <input ref={aboutImage2InputRef} type="file" accept="image/*" onChange={handleAboutImage2Change} className="hidden" />
-                    <button
-                      type="button"
-                      onClick={() => aboutImage2InputRef.current?.click()}
-                      className="w-full py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 font-semibold rounded-lg text-xs hover:bg-indigo-100 transition"
-                    >
-                      Upload Image 2 File
-                    </button>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-gray-500 mb-1">Or paste Image 2 URL:</label>
-                    <input
-                      name="aboutImage2"
-                      type="text"
-                      value={settings.aboutImage2}
-                      onChange={(e) => {
-                        handleChange(e);
-                        setAboutImage2Preview(e.target.value);
-                      }}
-                      className="w-full border border-gray-300 rounded-lg px-2.5 py-1 text-xs outline-none"
-                      placeholder="https://..."
-                    />
-                  </div>
-                </div>
-              </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {field("aboutSubtitle", "Section subtitle", { placeholder: "OUR BRAND STORY" })}
+              {field("aboutTitle", "Headline", { placeholder: "Crafting Premium Custom Apparel…" })}
+              {field("aboutDescription", "Story", { rows: 3, wide: true, placeholder: "At Astitva Creations, we…" })}
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Section Subtitle</label>
-                <input
-                  name="aboutSubtitle"
-                  type="text"
-                  value={settings.aboutSubtitle}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="OUR BRAND STORY"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Main Headline / Title</label>
-                <input
-                  name="aboutTitle"
-                  type="text"
-                  value={settings.aboutTitle}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="Crafting Premium Custom Apparel & T-Shirt Designs"
-                />
-              </div>
-            </div>
-
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Brand Story Description</label>
-              <textarea
-                name="aboutDescription"
-                value={settings.aboutDescription}
-                onChange={handleChange}
-                rows={3}
-                className="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                placeholder="At Astitva Creations, we transform organic cotton..."
-              />
-            </div>
-
-            <div className="pt-2">
-              <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1.5">
-                <Sparkles size={16} className="text-amber-500" /> 4 Feature Cards
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 bg-white rounded-xl border border-gray-200 space-y-2">
-                  <span className="text-xs font-bold text-indigo-600 uppercase">Feature 1</span>
-                  <input
-                    name="feature1Title"
-                    type="text"
-                    value={settings.feature1Title}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-bold outline-none"
-                    placeholder="Feature 1 Title"
-                  />
-                  <input
-                    name="feature1Desc"
-                    type="text"
-                    value={settings.feature1Desc}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs text-gray-600 outline-none"
-                    placeholder="Feature 1 Description"
-                  />
-                </div>
-
-                <div className="p-4 bg-white rounded-xl border border-gray-200 space-y-2">
-                  <span className="text-xs font-bold text-indigo-600 uppercase">Feature 2</span>
-                  <input
-                    name="feature2Title"
-                    type="text"
-                    value={settings.feature2Title}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-bold outline-none"
-                    placeholder="Feature 2 Title"
-                  />
-                  <input
-                    name="feature2Desc"
-                    type="text"
-                    value={settings.feature2Desc}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs text-gray-600 outline-none"
-                    placeholder="Feature 2 Description"
-                  />
-                </div>
-
-                <div className="p-4 bg-white rounded-xl border border-gray-200 space-y-2">
-                  <span className="text-xs font-bold text-indigo-600 uppercase">Feature 3</span>
-                  <input
-                    name="feature3Title"
-                    type="text"
-                    value={settings.feature3Title}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-bold outline-none"
-                    placeholder="Feature 3 Title"
-                  />
-                  <input
-                    name="feature3Desc"
-                    type="text"
-                    value={settings.feature3Desc}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs text-gray-600 outline-none"
-                    placeholder="Feature 3 Description"
-                  />
-                </div>
-
-                <div className="p-4 bg-white rounded-xl border border-gray-200 space-y-2">
-                  <span className="text-xs font-bold text-indigo-600 uppercase">Feature 4</span>
-                  <input
-                    name="feature4Title"
-                    type="text"
-                    value={settings.feature4Title}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-bold outline-none"
-                    placeholder="Feature 4 Title"
-                  />
-                  <input
-                    name="feature4Desc"
-                    type="text"
-                    value={settings.feature4Desc}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs text-gray-600 outline-none"
-                    placeholder="Feature 4 Description"
-                  />
-                </div>
+              <p className="a-label flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5" /> Feature cards</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {([1, 2, 3, 4] as const).map(n => (
+                  <div key={n} className="space-y-2 rounded-xl border border-line bg-paper/50 p-3">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">Feature {n}</span>
+                    <input name={`feature${n}Title`} type="text" value={settings[`feature${n}Title` as Key]} onChange={handleChange} className="a-input font-semibold" placeholder="Title" aria-label={`Feature ${n} title`} />
+                    <input name={`feature${n}Desc`} type="text" value={settings[`feature${n}Desc` as Key]} onChange={handleChange} className="a-input" placeholder="Short description" aria-label={`Feature ${n} description`} />
+                  </div>
+                ))}
               </div>
             </div>
           </div>
+        ))}
 
-          <hr className="border-gray-100" />
-
-          {/* Contact Details */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <Phone size={18} className="text-indigo-600" /> Contact Details
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1">
-                  <MessageCircle size={13} className="text-emerald-600" /> WhatsApp Number
-                </label>
-                <input
-                  name="whatsappNumber"
-                  type="text"
-                  value={settings.whatsappNumber}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                  placeholder="91XXXXXXXXXX (with country code, no +)"
-                />
-                <p className="text-xs text-gray-400 mt-1">Example: 919876543210 (for +91 9876543210)</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1">
-                  <Phone size={13} className="text-indigo-600" /> Phone Number
-                </label>
-                <input
-                  name="phone"
-                  type="text"
-                  value={settings.phone}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                  placeholder="+91 XXXXX XXXXX"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1">
-                  <Mail size={13} className="text-indigo-600" /> Email Address
-                </label>
-                <input
-                  name="email"
-                  type="email"
-                  value={settings.email}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                  placeholder="info@yourcompany.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1">
-                  <MapPin size={13} className="text-indigo-600" /> Store Address
-                </label>
-                <input
-                  name="address"
-                  type="text"
-                  value={settings.address}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                  placeholder="Street, City, State - PIN"
-                />
-              </div>
-            </div>
+        {section(Phone, "Contact details", "Shown on the website, in WhatsApp links and on invoices.", (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {field("whatsappNumber", "WhatsApp number", { placeholder: "919876543210", hint: "With country code, no + or spaces." })}
+            {field("phone", "Phone number", { placeholder: "+91 98765 43210" })}
+            {field("email", "Email address", { type: "email", placeholder: "info@yourcompany.com" })}
+            {field("address", "Store address", { placeholder: "Street, City, State – PIN" })}
           </div>
+        ))}
 
-          <hr className="border-gray-100" />
-
-          {/* Social Media Links */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <Share2 size={18} className="text-indigo-600" /> Social Media Links
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Instagram URL</label>
-                <input
-                  name="instagramUrl"
-                  type="url"
-                  value={settings.instagramUrl}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                  placeholder="https://instagram.com/yourpage"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Facebook URL</label>
-                <input
-                  name="facebookUrl"
-                  type="url"
-                  value={settings.facebookUrl}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                  placeholder="https://facebook.com/yourpage"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Twitter URL</label>
-                <input
-                  name="twitterUrl"
-                  type="url"
-                  value={settings.twitterUrl}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                  placeholder="https://twitter.com/yourpage"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">YouTube URL</label>
-                <input
-                  name="youtubeUrl"
-                  type="url"
-                  value={settings.youtubeUrl}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                  placeholder="https://youtube.com/@yourchannel"
-                />
-              </div>
-            </div>
+        {section(Share2, "Social media", "Links shown in the website footer. Leave blank to hide.", (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {field("instagramUrl", "Instagram", { type: "url", placeholder: "https://instagram.com/yourpage" })}
+            {field("facebookUrl", "Facebook", { type: "url", placeholder: "https://facebook.com/yourpage" })}
+            {field("twitterUrl", "X / Twitter", { type: "url", placeholder: "https://x.com/yourpage" })}
+            {field("youtubeUrl", "YouTube", { type: "url", placeholder: "https://youtube.com/@yourchannel" })}
           </div>
+        ))}
 
-          <hr className="border-gray-100" />
+        {section(MapPin, "Google Maps", "Map shown on the contact page.", (
+          field("googleMapsEmbed", "Embed URL", { rows: 2, placeholder: "https://www.google.com/maps/embed?pb=…", hint: "Google Maps → Share → Embed a map → copy only the src URL." })
+        ))}
 
-          {/* Google Maps */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <MapPin size={18} className="text-indigo-600" /> Google Maps Embed
-            </h3>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Google Maps Embed URL</label>
-              <textarea
-                name="googleMapsEmbed"
-                value={settings.googleMapsEmbed}
-                onChange={handleChange}
-                rows={2}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                placeholder="https://www.google.com/maps/embed?pb=..."
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Google Maps → Share → Embed a map → Copy the src URL only
-              </p>
-            </div>
-          </div>
-
-          {/* Save Button */}
-          <div className="pt-4 border-t border-gray-100">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex items-center gap-2 px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            >
-              <Save size={18} />
-              {saving ? "Saving..." : "Save Settings"}
+        {/* Save bar stays in reach on long pages and on phones */}
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-white/95 px-4 py-3 backdrop-blur lg:left-[272px]">
+          <div className="flex max-w-4xl items-center justify-between gap-3 sm:px-4">
+            <p className="flex min-w-0 items-center gap-1.5 truncate text-sm">
+              {saved ? <><CheckCircle className="h-4 w-4 shrink-0 text-emerald-600" /> <span className="text-emerald-700">Settings saved</span></>
+                : <><Image className="h-4 w-4 shrink-0 text-muted" /> <span className="text-muted">Changes go live as soon as you save.</span></>}
+            </p>
+            <button type="submit" disabled={saving} className="a-btn-primary shrink-0">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} {saving ? "Saving…" : "Save settings"}
             </button>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </AdminLayout>
   );
 };
