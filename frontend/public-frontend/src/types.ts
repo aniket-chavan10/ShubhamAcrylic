@@ -103,6 +103,8 @@ export interface Garment {
   placements: Placement[];
   mockupFront?: string | null;
   mockupBack?: string | null;
+  /** Home page card photo uploaded by the admin */
+  coverImage?: string | null;
 }
 
 /** Position of an artwork inside its print area (all relative to the area). */

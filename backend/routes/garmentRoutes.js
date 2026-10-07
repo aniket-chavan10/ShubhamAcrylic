@@ -7,6 +7,7 @@ const upload = require('../middleware/uploadMiddleware');
 const mockups = upload.fields([
   { name: 'mockupFront', maxCount: 1 },
   { name: 'mockupBack', maxCount: 1 },
+  { name: 'coverImage', maxCount: 1 },
 ]);
 
 // Public – the design studio reads active garments, colours, sizes and print prices

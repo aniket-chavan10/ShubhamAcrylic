@@ -137,6 +137,8 @@ const GarmentManagement = () => {
   const [backFile, setBackFile] = useState<File | null>(null);
   const [removeFront, setRemoveFront] = useState(false);
   const [removeBack, setRemoveBack] = useState(false);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [removeCover, setRemoveCover] = useState(false);
   const [photoWarning, setPhotoWarning] = useState<{ front?: string; back?: string }>({});
 
   // Uploaded photos need a transparent background for colour tinting and the 3D view
@@ -180,6 +182,8 @@ const GarmentManagement = () => {
     const d = g ? toDraft(g) : blankDraft();
     setDraft(d);
     setFrontFile(null);
+    setCoverFile(null);
+    setRemoveCover(false);
     setPhotoWarning({});
     setBackFile(null);
     setRemoveFront(false);
@@ -234,6 +238,8 @@ const GarmentManagement = () => {
       if (backFile) form.append("mockupBack", backFile);
       if (removeFront && !frontFile) form.append("removeMockupFront", "true");
       if (removeBack && !backFile) form.append("removeMockupBack", "true");
+      if (coverFile) form.append("coverImage", coverFile);
+      if (removeCover && !coverFile) form.append("removeCoverImage", "true");
       const saved = await saveGarment(draft.id, form);
       await load(saved.id);
       setMessage({ type: "ok", text: "Saved. Customers will see the new prices immediately." });
@@ -449,6 +455,33 @@ const GarmentManagement = () => {
                           <p className="mt-1.5 text-center text-xs font-semibold uppercase tracking-wider text-muted">{v}</p>
                         </div>
                       ))}
+                    </div>
+                  </section>
+
+                  <section className="a-card p-5">
+                    <h2 className="font-display text-lg font-bold">Home page photo</h2>
+                    <p className="mt-1 text-sm text-muted">Shown on this garment's card on the home page ("Blanks built to carry your design"). Use a real photo of the plain garment. Without one, a photo from your products is used.</p>
+                    <div className="mt-4 flex items-center gap-4">
+                      <div className="aspect-[4/3] w-36 shrink-0 overflow-hidden rounded-xl border border-line bg-paper">
+                        {coverFile
+                          ? <img src={URL.createObjectURL(coverFile)} alt="" className="h-full w-full object-cover" />
+                          : !removeCover && draft.coverImage
+                            ? <img src={getImageUrl(draft.coverImage)} alt="" className="h-full w-full object-cover" />
+                            : <span className="grid h-full place-items-center text-xs text-muted">No photo</span>}
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="a-btn-outline cursor-pointer px-3 py-1.5 text-xs">
+                          <ImageUp className="h-3.5 w-3.5" /> Upload photo
+                          <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={e => {
+                            const f = e.target.files?.[0] ?? null;
+                            if (f) { setCoverFile(f); setRemoveCover(false); }
+                            e.target.value = "";
+                          }} />
+                        </label>
+                        {(coverFile || (!removeCover && draft.coverImage)) && (
+                          <button className="block text-xs text-red-600 hover:underline" onClick={() => { setCoverFile(null); setRemoveCover(true); }}>Remove photo</button>
+                        )}
+                      </div>
                     </div>
                   </section>
 

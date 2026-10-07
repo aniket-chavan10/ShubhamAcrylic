@@ -61,9 +61,11 @@ function applyUploads(req, data) {
   const fileUrl = (f) => f.location || `/uploads/products/${f.filename}`;
   if (req.files?.mockupFront?.[0]) data.mockupFront = fileUrl(req.files.mockupFront[0]);
   if (req.files?.mockupBack?.[0]) data.mockupBack = fileUrl(req.files.mockupBack[0]);
+  if (req.files?.coverImage?.[0]) data.coverImage = fileUrl(req.files.coverImage[0]);
   // Explicit removal ("" or "null") of a custom mockup
   if (req.body.removeMockupFront === 'true') data.mockupFront = null;
   if (req.body.removeMockupBack === 'true') data.mockupBack = null;
+  if (req.body.removeCoverImage === 'true') data.coverImage = null;
 }
 
 // ── Public ────────────────────────────────────────────────────────────────────

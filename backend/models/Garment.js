@@ -57,6 +57,11 @@ const Garment = sequelize.define('Garment', {
     type: DataTypes.TEXT,
     allowNull: true,
   },
+  // Photo shown on the home page garment card (not used by the design studio)
+  coverImage: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,

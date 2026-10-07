@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, ArrowUpRight, BadgeCheck, Droplets, Layers, Palette, Shirt, Sparkles, Truck, Upload, Users,
@@ -6,7 +6,6 @@ import {
 import ProductCard from '../components/ProductCard';
 import EnquiryForm from '../components/EnquiryForm';
 import SmoothImage from '../components/SmoothImage';
-import { garmentPhoto, stockImage } from '../utils/stockImages';
 import { getBanners, getGarments, getProducts } from '../services/api';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import type { Garment, Product } from '../types';
@@ -23,6 +22,42 @@ interface Banner {
 
 const MARQUEE = ['Custom Hoodies', 'Oversized Tees', 'Polo T-Shirts', 'Team & College Merch', 'Corporate Uniforms', 'Event T-Shirts', 'Bulk Orders'];
 
+// Last banner list, so a returning visitor sees the hero photo instantly
+const BANNER_CACHE = 'home-banners';
+const cachedBanners = (): Banner[] => {
+  try { return JSON.parse(localStorage.getItem(BANNER_CACHE) || '[]'); } catch { return []; }
+};
+
+/** The admin's banner photos, cross-fading. A soft placeholder shows until the first one loads. */
+function HeroSlideshow({ banners }: { banners: Banner[] }) {
+  const [index, setIndex] = useState(0);
+  const [loaded, setLoaded] = useState<Record<number, boolean>>({});
+  const slides = banners.slice(0, 5);
+
+  useEffect(() => {
+    if (slides.length < 2) return;
+    const t = setInterval(() => setIndex(i => (i + 1) % slides.length), 5000);
+    return () => clearInterval(t);
+  }, [slides.length]);
+
+  return (
+    <>
+      <div className={`absolute inset-0 bg-paper-deep ${loaded[slides[0]?.id] ? '' : 'animate-pulse'}`} />
+      {slides.map((b, i) => (
+        <img
+          key={b.id}
+          src={getImageUrl(b.imageUrl)}
+          alt={b.title || 'Custom printed apparel'}
+          loading={i === 0 ? 'eager' : 'lazy'}
+          decoding="async"
+          onLoad={() => setLoaded(l => ({ ...l, [b.id]: true }))}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-out ${i === index && loaded[b.id] ? 'opacity-100' : 'opacity-0'}`}
+        />
+      ))}
+    </>
+  );
+}
+
 const STEPS = [
   { icon: Shirt, title: 'Pick your garment', text: 'Hoodie, oversized tee or polo — in the colour you love.' },
   { icon: Upload, title: 'Add your print', text: 'Upload artwork or type text on the chest, front or back. Move and resize it live.' },
@@ -33,17 +68,40 @@ export default function HomePage() {
   const { settings } = useSiteSettings();
   const [garments, setGarments] = useState<Garment[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [banners, setBanners] = useState<Banner[]>([]);
+  const [banners, setBanners] = useState<Banner[]>(cachedBanners);
+  const [catalogue, setCatalogue] = useState<Product[]>([]);
 
   useEffect(() => {
     getGarments().then(setGarments).catch(() => setGarments([]));
-    getProducts().then(d => setProducts((Array.isArray(d) ? d : d.products || []).slice(0, 8))).catch(() => setProducts([]));
-    getBanners().then(d => setBanners(Array.isArray(d) ? d : [])).catch(() => setBanners([]));
+    getProducts().then(d => {
+      const list: Product[] = Array.isArray(d) ? d : d.products || [];
+      setCatalogue(list);
+      setProducts(list.slice(0, 8));
+    }).catch(() => setProducts([]));
+    getBanners().then(d => {
+      const list: Banner[] = Array.isArray(d) ? d : [];
+      setBanners(list);
+      try { localStorage.setItem(BANNER_CACHE, JSON.stringify(list.slice(0, 5))); } catch { /* storage unavailable */ }
+    }).catch(() => undefined);
   }, []);
 
   const hoodie = garments.find(g => g.style === 'hoodie');
   const showcase = garments[0];
-  const hero = stockImage('hero', [640, 960, 1400]);
+  // Card photo: the one uploaded for the garment in the admin, else one of our own product photos
+  const cardPhotos = useMemo(() => {
+    const photos = catalogue
+      .map(p => ({ name: p.name.toLowerCase(), url: p.imageUrl || p.images?.find(i => i.isMain)?.imageUrl || p.images?.[0]?.imageUrl }))
+      .filter((p): p is { name: string; url: string } => !!p.url);
+    const used = new Set<string>();
+    return garments.map((g, i) => {
+      if (g.coverImage) return getImageUrl(g.coverImage);
+      const word = g.style === 'oversized-tee' ? 'oversized' : g.style;
+      const pick = photos.find(p => p.name.includes(word) && !used.has(p.url)) ?? photos.filter(p => !used.has(p.url))[i] ?? photos[0];
+      if (!pick) return '';
+      used.add(pick.url);
+      return getImageUrl(pick.url);
+    });
+  }, [garments, catalogue]);
   const examplePrints = showcase ? [
     showcase.placements.find(p => p.enabled && p.view === 'front' && p.w * p.h > 0.05) ?? showcase.placements.find(p => p.enabled && p.view === 'front'),
     showcase.placements.find(p => p.enabled && p.view === 'back'),
@@ -88,8 +146,8 @@ export default function HomePage() {
               <div className="absolute -bottom-16 -left-10 h-56 w-56 rounded-full bg-[#b9a7d6]/50 blur-3xl" />
             </div>
             <div className="relative px-6 pt-6 sm:px-10">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-[#d9d6d1] shadow-2xl shadow-ink/10 sm:aspect-square lg:aspect-[4/5]">
-                <SmoothImage {...hero} sizes="(min-width: 1024px) 45vw, 90vw" alt="Custom printed t-shirt" decoding="async" className="h-full w-full object-cover" />
+              <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-paper-deep shadow-2xl shadow-ink/10 sm:aspect-square lg:aspect-[4/5]">
+                <HeroSlideshow banners={banners} />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/40 via-transparent to-transparent" />
               </div>
             </div>
@@ -135,9 +193,11 @@ export default function HomePage() {
             {garments.map((g, i) => (
               <Link key={g.id} to={`/customize/${g.key}`} className="group card flex flex-col overflow-hidden transition hover:-translate-y-1 hover:shadow-xl hover:shadow-ink/5">
                 <div className={`relative aspect-[4/3] overflow-hidden ${['bg-paper-deep', 'bg-[#e7e4f0]', 'bg-[#e3ebe5]'][i % 3]}`}>
-                  <div className="h-full w-full transition duration-700 ease-out group-hover:scale-105">
-                    <SmoothImage {...stockImage(garmentPhoto(g.style), [400, 640, 900])} sizes="(min-width: 768px) 33vw, 100vw" alt={g.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
-                  </div>
+                  {cardPhotos[i] && (
+                    <div className="h-full w-full transition duration-700 ease-out group-hover:scale-105">
+                      <SmoothImage src={cardPhotos[i]} alt={g.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-ink/55 via-transparent to-transparent" />
                   {g.fabric && <span className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold backdrop-blur">{g.fabric}</span>}
                   <div className="absolute inset-x-4 bottom-4 flex items-center justify-between gap-3">

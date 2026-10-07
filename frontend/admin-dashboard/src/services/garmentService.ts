@@ -29,6 +29,8 @@ export interface Garment {
   placements: Placement[];
   mockupFront?: string | null;
   mockupBack?: string | null;
+  /** Home page card photo */
+  coverImage?: string | null;
   isActive: boolean;
   sortOrder: number;
 }
