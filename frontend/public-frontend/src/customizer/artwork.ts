@@ -36,14 +36,27 @@ const canvasToBlob = (canvas: HTMLCanvasElement, type = 'image/png', quality?: n
 
 const fontCss = (f: TextFont, px: number) => `${f.style ?? ''} ${f.weight} ${px}px ${f.family}`.trim();
 
-/** Turn customer text into a transparent PNG so it prints exactly like an uploaded image */
+// Text prints are rendered large so the PNG the admin receives prints sharp
+const TEXT_PRINT_PX = 600;
+const TEXT_MAX_SIDE = 6000; // stays inside mobile browsers' canvas limits
+
+/**
+ * Turn customer text into a transparent PNG so it prints exactly like an
+ * uploaded image. `blob` is the print-resolution file sent with the order;
+ * `src` is a lighter copy for the editor.
+ */
 export async function renderTextArtwork(text: string, fontId: string, color: string) {
   const font = TEXT_FONTS.find(f => f.id === fontId) ?? TEXT_FONTS[0];
-  const px = 220;
-  try { await document.fonts.load(fontCss(font, px), text); } catch { /* fall back to system font */ }
+  try { await document.fonts.load(fontCss(font, 100), text); } catch { /* fall back to system font */ }
 
   const lines = text.split('\n').map(l => l.trimEnd()).filter((l, _index, arr) => l || arr.length === 1);
   const measure = document.createElement('canvas').getContext('2d')!;
+  // Size at 100px, then scale the font up as far as the canvas limit allows
+  measure.font = fontCss(font, 100);
+  const unitW = Math.max(...lines.map(l => measure.measureText(l || ' ').width)) + 50;
+  const unitH = lines.length * 118 + 50;
+  const px = Math.max(40, Math.min(TEXT_PRINT_PX, Math.floor((TEXT_MAX_SIDE * 100) / Math.max(unitW, unitH))));
+
   measure.font = fontCss(font, px);
   const lineHeight = px * 1.18;
   const pad = px * 0.25;
@@ -61,7 +74,14 @@ export async function renderTextArtwork(text: string, fontId: string, color: str
   lines.forEach((line, i) => ctx.fillText(line, canvas.width / 2, pad + lineHeight * (i + 0.5)));
 
   const blob = await canvasToBlob(canvas);
-  return { src: canvas.toDataURL('image/png'), blob };
+
+  // Editor copy, same aspect ratio (transforms are relative to the print area, not pixels)
+  const s = Math.min(1, DISPLAY_MAX_PX / Math.max(canvas.width, canvas.height));
+  const preview = document.createElement('canvas');
+  preview.width = Math.max(1, Math.round(canvas.width * s));
+  preview.height = Math.max(1, Math.round(canvas.height * s));
+  preview.getContext('2d')!.drawImage(canvas, 0, 0, preview.width, preview.height);
+  return { src: preview.toDataURL('image/png'), blob };
 }
 
 /** Validate an uploaded artwork and create a lighter preview copy for the editor */

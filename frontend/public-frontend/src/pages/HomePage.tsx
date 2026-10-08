@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowRight, ArrowUpRight, BadgeCheck, Droplets, Layers, Palette, Shirt, Sparkles, Truck, Upload, Users,
+  ArrowRight, ArrowUpRight, BadgeCheck, Briefcase, CalendarDays, Droplets, Gift, GraduationCap, Layers, MessageCircle,
+  MousePointerClick, Palette, Shirt, Sparkles, Store, Trophy, Truck, Upload, Users,
 } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import EnquiryForm from '../components/EnquiryForm';
@@ -9,7 +10,7 @@ import SmoothImage from '../components/SmoothImage';
 import { getBanners, getGarments, getProducts } from '../services/api';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import type { Garment, Product } from '../types';
-import { inr } from '../utils/format';
+import { inr, waLink } from '../utils/format';
 import { getImageUrl } from '../utils/imageUtils';
 
 interface Banner {
@@ -20,7 +21,16 @@ interface Banner {
   link?: string;
 }
 
-const MARQUEE = ['Custom Hoodies', 'Oversized Tees', 'Polo T-Shirts', 'Team & College Merch', 'Corporate Uniforms', 'Event T-Shirts', 'Bulk Orders'];
+const MARQUEE = ['T-Shirt Printing', 'Hoodie Printing', 'Oversized Tees', 'Polo T-Shirts', 'Team & College Merch', 'Corporate Uniforms', 'Event T-Shirts', 'Bulk Orders'];
+
+const USES = [
+  { icon: Briefcase, title: 'Corporate & uniforms', text: 'Logo polos and tees for staff, offices and company events.' },
+  { icon: GraduationCap, title: 'Colleges & fests', text: 'Batch hoodies, club tees and fest merch in every size.' },
+  { icon: Trophy, title: 'Sports teams', text: 'Team tees with names and numbers on the back.' },
+  { icon: CalendarDays, title: 'Events & campaigns', text: 'Matching tees for marathons, launches, weddings and drives.' },
+  { icon: Store, title: 'Brands & merch', text: 'Print your own clothing line or creator merch, small runs welcome.' },
+  { icon: Gift, title: 'Personal & gifts', text: 'A single custom tee or hoodie with your photo, name or quote.' },
+];
 
 // Last banner list, so a returning visitor sees the hero photo instantly
 const BANNER_CACHE = 'home-banners';
@@ -59,9 +69,9 @@ function HeroSlideshow({ banners }: { banners: Banner[] }) {
 }
 
 const STEPS = [
-  { icon: Shirt, title: 'Pick your garment', text: 'Hoodie, oversized tee or polo — in the colour you love.' },
-  { icon: Upload, title: 'Add your print', text: 'Upload artwork or type text on the chest, front or back. Move and resize it live.' },
-  { icon: BadgeCheck, title: 'Verify & order', text: 'Confirm with a quick email code. We print, pack and ship it to your door.' },
+  { icon: Upload, title: 'Share your design', text: 'Send your logo, artwork or text on WhatsApp or the quote form, with the garment, colours and quantity.' },
+  { icon: BadgeCheck, title: 'Approve mock-up & price', text: 'We send a preview and a clear quote. Nothing is printed until you say yes.' },
+  { icon: Truck, title: 'We print & deliver', text: 'Printed on premium cotton, checked, packed and shipped to your door.' },
 ];
 
 export default function HomePage() {
@@ -85,7 +95,6 @@ export default function HomePage() {
     }).catch(() => undefined);
   }, []);
 
-  const hoodie = garments.find(g => g.style === 'hoodie');
   const showcase = garments[0];
   // Card photo: the one uploaded for the garment in the admin, else one of our own product photos
   const cardPhotos = useMemo(() => {
@@ -114,29 +123,38 @@ export default function HomePage() {
     { icon: Users, title: settings?.feature4Title || 'Bulk & team orders', text: settings?.feature4Desc || 'Custom apparel for colleges, events and companies.' },
   ];
 
+  const quoteWa = settings?.whatsappNumber
+    ? waLink(settings.whatsappNumber, `Hi ${settings.companyName || 'Astitva Creations'}, I'd like a quote for custom printing.\n\nGarment (tee / hoodie / polo): \nQuantity: \nPrint on (front / back): \n\nI'll share my design here.`)
+    : '';
+  const colourCount = Math.max(...garments.map(g => g.colors.length), 6);
+
   return (
     <>
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
         <div className="container-x grid items-center gap-10 pb-16 pt-10 sm:pt-14 lg:grid-cols-12 lg:pb-24">
           <div className="animate-fade-up lg:col-span-6">
-            <p className="eyebrow"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> Custom apparel studio</p>
-            <h1 className="mt-5 font-display text-[clamp(2.75rem,8vw,5.75rem)] font-extrabold leading-[0.95] tracking-tight">
-              Wear what<br />you <span className="relative inline-block text-accent">imagine.
+            <p className="eyebrow"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> Custom t-shirt & hoodie printing</p>
+            <h1 className="mt-5 font-display text-[clamp(2.6rem,7.5vw,5.5rem)] font-extrabold leading-[0.95] tracking-tight">
+              Your design,<br /><span className="relative inline-block text-accent">printed
                 <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none" aria-hidden="true"><path d="M2 9c60-6 180-8 296-3" stroke="currentColor" strokeWidth="4" strokeLinecap="round" /></svg>
-              </span>
+              </span> to last.
             </h1>
             <p className="mt-7 max-w-lg text-base leading-relaxed text-muted sm:text-lg">
-              Premium hoodies, oversized tees and polos printed with your artwork. Design it live in our studio and see the exact price before you order.
+              We print your logo, artwork or text on premium t-shirts, hoodies, oversized tees and polos. For teams, colleges, events and brands, from a single piece to bulk orders.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Link to="/customize" className="btn-accent px-8 py-4 text-base">Start designing <ArrowRight className="h-4 w-4" /></Link>
-              <Link to="/shop" className="btn-outline px-8 py-4 text-base">Shop collection</Link>
+              <a href="#quote" className="btn-accent px-8 py-4 text-base">Get a printing quote <ArrowRight className="h-4 w-4" /></a>
+              <Link to="/shop" className="btn-outline px-8 py-4 text-base">Shop printed apparel</Link>
             </div>
+            <p className="mt-5 text-sm text-muted">
+              Want to see it first?{' '}
+              <Link to="/customize" className="font-semibold text-ink underline decoration-accent decoration-2 underline-offset-4 hover:text-accent">Try your design online</Link>
+            </p>
             <ul className="mt-10 grid max-w-lg grid-cols-3 gap-4 border-t border-line pt-6 text-sm">
+              <li><p className="font-display text-2xl font-bold">1–500+</p><p className="text-muted">pieces / order</p></li>
               <li><p className="font-display text-2xl font-bold">{garments.length || 3}</p><p className="text-muted">garment styles</p></li>
-              <li><p className="font-display text-2xl font-bold">{Math.max(...garments.map(g => g.colors.length), 6)}+</p><p className="text-muted">base colours</p></li>
-              <li><p className="font-display text-2xl font-bold">1–500</p><p className="text-muted">pieces / order</p></li>
+              <li><p className="font-display text-2xl font-bold">{colourCount}+</p><p className="text-muted">base colours</p></li>
             </ul>
           </div>
 
@@ -152,11 +170,11 @@ export default function HomePage() {
               </div>
             </div>
             <div className="absolute left-2 top-10 z-20 rounded-2xl bg-white px-4 py-3 shadow-xl ring-1 ring-line sm:left-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Live pricing</p>
-              <p className="mt-1 text-sm">Hoodie {inr(hoodie?.basePrice ?? 500)} <span className="text-muted">+ back print</span></p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Bulk orders welcome</p>
+              <p className="mt-1 text-sm">Teams · colleges · events</p>
             </div>
             <div className="absolute bottom-6 right-4 z-20 flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold shadow-xl ring-1 ring-line sm:right-10">
-              <Palette className="h-4 w-4 text-accent" /> {hoodie?.colors.length ?? 6}+ colours
+              <Palette className="h-4 w-4 text-accent" /> {colourCount}+ colours
             </div>
           </div>
         </div>
@@ -177,129 +195,33 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── Garments ─────────────────────────────────────────────────────── */}
-      {garments.length > 0 && (
-        <section className="container-x py-20 sm:py-28">
-          <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
-            <div>
-              <p className="eyebrow">Choose your canvas</p>
-              <h2 className="mt-3 max-w-xl font-display text-4xl font-bold tracking-tight sm:text-5xl">Blanks built to carry your design.</h2>
-            </div>
-            <Link to="/customize" className="group inline-flex items-center gap-2 text-sm font-semibold">
-              Open design studio <ArrowUpRight className="h-4 w-4 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-            </Link>
+      {/* ── What we print ────────────────────────────────────────────────── */}
+      <section className="container-x py-20 sm:py-28">
+        <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+          <div>
+            <p className="eyebrow">What we print</p>
+            <h2 className="mt-3 max-w-2xl font-display text-4xl font-bold tracking-tight sm:text-5xl">Custom printing for every occasion.</h2>
           </div>
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {garments.map((g, i) => (
-              <Link key={g.id} to={`/customize/${g.key}`} className="group card flex flex-col overflow-hidden transition hover:-translate-y-1 hover:shadow-xl hover:shadow-ink/5">
-                <div className={`relative aspect-[4/3] overflow-hidden ${['bg-paper-deep', 'bg-[#e7e4f0]', 'bg-[#e3ebe5]'][i % 3]}`}>
-                  {cardPhotos[i] && (
-                    <div className="h-full w-full transition duration-700 ease-out group-hover:scale-105">
-                      <SmoothImage src={cardPhotos[i]} alt={g.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-ink/55 via-transparent to-transparent" />
-                  {g.fabric && <span className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold backdrop-blur">{g.fabric}</span>}
-                  <div className="absolute inset-x-4 bottom-4 flex items-center justify-between gap-3">
-                    <div className="flex -space-x-2">
-                      {g.colors.slice(0, 6).map(c => (
-                        <span key={c.hex} className="h-7 w-7 rounded-full ring-2 ring-white" style={{ backgroundColor: c.hex }} title={c.name} />
-                      ))}
-                    </div>
-                    <span className="text-xs font-semibold text-white/90">{g.colors.length} colours · {g.sizes.length} sizes</span>
-                  </div>
-                </div>
-                <div className="flex flex-1 items-end justify-between gap-4 p-6">
-                  <div>
-                    <h3 className="font-display text-2xl font-bold">{g.name}</h3>
-                    <p className="mt-1 text-sm text-muted">{g.tagline}</p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-xs text-muted">from</p>
-                    <p className="font-display text-xl font-bold">{inr(g.basePrice)}</p>
-                  </div>
-                </div>
-                <p className="flex items-center gap-1.5 border-t border-line px-6 py-4 text-sm font-semibold">
-                  Customise <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-                </p>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── How it works ─────────────────────────────────────────────────── */}
-      <section className="bg-white py-20 sm:py-28">
-        <div className="container-x">
-          <p className="eyebrow">How it works</p>
-          <h2 className="mt-3 max-w-2xl font-display text-4xl font-bold tracking-tight sm:text-5xl">From idea to doorstep in three steps.</h2>
-          <div className="mt-14 grid gap-px overflow-hidden rounded-3xl bg-line md:grid-cols-3">
-            {STEPS.map(({ icon: Icon, title, text }, i) => (
-              <div key={title} className="bg-white p-8 sm:p-10">
-                <div className="flex items-center justify-between">
-                  <span className="grid h-12 w-12 place-items-center rounded-2xl bg-paper"><Icon className="h-5 w-5" /></span>
-                  <span className="font-display text-6xl font-extrabold text-paper-deep">0{i + 1}</span>
-                </div>
-                <h3 className="mt-8 font-display text-xl font-bold">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{text}</p>
+          <a href="#quote" className="group inline-flex items-center gap-2 text-sm font-semibold">
+            Ask for a quote <ArrowUpRight className="h-4 w-4 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          </a>
+        </div>
+        <div className="mt-12 grid gap-px overflow-hidden rounded-3xl bg-line sm:grid-cols-2 lg:grid-cols-3">
+          {USES.map(({ icon: Icon, title, text }) => (
+            <div key={title} className="flex gap-5 bg-white p-6 sm:p-8">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-accent-soft text-accent"><Icon className="h-5 w-5" /></span>
+              <div>
+                <h3 className="font-display text-lg font-bold">{title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted">{text}</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* ── Print placements ─────────────────────────────────────────────── */}
-      {showcase && (
-        <section className="overflow-hidden bg-ink py-20 text-white sm:py-28">
-          <div className="container-x grid items-center gap-14 lg:grid-cols-2">
-            <div>
-              <p className="eyebrow text-white/50">Transparent pricing</p>
-              <h2 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">Choose where it prints. Pay only for what you add.</h2>
-              <p className="mt-5 max-w-md text-white/60">Every garment has a base price. Each print spot adds a fixed amount — the total updates instantly in the studio.</p>
-              <ul className="mt-10 divide-y divide-white/10 border-y border-white/10">
-                <li className="flex items-center justify-between py-4">
-                  <span>{showcase.name} <span className="text-white/50">(base)</span></span>
-                  <span className="font-display text-lg font-bold">{inr(showcase.basePrice)}</span>
-                </li>
-                {showcase.placements.filter(p => p.enabled).map(p => (
-                  <li key={p.key} className="flex items-center justify-between py-4">
-                    <span className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-accent" />{p.label}</span>
-                    <span className="font-display text-lg font-bold text-accent">+{inr(p.price)}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link to={`/customize/${showcase.key}`} className="btn-accent mt-10 px-8 py-4">Try it in the studio</Link>
-            </div>
-            <div className="relative mx-auto w-full max-w-md">
-              <div className="absolute -inset-6 rounded-[2.5rem] bg-accent/20 blur-3xl" />
-              <div className="relative rounded-3xl bg-white p-6 text-ink shadow-2xl sm:p-8">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted">Example order</p>
-                  <span className="flex -space-x-1.5">
-                    {showcase.colors.slice(0, 4).map(c => <span key={c.hex} className="h-5 w-5 rounded-full ring-2 ring-white" style={{ backgroundColor: c.hex }} />)}
-                  </span>
-                </div>
-                <p className="mt-2 font-display text-2xl font-bold">{showcase.name}</p>
-                <ul className="mt-6 space-y-3 text-sm">
-                  <li className="flex justify-between"><span className="text-muted">Base price</span><span className="font-semibold">{inr(showcase.basePrice)}</span></li>
-                  {examplePrints.map(p => (
-                    <li key={p.key} className="flex justify-between"><span className="text-muted">+ {p.label}</span><span className="font-semibold">{inr(p.price)}</span></li>
-                  ))}
-                </ul>
-                <div className="mt-5 flex items-baseline justify-between border-t border-dashed border-line pt-5">
-                  <span className="text-sm font-semibold">Per piece</span>
-                  <span className="font-display text-4xl font-bold text-accent">{inr(exampleTotal)}</span>
-                </div>
-                <p className="mt-3 text-xs text-muted">Add more print spots or bigger sizes and the total updates instantly in the studio.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* ── Products ─────────────────────────────────────────────────────── */}
       {products.length > 0 && (
-        <section className="container-x py-20 sm:py-28">
+        <section className="container-x pb-20 sm:pb-28">
           <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
             <div>
               <p className="eyebrow">Ready to wear</p>
@@ -313,9 +235,138 @@ export default function HomePage() {
         </section>
       )}
 
+      {/* ── Garments ─────────────────────────────────────────────────────── */}
+      {garments.length > 0 && (
+        <section className="bg-white py-20 sm:py-28">
+          <div className="container-x">
+            <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+              <div>
+                <p className="eyebrow">What we print on</p>
+                <h2 className="mt-3 max-w-xl font-display text-4xl font-bold tracking-tight sm:text-5xl">Premium blanks, printed your way.</h2>
+              </div>
+              <a href="#quote" className="group inline-flex items-center gap-2 text-sm font-semibold">
+                Need a bulk price? <ArrowUpRight className="h-4 w-4 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              </a>
+            </div>
+            <div className="mt-12 grid gap-6 md:grid-cols-3">
+              {garments.map((g, i) => (
+                <Link key={g.id} to={`/customize/${g.key}`} className="group card flex flex-col overflow-hidden transition hover:-translate-y-1 hover:shadow-xl hover:shadow-ink/5">
+                  <div className={`relative aspect-[4/3] overflow-hidden ${['bg-paper-deep', 'bg-[#e7e4f0]', 'bg-[#e3ebe5]'][i % 3]}`}>
+                    {cardPhotos[i] && (
+                      <div className="h-full w-full transition duration-700 ease-out group-hover:scale-105">
+                        <SmoothImage src={cardPhotos[i]} alt={g.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-ink/55 via-transparent to-transparent" />
+                    {g.fabric && <span className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold backdrop-blur">{g.fabric}</span>}
+                    <div className="absolute inset-x-4 bottom-4 flex items-center justify-between gap-3">
+                      <div className="flex -space-x-2">
+                        {g.colors.slice(0, 6).map(c => (
+                          <span key={c.hex} className="h-7 w-7 rounded-full ring-2 ring-white" style={{ backgroundColor: c.hex }} title={c.name} />
+                        ))}
+                      </div>
+                      <span className="text-xs font-semibold text-white/90">{g.colors.length} colours · {g.sizes.length} sizes</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-1 items-end justify-between gap-4 p-6">
+                    <div>
+                      <h3 className="font-display text-2xl font-bold">{g.name} printing</h3>
+                      <p className="mt-1 text-sm text-muted">{g.tagline}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-xs text-muted">from</p>
+                      <p className="font-display text-xl font-bold">{inr(g.basePrice)}</p>
+                    </div>
+                  </div>
+                  <p className="flex items-center gap-1.5 border-t border-line px-6 py-4 text-sm font-semibold">
+                    Order with your print <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── How it works ─────────────────────────────────────────────────── */}
+      <section className="py-20 sm:py-28">
+        <div className="container-x">
+          <p className="eyebrow">How it works</p>
+          <h2 className="mt-3 max-w-2xl font-display text-4xl font-bold tracking-tight sm:text-5xl">From your idea to a printed tee in three steps.</h2>
+          <div className="mt-14 grid gap-px overflow-hidden rounded-3xl bg-line md:grid-cols-3">
+            {STEPS.map(({ icon: Icon, title, text }, i) => (
+              <div key={title} className="bg-white p-8 sm:p-10">
+                <div className="flex items-center justify-between">
+                  <span className="grid h-12 w-12 place-items-center rounded-2xl bg-paper"><Icon className="h-5 w-5" /></span>
+                  <span className="font-display text-6xl font-extrabold text-paper-deep">0{i + 1}</span>
+                </div>
+                <h3 className="mt-8 font-display text-xl font-bold">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{text}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            {quoteWa && (
+              <a href={quoteWa} target="_blank" rel="noreferrer" className="btn bg-[#25D366] px-6 py-3.5 text-white hover:bg-[#1ebe5a]">
+                <MessageCircle className="h-4 w-4" /> Send your design on WhatsApp
+              </a>
+            )}
+            <a href="#quote" className="btn-outline px-6 py-3.5">Fill the quote form</a>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Feature: online design studio ────────────────────────────────── */}
+      {showcase && (
+        <section className="overflow-hidden bg-ink py-20 text-white sm:py-28">
+          <div className="container-x grid items-center gap-14 lg:grid-cols-2">
+            <div>
+              <p className="eyebrow text-white/50">Online design studio</p>
+              <h2 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">Want to see it before we print it?</h2>
+              <p className="mt-5 max-w-md text-white/60">
+                Upload your artwork or type your text, place it on the chest, front or back, and see the garment with your print and its exact price. Order straight from there and we'll print it.
+              </p>
+              <ul className="mt-8 space-y-3 text-sm text-white/80">
+                {[
+                  { icon: Shirt, text: 'Pick the garment, colour and size' },
+                  { icon: MousePointerClick, text: 'Drag, resize and rotate your print live, in 3D too' },
+                  { icon: BadgeCheck, text: 'Price updates as you add print spots' },
+                ].map(({ icon: Icon, text }) => (
+                  <li key={text} className="flex items-center gap-3"><Icon className="h-4 w-4 text-accent" />{text}</li>
+                ))}
+              </ul>
+              <Link to={`/customize/${showcase.key}`} className="btn-accent mt-10 px-8 py-4">Try the design studio <ArrowRight className="h-4 w-4" /></Link>
+            </div>
+            <div className="relative mx-auto w-full max-w-md">
+              <div className="absolute -inset-6 rounded-[2.5rem] bg-accent/20 blur-3xl" />
+              <div className="relative rounded-3xl bg-white p-6 text-ink shadow-2xl sm:p-8">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted">Example price</p>
+                  <span className="flex -space-x-1.5">
+                    {showcase.colors.slice(0, 4).map(c => <span key={c.hex} className="h-5 w-5 rounded-full ring-2 ring-white" style={{ backgroundColor: c.hex }} />)}
+                  </span>
+                </div>
+                <p className="mt-2 font-display text-2xl font-bold">{showcase.name}</p>
+                <ul className="mt-6 space-y-3 text-sm">
+                  <li className="flex justify-between"><span className="text-muted">Garment</span><span className="font-semibold">{inr(showcase.basePrice)}</span></li>
+                  {examplePrints.map(p => (
+                    <li key={p.key} className="flex justify-between"><span className="text-muted">+ {p.label}</span><span className="font-semibold">{inr(p.price)}</span></li>
+                  ))}
+                </ul>
+                <div className="mt-5 flex items-baseline justify-between border-t border-dashed border-line pt-5">
+                  <span className="text-sm font-semibold">Per piece</span>
+                  <span className="font-display text-4xl font-bold text-accent">{inr(exampleTotal)}</span>
+                </div>
+                <p className="mt-3 text-xs text-muted">Ordering in bulk? <a href="#quote" className="font-semibold text-ink underline underline-offset-2">Ask us for a quote</a>.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ── Lookbook (admin banners) ─────────────────────────────────────── */}
       {banners.length > 0 && (
-        <section className="pb-20 sm:pb-28">
+        <section className="py-20 sm:py-28">
           <div className="container-x"><p className="eyebrow">Lookbook</p></div>
           <div className="no-scrollbar mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 sm:px-6 lg:px-8 xl:px-[max(2rem,calc((100vw_-_80rem)/2_+_2rem))]">
             {banners.map(b => {
@@ -362,18 +413,23 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Bulk orders ──────────────────────────────────────────────────── */}
-      <section className="container-x py-20 sm:py-28">
+      {/* ── Quote / bulk orders ──────────────────────────────────────────── */}
+      <section id="quote" className="container-x scroll-mt-24 py-20 sm:py-28">
         <div className="grid gap-10 rounded-[2rem] bg-paper-deep p-6 sm:p-12 lg:grid-cols-2 lg:gap-16">
           <div>
-            <p className="eyebrow">Bulk & corporate</p>
-            <h2 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">Ordering for a team, event or brand?</h2>
-            <p className="mt-5 max-w-md text-muted">Tell us the quantity, garments and artwork you have in mind and we'll get back with a quote for your bulk order.</p>
+            <p className="eyebrow">Get a quote</p>
+            <h2 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">Tell us what you'd like printed.</h2>
+            <p className="mt-5 max-w-md text-muted">Share the garment, quantity and your artwork idea, and we'll get back with a mock-up and price. Bulk, team and one-off orders all welcome.</p>
             <ul className="mt-8 space-y-3 text-sm">
-              {['Quotes for bulk quantities', 'Help with artwork & mock-ups', 'Mixed sizes and colours in one order'].map(t => (
-                <li key={t} className="flex items-center gap-3"><Truck className="h-4 w-4 text-accent" />{t}</li>
+              {['Special pricing for bulk quantities', 'Help with artwork & mock-ups', 'Mixed sizes and colours in one order'].map(t => (
+                <li key={t} className="flex items-center gap-3"><BadgeCheck className="h-4 w-4 text-accent" />{t}</li>
               ))}
             </ul>
+            {quoteWa && (
+              <a href={quoteWa} target="_blank" rel="noreferrer" className="btn mt-8 bg-[#25D366] px-6 py-3.5 text-white hover:bg-[#1ebe5a]">
+                <MessageCircle className="h-4 w-4" /> Chat on WhatsApp
+              </a>
+            )}
           </div>
           <EnquiryForm compact />
         </div>

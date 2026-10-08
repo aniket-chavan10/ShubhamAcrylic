@@ -6,7 +6,8 @@ import { getSiteSettings } from "../services/siteSettingsService";
 import { getImageUrl } from "../utils/imageUtils";
 import BrandLogo from "../components/BrandLogo";
 import { PageLoader } from "../components/ui";
-import { formatDate, inr, waNumber } from "../utils/format";
+import { formatDate, inr } from "../utils/format";
+import { invoiceMessage, waLink } from "../utils/whatsapp";
 import { lineAmount } from "../utils/invoiceMath";
 import { amountInWords } from "../utils/numberToWords";
 
@@ -19,6 +20,7 @@ interface Settings {
   gstin?: string;
   bankDetails?: string;
   upiId?: string;
+  whatsappNumber?: string;
 }
 
 const r2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
@@ -109,11 +111,7 @@ const InvoicePrint = () => {
   // Description column gets whatever is left; numeric columns are fixed width
   const colCount = 5 + (hasHsn ? 1 : 0) + (hasDiscount ? 1 : 0) + (hasTax ? (igst ? 2 : 4) + 1 : 0);
 
-  const share = invoice.customerPhone
-    ? `https://wa.me/${waNumber(invoice.customerPhone)}?text=${encodeURIComponent(
-      `Hi ${invoice.customerName}, here are your invoice details from ${brand}:\n\nInvoice: ${invoice.invoiceNumber}\nDate: ${formatDate(invoice.invoiceDate)}\nAmount: ${inr(grand, true)}${balance > 0 && balance < grand ? `\nBalance due: ${inr(balance, true)}` : ""}${settings.upiId ? `\n\nPay via UPI: ${settings.upiId}` : ""}\n\nThank you for your business!`,
-    )}`
-    : "";
+  const share = invoice.customerPhone ? waLink(invoice.customerPhone, invoiceMessage(invoice, settings)) : "";
 
   return (
     <div className="min-h-screen bg-paper-deep py-4 sm:py-6 print:bg-white print:py-0">

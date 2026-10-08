@@ -10,15 +10,19 @@ import {
   deleteOrder, fetchOrders, fetchOrderStats, Order, ORDER_STATUSES, OrderStatus, updateOrder,
 } from "../services/orderService";
 import { getImageUrl } from "../utils/imageUtils";
-import { formatDateTime, inr, waNumber } from "../utils/format";
+import { getSiteSettings } from "../services/siteSettingsService";
+import { formatDateTime, inr } from "../utils/format";
+import { orderMessage, StoreDetails, waLink } from "../utils/whatsapp";
+import { downloadFile, extOf } from "../utils/download";
 
 const StatusBadge = ({ status }: { status: OrderStatus }) => {
   const s = ORDER_STATUSES.find(x => x.value === status) ?? ORDER_STATUSES[0];
   return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${s.tone}`}>{s.label}</span>;
 };
 
-function OrderDrawer({ order, onClose, onChanged, onDeleted }: {
+function OrderDrawer({ order, store, onClose, onChanged, onDeleted }: {
   order: Order;
+  store: StoreDetails;
   onClose: () => void;
   onChanged: (o: Order) => void;
   onDeleted: (id: number) => void;
@@ -27,6 +31,9 @@ function OrderDrawer({ order, onClose, onChanged, onDeleted }: {
   const [notes, setNotes] = useState(order.adminNotes || "");
   const [saving, setSaving] = useState(false);
   const [stockNote, setStockNote] = useState("");
+  // Pixel size of each uploaded artwork, so print quality can be judged at a glance
+  const [artSize, setArtSize] = useState<Record<string, string>>({});
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => setNotes(order.adminNotes || ""), [order.id, order.adminNotes]);
   useEffect(() => setStockNote(""), [order.id]);
@@ -58,7 +65,16 @@ function OrderDrawer({ order, onClose, onChanged, onDeleted }: {
     }
   };
 
-  const wa = `https://wa.me/${waNumber(order.phone)}?text=${encodeURIComponent(`Hi ${order.customerName.split(" ")[0]}, this is regarding your order ${order.orderNumber} (${order.garmentName}, total ${inr(order.total)}).`)}`;
+  const wa = waLink(order.phone, orderMessage(order, store));
+  const artworkName = (p: Order["prints"][number]) => `${order.orderNumber}_${p.view}_${p.key}${extOf(p.artworkUrl)}`;
+  const downloadAll = async () => {
+    setDownloading(true);
+    try {
+      for (const p of order.prints) await downloadFile(getImageUrl(p.artworkUrl), artworkName(p));
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-ink/40 backdrop-blur-sm" onClick={onClose}>
@@ -107,18 +123,37 @@ function OrderDrawer({ order, onClose, onChanged, onDeleted }: {
                 <p className="text-sm text-muted">{order.colorName} · Size {order.size} · Qty {order.quantity}</p>
               </div>
             </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-paper/60 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold">Print files</p>
+                <p className="text-xs text-muted">The customer's original file for each print area, separate from the mockup.</p>
+              </div>
+              <button onClick={downloadAll} disabled={downloading} className="a-btn-outline px-3 py-1.5 text-xs">
+                <Download className="h-3.5 w-3.5" /> {downloading ? "Downloading…" : order.prints.length > 1 ? `Download all (${order.prints.length})` : "Download"}
+              </button>
+            </div>
             {order.prints.map(p => (
               <div key={p.key} className="flex items-center gap-3 p-4">
-                <img src={getImageUrl(p.artworkUrl)} alt="" className="h-14 w-14 shrink-0 rounded-lg bg-paper object-contain p-1 ring-1 ring-line" />
+                <a href={getImageUrl(p.artworkUrl)} target="_blank" rel="noreferrer" className="shrink-0">
+                  <img
+                    src={getImageUrl(p.artworkUrl)}
+                    alt=""
+                    onLoad={e => { const { naturalWidth: w, naturalHeight: h } = e.currentTarget; setArtSize(s => ({ ...s, [p.key]: `${w}×${h} px` })); }}
+                    className="h-14 w-14 rounded-lg bg-[repeating-conic-gradient(#eee_0_25%,#fff_0_50%)] bg-[length:12px_12px] object-contain p-1 ring-1 ring-line"
+                  />
+                </a>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">{p.label} <span className="font-normal capitalize text-muted">· {p.view}</span></p>
                   <p className="truncate text-xs text-muted">
-                    {p.kind === "text" ? `Text “${p.text}” · ${p.font} · ${p.color}` : "Uploaded image"} · size {Math.round(p.transform.scale * 100)}% of area{p.transform.angle ? ` · rotated ${p.transform.angle}°` : ""}
+                    {p.kind === "text" ? `Text “${p.text}” · ${p.font} · ${p.color}` : "Uploaded image"}{artSize[p.key] ? ` · ${artSize[p.key]}` : ""}
+                  </p>
+                  <p className="truncate text-xs text-muted">
+                    Size {Math.round(p.transform.scale * 100)}% of print area{p.transform.angle ? ` · rotated ${p.transform.angle}°` : ""}
                   </p>
                 </div>
-                <a href={getImageUrl(p.artworkUrl)} target="_blank" rel="noreferrer" download className="a-btn-outline px-3 py-1.5 text-xs">
-                  <Download className="h-3.5 w-3.5" /> Artwork
-                </a>
+                <button onClick={() => downloadFile(getImageUrl(p.artworkUrl), artworkName(p))} className="a-btn-outline px-3 py-1.5 text-xs">
+                  <Download className="h-3.5 w-3.5" /> {extOf(p.artworkUrl).slice(1).toUpperCase()}
+                </button>
               </div>
             ))}
             <div className="space-y-1.5 p-4 text-sm">
@@ -171,6 +206,9 @@ const OrderManagement = () => {
   const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Order | null>(null);
+  const [store, setStore] = useState<StoreDetails>({});
+
+  useEffect(() => { getSiteSettings().then(setStore).catch(() => undefined); }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -310,6 +348,7 @@ const OrderManagement = () => {
       {selected && (
         <OrderDrawer
           order={selected}
+          store={store}
           onClose={() => setSelected(null)}
           onChanged={onChanged}
           onDeleted={(id) => { setSelected(null); setOrders(list => list.filter(o => o.id !== id)); load(); }}

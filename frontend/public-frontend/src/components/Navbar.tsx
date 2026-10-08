@@ -6,7 +6,7 @@ import { useSiteSettings } from '../context/SiteSettingsContext';
 const links = [
     { to: '/', label: 'Home' },
     { to: '/shop', label: 'Shop' },
-    { to: '/customize', label: 'Design Studio' },
+    { to: '/customize', label: 'Design Online' },
     { to: '/about', label: 'About' },
     { to: '/contact', label: 'Contact' },
 ];
@@ -57,7 +57,7 @@ const Navbar = () => {
                             to={l.to}
                             end={l.to === '/'}
                             className={({ isActive }) =>
-                                `rounded-full px-4 py-2 text-sm font-medium transition ${isActive ? 'bg-ink/[0.06] text-ink' : 'text-muted hover:text-ink'}`}
+                                `whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${isActive ? 'bg-ink/[0.06] text-ink' : 'text-muted hover:text-ink'}`}
                         >
                             {l.label}
                         </NavLink>
@@ -65,8 +65,8 @@ const Navbar = () => {
                 </nav>
 
                 <div className="flex items-center gap-2">
-                    <Link to="/customize" className="btn-primary hidden px-5 py-2.5 sm:inline-flex">
-                        Design yours <ArrowUpRight className="h-4 w-4" />
+                    <Link to="/#quote" className="btn-primary hidden whitespace-nowrap px-5 py-2.5 sm:inline-flex">
+                        Get a quote <ArrowUpRight className="h-4 w-4" />
                     </Link>
                     <button
                         className="grid h-10 w-10 place-items-center rounded-full hover:bg-ink/5 md:hidden"
@@ -90,7 +90,7 @@ const Navbar = () => {
                             </li>
                         ))}
                     </ul>
-                    <Link to="/customize" className="btn-accent mt-5 w-full">Start designing</Link>
+                    <Link to="/#quote" className="btn-accent mt-5 w-full">Get a printing quote</Link>
                 </nav>
             )}
         </header>

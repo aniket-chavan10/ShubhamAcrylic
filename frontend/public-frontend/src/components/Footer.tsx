@@ -22,7 +22,7 @@ const Footer = () => {
                     <h2 className="max-w-2xl font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl">
                         Your idea. <span className="text-accent">Our ink.</span> Worn everywhere.
                     </h2>
-                    <Link to="/customize" className="btn-accent self-start px-8 py-4 text-base lg:self-auto">Start designing</Link>
+                    <Link to="/#quote" className="btn-accent self-start px-8 py-4 text-base lg:self-auto">Get a printing quote</Link>
                 </div>
 
                 <div className="grid gap-10 pt-14 sm:grid-cols-2 lg:grid-cols-4">
