@@ -10,6 +10,15 @@ import { getImageUrl } from '../utils/imageUtils';
 import { renderView } from './artwork';
 import { buildGarmentGeometry, type GarmentGeometry } from './inflate';
 import { mockupPhotoUsable, MOCKUP_H, MOCKUP_W, renderMockup } from './mockups';
+import { buildDecals, disposeDecals, fabricMaterial, hasTeeModel, loadTeeModel } from './teeModel';
+
+/** Real-model garment currently in the scene (prints are decals on its fabric) */
+interface TeeInScene {
+  front: Mesh;
+  back: Mesh;
+  fabric: MeshStandardMaterial;
+  decals: Mesh[];
+}
 
 interface Props {
   garment: Garment;
@@ -85,7 +94,10 @@ export default function Garment3D({ garment, colorHex, designs, facing }: Props)
     controls: OrbitControls;
     turnTo: (side: View) => void;
     reset: () => void;
+    tee: TeeInScene | null;
   } | null>(null);
+  // Bumped each time a real-model garment lands in the scene (0 = flat-photo body)
+  const [teeVersion, setTeeVersion] = useState(0);
   const [spinning, setSpinning] = useState(true);
   const [loading, setLoading] = useState(true);
 
@@ -200,9 +212,11 @@ export default function Garment3D({ garment, colorHex, designs, facing }: Props)
     ro.observe(host);
     resize();
 
-    sceneRef.current = { group, shadow, materials, canvases, controls, turnTo, reset };
+    sceneRef.current = { group, shadow, materials, canvases, controls, turnTo, reset, tee: null };
 
     return () => {
+      const tee = sceneRef.current?.tee;
+      if (tee) { disposeDecals(tee.decals); tee.fabric.dispose(); }
       ro.disconnect();
       host.removeEventListener('wheel', wheelGate, { capture: true });
       renderer.setAnimationLoop(null);
@@ -223,15 +237,40 @@ export default function Garment3D({ garment, colorHex, designs, facing }: Props)
     if (!s) return;
     let cancelled = false;
     setLoading(true);
-    usableFor3d(garment)
+
+    const clearScene = () => {
+      if (s.tee) { disposeDecals(s.tee.decals); s.tee.fabric.dispose(); s.tee = null; }
+      s.group.clear();
+    };
+    const inflated = () => usableFor3d(garment)
       .then(g => garmentGeometry(g, colorHex))
       .then(geo => {
         if (cancelled || sceneRef.current !== s) return;
-        s.group.clear();
+        clearScene();
+        setTeeVersion(0);
         s.group.add(new Mesh(geo.front, s.materials.front), new Mesh(geo.back, s.materials.back));
         s.shadow.position.y = geo.bottom - 0.015;
-      })
-      .catch(err => console.error('3D garment error:', err));
+      });
+
+    const job = hasTeeModel(garment)
+      ? loadTeeModel()
+        .then(parts => {
+          if (cancelled || sceneRef.current !== s) return;
+          clearScene();
+          const fabric = fabricMaterial(colorHex);
+          const front = new Mesh(parts.front, fabric);
+          const back = new Mesh(parts.back, fabric);
+          s.group.add(front, back, ...parts.trim.map(g => new Mesh(g, fabric)));
+          s.tee = { front, back, fabric, decals: [] };
+          s.shadow.position.y = parts.bottom - 0.015;
+          setTeeVersion(v => v + 1);
+        })
+        .catch(err => {
+          console.error('3D t-shirt model failed, using the flat-photo body:', err);
+          return inflated();
+        })
+      : inflated();
+    job.catch(err => console.error('3D garment error:', err));
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [garment.style, garment.mockupFront, garment.mockupBack]);
@@ -244,6 +283,27 @@ export default function Garment3D({ garment, colorHex, designs, facing }: Props)
     const s = sceneRef.current;
     if (!s) return;
     let cancelled = false;
+
+    // Real t-shirt model: tint the fabric, project the prints on as decals
+    if (teeVersion > 0 && hasTeeModel(garment) && s.tee) {
+      const tee = s.tee;
+      tee.fabric.color.set(colorHex);
+      buildDecals(garment, designs, tee)
+        .then(decals => {
+          if (cancelled || sceneRef.current !== s || s.tee !== tee) { disposeDecals(decals); return; }
+          disposeDecals(tee.decals);
+          tee.decals.forEach(d => s.group.remove(d));
+          tee.decals = decals;
+          s.group.add(...decals);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error('3D print error:', err);
+          if (!cancelled) setLoading(false);
+        });
+      return () => { cancelled = true; };
+    }
+
     (async () => {
       const g = await usableFor3d(garment);
       const [front, back] = await Promise.all([
@@ -266,7 +326,7 @@ export default function Garment3D({ garment, colorHex, designs, facing }: Props)
     });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [garment.id, garment.style, garment.mockupFront, garment.mockupBack, colorHex, designSig]);
+  }, [garment.id, garment.style, garment.mockupFront, garment.mockupBack, colorHex, designSig, teeVersion]);
 
   // Turn to the side of the print the customer is working on
   const firstFacing = useRef(true);
