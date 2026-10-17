@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import Seo from '../components/Seo';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, ArrowUpRight, BadgeCheck, Briefcase, CalendarDays, Droplets, Gift, GraduationCap, Layers, MessageCircle,
@@ -128,8 +129,31 @@ export default function HomePage() {
     : '';
   const colourCount = Math.max(...garments.map(g => g.colors.length), 6);
 
+  const brand = settings?.companyName || 'Astitva Creations';
+  const sameAs = [settings?.instagramUrl, settings?.facebookUrl, settings?.twitterUrl, settings?.youtubeUrl].filter(Boolean);
+  const business = {
+    '@context': 'https://schema.org',
+    '@type': 'ClothingStore',
+    '@id': 'https://astitvacreations.shop/#business',
+    name: brand,
+    url: 'https://astitvacreations.shop/',
+    image: 'https://astitvacreations.shop/brand-logo.jpg',
+    description: 'Custom t-shirt, hoodie, oversized tee and polo printing for individuals, teams, colleges, events and companies.',
+    ...(settings?.phone ? { telephone: settings.phone } : {}),
+    ...(settings?.email ? { email: settings.email } : {}),
+    ...(settings?.address ? { address: { '@type': 'PostalAddress', streetAddress: settings.address, addressCountry: 'IN' } } : {}),
+    ...(sameAs.length ? { sameAs } : {}),
+    priceRange: '₹₹',
+  };
+
   return (
     <>
+      <Seo
+        title={`${brand} · Custom T-Shirt, Hoodie & Polo Printing`}
+        description="Design and order custom printed t-shirts, hoodies, oversized tees and polos online. Upload your logo or artwork, preview it in the design studio. Bulk orders for teams, colleges, events and companies."
+        path="/"
+        jsonLd={business}
+      />
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
         <div className="container-x grid items-center gap-10 pb-16 pt-10 sm:pt-14 lg:grid-cols-12 lg:pb-24">

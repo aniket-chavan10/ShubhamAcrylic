@@ -1,4 +1,5 @@
 import { ChangeEvent, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Seo from '../components/Seo';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   AlertTriangle, Check, Crosshair, ImagePlus, Info, Loader2, MessageCircle, Minus, Move, Plus, RefreshCw, Rotate3d, Trash2, Type,
@@ -273,6 +274,11 @@ export default function CustomizePage() {
 
   return (
     <div className="pb-28 lg:pb-16">
+      <Seo
+        title="Design Your Own T-Shirt, Hoodie or Polo Online · Astitva Creations"
+        description="Use our free online design studio to add your logo, photo or text to a t-shirt, hoodie, oversized tee or polo. See a live 3D preview and order in minutes."
+        path="/customize"
+      />
       <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={onFileChosen} />
 
       {/* Heading */}

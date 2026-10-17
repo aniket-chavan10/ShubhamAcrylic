@@ -1,5 +1,6 @@
 import { Mail, MapPin, Phone } from 'lucide-react';
 import EnquiryForm from '../components/EnquiryForm';
+import Seo from '../components/Seo';
 import { WhatsAppIcon } from '../components/WhatsAppButton';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { waLink } from '../utils/format';
@@ -19,6 +20,11 @@ const ContactPage = () => {
 
   return (
     <>
+      <Seo
+        title={`Contact ${brand} · Bulk & Custom Printing Enquiries`}
+        description="Get a quote for custom t-shirt, hoodie or polo printing. Message us on WhatsApp, call or email for bulk orders, team and college merchandise, and design help."
+        path="/contact"
+      />
       <section className="border-b border-line bg-white">
         <div className="container-x py-14 sm:py-20">
           <p className="eyebrow">Contact</p>

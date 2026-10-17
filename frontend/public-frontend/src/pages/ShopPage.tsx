@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Search, Shirt } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
+import Seo from '../components/Seo';
 import { getCategories, getProducts } from '../services/api';
 import type { Category, Product } from '../types';
 
@@ -37,6 +38,11 @@ export default function ShopPage() {
 
   return (
     <>
+      <Seo
+        title="Shop Custom Printed T-Shirts, Hoodies & Polos · Astitva Creations"
+        description="Browse ready-made printed t-shirts, hoodies, oversized tees and polos, printed to order. Or create your own one-of-a-kind design in the design studio."
+        path="/shop"
+      />
       <section className="border-b border-line bg-white">
         <div className="container-x py-12 sm:py-16">
           <p className="eyebrow">The collection</p>

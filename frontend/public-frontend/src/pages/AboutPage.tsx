@@ -3,6 +3,7 @@ import { ArrowRight, Droplets, Layers, Sparkles, Users } from 'lucide-react';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { getImageUrl } from '../utils/imageUtils';
 import MockupImage from '../customizer/MockupImage';
+import Seo from '../components/Seo';
 
 const AboutPage = () => {
   const { settings } = useSiteSettings();
@@ -16,6 +17,11 @@ const AboutPage = () => {
 
   return (
     <>
+      <Seo
+        title={`About ${brand} · Custom Apparel Printing`}
+        description={`${brand} prints custom hoodies, oversized tees and polo t-shirts on premium cotton for individuals, teams and brands. Learn about our fabrics, printing and bulk orders.`}
+        path="/about"
+      />
       <section className="container-x grid items-center gap-12 py-14 sm:py-20 lg:grid-cols-2">
         <div>
           <p className="eyebrow">{settings?.aboutSubtitle || 'Our story'}</p>

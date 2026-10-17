@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Palette, RotateCcw, ShieldCheck, Shirt, Star, Truck
 import api, { createProductEnquiry, errorMessage } from '../services/api';
 import type { Product, ProductImage } from '../types';
 import ProductCard from '../components/ProductCard';
+import Seo from '../components/Seo';
 import { WhatsAppIcon } from '../components/WhatsAppButton';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { getImageUrl } from '../utils/imageUtils';
@@ -139,8 +140,39 @@ const ProductDetails = () => {
         ['Code', product.productCode],
     ].filter(([, v]) => v);
 
+    const mainImage = images.find(i => i.isMain)?.imageUrl || images[0]?.imageUrl;
+    const imageUrl = mainImage ? getImageUrl(mainImage) : undefined;
+    const plainDescription = (product.description || '').replace(/\s+/g, ' ').trim();
+    const productLd = {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: product.name,
+        sku: product.productCode,
+        description: plainDescription || `${product.name} by ${settings?.companyName || 'Astitva Creations'}`,
+        ...(imageUrl ? { image: images.map(i => getImageUrl(i.imageUrl)) } : {}),
+        ...(product.category?.name ? { category: product.category.name } : {}),
+        ...(product.fabric ? { material: product.fabric } : {}),
+        ...(product.color ? { color: product.color } : {}),
+        brand: { '@type': 'Brand', name: settings?.companyName || 'Astitva Creations' },
+        offers: {
+            '@type': 'Offer',
+            url: `https://astitvacreations.shop/product/${product.id}`,
+            priceCurrency: 'INR',
+            price: Number(product.price) || 0,
+            availability: product.stockQuantity > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+        },
+        ...(reviews.length ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: Number(avg.toFixed(1)), reviewCount: reviews.length } } : {}),
+    };
+
     return (
         <>
+            <Seo
+                title={`${product.name}${product.category?.name ? ` · ${product.category.name}` : ''} · Astitva Creations`}
+                description={(plainDescription || `Buy ${product.name} printed to order by Astitva Creations.`).slice(0, 155)}
+                path={`/product/${product.id}`}
+                image={imageUrl}
+                jsonLd={productLd}
+            />
             <section className="container-x py-8 sm:py-12">
                 <Link to="/shop" className="inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-ink">
                     <ArrowLeft className="h-4 w-4" /> Back to shop

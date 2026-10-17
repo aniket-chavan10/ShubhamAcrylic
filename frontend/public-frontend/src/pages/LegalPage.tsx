@@ -1,9 +1,11 @@
 import { ReactNode } from 'react';
+import Seo from '../components/Seo';
 
 /** Shared layout for the privacy policy and terms pages */
 export default function LegalPage({ eyebrow, title, intro, children }: { eyebrow: string; title: string; intro: string; children: ReactNode }) {
   return (
     <>
+      <Seo title={`${title} · Astitva Creations`} description={intro} />
       <section className="border-b border-line bg-white">
         <div className="container-x py-14 sm:py-20">
           <p className="eyebrow">{eyebrow}</p>
