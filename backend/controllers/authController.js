@@ -30,7 +30,7 @@ exports.login = async (req, res) => {
       email === process.env.MASTER_ADMIN_EMAIL &&
       password === process.env.MASTER_ADMIN_PASSWORD
     ) {
-      const token = jwt.sign({ userId: 'master' }, process.env.JWT_SECRET, { expiresIn: '7d' });
+      const token = jwt.sign({ userId: 'master' }, process.env.JWT_SECRET, { expiresIn: '24h' });
       return res.json({ token, username: 'Master Admin', isMaster: true });
     }
 
@@ -40,7 +40,7 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '24h' });
     res.json({ token, username: user.username, isMaster: user.isMaster });
   } catch (err) {
     res.status(500).json({ message: err.message });
