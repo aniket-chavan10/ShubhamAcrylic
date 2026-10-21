@@ -5,18 +5,22 @@ import {
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Pause, Play, RotateCcw } from 'lucide-react';
-import type { Garment, PrintDesign, View } from '../types';
+import type { Garment, GarmentStyle, PrintDesign, View } from '../types';
 import { getImageUrl } from '../utils/imageUtils';
 import { renderView } from './artwork';
 import { buildGarmentGeometry, type GarmentGeometry } from './inflate';
 import { mockupPhotoUsable, MOCKUP_H, MOCKUP_W, renderMockup } from './mockups';
-import { buildDecals, disposeDecals, fabricMaterial, hasTeeModel, loadTeeModel } from './teeModel';
+import {
+  buildDecals, disposeDecals, fabricMaterial, hardwareColor, hardwareMaterial, hasGarmentModel, loadGarmentModel, modelCredit,
+} from './garmentModel';
 
 /** Real-model garment currently in the scene (prints are decals on its fabric) */
-interface TeeInScene {
+interface ModelInScene {
+  style: GarmentStyle;
   front: Mesh;
   back: Mesh;
   fabric: MeshStandardMaterial;
+  hardware: MeshStandardMaterial;
   decals: Mesh[];
 }
 
@@ -94,10 +98,10 @@ export default function Garment3D({ garment, colorHex, designs, facing }: Props)
     controls: OrbitControls;
     turnTo: (side: View) => void;
     reset: () => void;
-    tee: TeeInScene | null;
+    model: ModelInScene | null;
   } | null>(null);
   // Bumped each time a real-model garment lands in the scene (0 = flat-photo body)
-  const [teeVersion, setTeeVersion] = useState(0);
+  const [modelVersion, setModelVersion] = useState(0);
   const [spinning, setSpinning] = useState(true);
   const [loading, setLoading] = useState(true);
 
@@ -212,11 +216,11 @@ export default function Garment3D({ garment, colorHex, designs, facing }: Props)
     ro.observe(host);
     resize();
 
-    sceneRef.current = { group, shadow, materials, canvases, controls, turnTo, reset, tee: null };
+    sceneRef.current = { group, shadow, materials, canvases, controls, turnTo, reset, model: null };
 
     return () => {
-      const tee = sceneRef.current?.tee;
-      if (tee) { disposeDecals(tee.decals); tee.fabric.dispose(); }
+      const model = sceneRef.current?.model;
+      if (model) { disposeDecals(model.decals); model.fabric.dispose(); model.hardware.dispose(); }
       ro.disconnect();
       host.removeEventListener('wheel', wheelGate, { capture: true });
       renderer.setAnimationLoop(null);
@@ -239,7 +243,8 @@ export default function Garment3D({ garment, colorHex, designs, facing }: Props)
     setLoading(true);
 
     const clearScene = () => {
-      if (s.tee) { disposeDecals(s.tee.decals); s.tee.fabric.dispose(); s.tee = null; }
+      const m = s.model;
+      if (m) { disposeDecals(m.decals); m.fabric.dispose(); m.hardware.dispose(); s.model = null; }
       s.group.clear();
     };
     const inflated = () => usableFor3d(garment)
@@ -247,26 +252,31 @@ export default function Garment3D({ garment, colorHex, designs, facing }: Props)
       .then(geo => {
         if (cancelled || sceneRef.current !== s) return;
         clearScene();
-        setTeeVersion(0);
+        setModelVersion(0);
         s.group.add(new Mesh(geo.front, s.materials.front), new Mesh(geo.back, s.materials.back));
         s.shadow.position.y = geo.bottom - 0.015;
       });
 
-    const job = hasTeeModel(garment)
-      ? loadTeeModel()
+    const job = hasGarmentModel(garment)
+      ? loadGarmentModel(garment.style)
         .then(parts => {
           if (cancelled || sceneRef.current !== s) return;
           clearScene();
           const fabric = fabricMaterial(colorHex);
+          const hardware = hardwareMaterial(colorHex);
           const front = new Mesh(parts.front, fabric);
           const back = new Mesh(parts.back, fabric);
-          s.group.add(front, back, ...parts.trim.map(g => new Mesh(g, fabric)));
-          s.tee = { front, back, fabric, decals: [] };
+          s.group.add(
+            front, back,
+            ...parts.trim.map(g => new Mesh(g, fabric)),
+            ...parts.hardware.map(g => new Mesh(g, hardware)),
+          );
+          s.model = { style: garment.style, front, back, fabric, hardware, decals: [] };
           s.shadow.position.y = parts.bottom - 0.015;
-          setTeeVersion(v => v + 1);
+          setModelVersion(v => v + 1);
         })
         .catch(err => {
-          console.error('3D t-shirt model failed, using the flat-photo body:', err);
+          console.error('3D garment model failed, using the flat-photo body:', err);
           return inflated();
         })
       : inflated();
@@ -284,16 +294,19 @@ export default function Garment3D({ garment, colorHex, designs, facing }: Props)
     if (!s) return;
     let cancelled = false;
 
-    // Real t-shirt model: tint the fabric, project the prints on as decals
-    if (teeVersion > 0 && hasTeeModel(garment) && s.tee) {
-      const tee = s.tee;
-      tee.fabric.color.set(colorHex);
-      buildDecals(garment, designs, tee)
+    // Real garment model: tint the fabric, project the prints on as decals.
+    // Until the model for a newly picked style lands, wait for modelVersion to bump.
+    if (hasGarmentModel(garment) && s.model) {
+      const model = s.model;
+      if (model.style !== garment.style) return;
+      model.fabric.color.set(colorHex);
+      model.hardware.color.copy(hardwareColor(colorHex));
+      buildDecals(garment, designs, model)
         .then(decals => {
-          if (cancelled || sceneRef.current !== s || s.tee !== tee) { disposeDecals(decals); return; }
-          disposeDecals(tee.decals);
-          tee.decals.forEach(d => s.group.remove(d));
-          tee.decals = decals;
+          if (cancelled || sceneRef.current !== s || s.model !== model) { disposeDecals(decals); return; }
+          disposeDecals(model.decals);
+          model.decals.forEach(d => s.group.remove(d));
+          model.decals = decals;
           s.group.add(...decals);
           setLoading(false);
         })
@@ -303,7 +316,6 @@ export default function Garment3D({ garment, colorHex, designs, facing }: Props)
         });
       return () => { cancelled = true; };
     }
-
     (async () => {
       const g = await usableFor3d(garment);
       const [front, back] = await Promise.all([
@@ -326,7 +338,7 @@ export default function Garment3D({ garment, colorHex, designs, facing }: Props)
     });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [garment.id, garment.style, garment.mockupFront, garment.mockupBack, colorHex, designSig, teeVersion]);
+  }, [garment.id, garment.style, garment.mockupFront, garment.mockupBack, colorHex, designSig, modelVersion]);
 
   // Turn to the side of the print the customer is working on
   const firstFacing = useRef(true);
@@ -334,6 +346,8 @@ export default function Garment3D({ garment, colorHex, designs, facing }: Props)
     if (firstFacing.current) { firstFacing.current = false; return; }
     sceneRef.current?.turnTo(facing);
   }, [facing]);
+
+  const credit = modelCredit(garment);
 
   const toggleSpin = () => {
     const s = sceneRef.current;
@@ -368,6 +382,16 @@ export default function Garment3D({ garment, colorHex, designs, facing }: Props)
           <RotateCcw className="h-4 w-4" />
         </button>
       </div>
+      {credit && (
+        <a
+          href={credit.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute bottom-1 left-1 max-w-[60%] truncate text-[10px] text-muted hover:underline"
+        >
+          {credit.text}
+        </a>
+      )}
     </div>
   );
 }
