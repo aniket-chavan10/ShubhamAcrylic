@@ -3,7 +3,7 @@ import { Canvas, FabricImage, Rect, type FabricObject } from 'fabric';
 import type { Garment, Placement, PrintDesign, PrintTransform, View } from '../types';
 import { getImageUrl } from '../utils/imageUtils';
 import { loadImage, MOCKUP_H, MOCKUP_W, renderMockup } from './mockups';
-import { zoneRect } from './artwork';
+import { clampTransform, zoneRect } from './artwork';
 
 interface Props {
   garment: Garment;
@@ -21,9 +21,9 @@ const ACCENT = '#ff5a1f';
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
 /**
- * Interactive fabric.js editor for one side of the garment. Each print area is a
- * dashed guide; artwork inside it can be dragged, scaled and rotated but is
- * clipped to the area so it always stays printable.
+ * Interactive fabric.js editor for one side of the garment. Empty print spots
+ * show as dashed guides (where a new print starts); artwork can be dragged,
+ * scaled and rotated anywhere on the garment.
  */
 export default function DesignCanvas({ garment, view, colorHex, designs, activeKey, onSelect, onTransform }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -63,14 +63,12 @@ export default function DesignCanvas({ garment, view, colorHex, designs, activeK
       return placement ? { meta, placement } : null;
     };
 
-    // Keep the artwork's centre inside its print area while dragging
+    // Keep the artwork's centre on the garment canvas while dragging
     c.on('object:moving', (e) => {
-      const found = placementFor(e.target);
-      if (!found) return;
-      const z = zoneRect(found.placement);
+      if (!placementFor(e.target)) return;
       e.target.set({
-        left: clamp(e.target.left ?? 0, z.left, z.left + z.width),
-        top: clamp(e.target.top ?? 0, z.top, z.top + z.height),
+        left: clamp(e.target.left ?? 0, 0, MOCKUP_W),
+        top: clamp(e.target.top ?? 0, 0, MOCKUP_H),
       });
     });
 
@@ -79,12 +77,12 @@ export default function DesignCanvas({ garment, view, colorHex, designs, activeK
       if (!found) return;
       const z = zoneRect(found.placement);
       const t = e.target;
-      callbacksRef.current.onTransform(found.meta.key, {
-        cx: clamp(((t.left ?? 0) - z.left) / z.width, 0, 1),
-        cy: clamp(((t.top ?? 0) - z.top) / z.height, 0, 1),
-        scale: clamp(t.getScaledWidth() / z.width, 0.05, 5),
-        angle: Math.round(((t.angle ?? 0) % 360) * 10) / 10,
-      });
+      callbacksRef.current.onTransform(found.meta.key, clampTransform(found.placement, {
+        cx: ((t.left ?? 0) - z.left) / z.width,
+        cy: ((t.top ?? 0) - z.top) / z.height,
+        scale: t.getScaledWidth() / z.width,
+        angle: t.angle ?? 0,
+      }));
     });
 
     const handleSelection = (selected?: FabricObject[]) => {
@@ -154,25 +152,27 @@ export default function DesignCanvas({ garment, view, colorHex, designs, activeK
 
       placements.forEach((p, i) => {
         const z = zoneRect(p);
-        const guide = new Rect({
-          ...z,
-          originX: 'left',
-          originY: 'top',
-          fill: 'rgba(255,90,31,0.035)',
-          stroke: ACCENT,
-          strokeWidth: 2,
-          strokeUniform: true,
-          strokeDashArray: [10, 8],
-          opacity: p.key === activeKeyRef.current ? 1 : 0.75,
-          selectable: false,
-          hoverCursor: 'pointer',
-        });
-        metaRef.current.set(guide, { key: p.key, kind: 'zone' });
-        c.add(guide);
-
         const img = arts[i];
         const design = designs[p.key];
-        if (!img || !design) return;
+        if (!img || !design) {
+          // Empty spot: a dashed guide showing where a new print starts
+          const guide = new Rect({
+            ...z,
+            originX: 'left',
+            originY: 'top',
+            fill: 'rgba(255,90,31,0.035)',
+            stroke: ACCENT,
+            strokeWidth: 2,
+            strokeUniform: true,
+            strokeDashArray: [10, 8],
+            opacity: p.key === activeKeyRef.current ? 1 : 0.75,
+            selectable: false,
+            hoverCursor: 'pointer',
+          });
+          metaRef.current.set(guide, { key: p.key, kind: 'zone' });
+          c.add(guide);
+          return;
+        }
         const t = design.transform;
         const s = (t.scale * z.width) / img.width;
         const art = new FabricImage(img, {
@@ -183,7 +183,6 @@ export default function DesignCanvas({ garment, view, colorHex, designs, activeK
           scaleX: s,
           scaleY: s,
           angle: t.angle,
-          clipPath: new Rect({ ...z, originX: 'left', originY: 'top', absolutePositioned: true }),
           cornerColor: ACCENT,
           cornerStrokeColor: '#ffffff',
           borderColor: ACCENT,
@@ -210,6 +209,32 @@ export default function DesignCanvas({ garment, view, colorHex, designs, activeK
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [garment.id, garment.style, garment.mockupFront, garment.mockupBack, placementsSig, view, colorHex, designSig]);
+
+  // ── Follow transforms made elsewhere (the 3D view, Reset) without rebuilding ──
+  const transformSig = Object.entries(designs).map(([k, d]) => `${k}:${d.transform.cx}:${d.transform.cy}:${d.transform.scale}:${d.transform.angle}`).join('|');
+  useEffect(() => {
+    const c = canvasRef.current;
+    if (!c) return;
+    let changed = false;
+    c.getObjects().forEach(obj => {
+      const meta = metaRef.current.get(obj);
+      const placement = meta?.kind === 'art' ? placementsRef.current.find(p => p.key === meta.key) : undefined;
+      const design = meta ? designs[meta.key] : undefined;
+      if (!placement || !design || !(obj instanceof FabricImage)) return;
+      const z = zoneRect(placement);
+      const t = design.transform;
+      const s = (t.scale * z.width) / (obj.width || 1);
+      const next = { left: z.left + t.cx * z.width, top: z.top + t.cy * z.height, scaleX: s, scaleY: s, angle: t.angle };
+      if (Math.abs((obj.left ?? 0) - next.left) > 0.5 || Math.abs((obj.top ?? 0) - next.top) > 0.5
+        || Math.abs((obj.scaleX ?? 1) - s) > 1e-4 || Math.abs((obj.angle ?? 0) - t.angle) > 0.05) {
+        obj.set(next);
+        obj.setCoords();
+        changed = true;
+      }
+    });
+    if (changed) c.requestRenderAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transformSig]);
 
   // ── Highlight the active print area without rebuilding ────────────────────
   useEffect(() => {

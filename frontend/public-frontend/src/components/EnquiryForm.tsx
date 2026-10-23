@@ -1,14 +1,20 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { CheckCircle2, Loader2, Send } from 'lucide-react';
 import { createEnquiry, errorMessage } from '../services/api';
 
 const EMPTY = { name: '', email: '', mobileNo: '', message: '' };
 
-/** General enquiry / bulk order form (Contact page and home page) */
-const EnquiryForm = ({ compact = false }: { compact?: boolean }) => {
+/** General enquiry / bulk order form (Contact page and home page). `prefill` fills the message, e.g. from the bulk builder */
+const EnquiryForm = ({ compact = false, prefill }: { compact?: boolean; prefill?: { text: string; at: number } }) => {
     const [form, setForm] = useState(EMPTY);
     const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (!prefill) return;
+        setStatus('idle');
+        setForm(f => ({ ...f, message: prefill.text }));
+    }, [prefill]);
 
     const update = (key: keyof typeof EMPTY) =>
         (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm(f => ({ ...f, [key]: e.target.value }));

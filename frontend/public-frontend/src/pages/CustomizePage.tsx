@@ -1,6 +1,6 @@
 import { ChangeEvent, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Seo from '../components/Seo';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle, Check, Crosshair, ImagePlus, Info, Loader2, MessageCircle, Minus, Move, Plus, RefreshCw, Rotate3d, Trash2, Type,
 } from 'lucide-react';
@@ -11,6 +11,7 @@ import {
   composeView, DEFAULT_TRANSFORM, fitScale, newId, prepareImageArtwork, renderTextArtwork, TEXT_COLORS, TEXT_FONTS,
 } from '../customizer/artwork';
 import { loadImage } from '../customizer/mockups';
+import { takeTriedLogo } from '../home/rackArt';
 import { errorMessage, getGarments } from '../services/api';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import type { Garment, PlacedOrder, Placement, PrintDesign, PrintTransform, View } from '../types';
@@ -31,6 +32,9 @@ const extFor = (type: string) => (type === 'image/jpeg' ? 'jpg' : type === 'imag
 
 export default function CustomizePage() {
   const { garmentKey } = useParams<{ garmentKey?: string }>();
+  // Colour picked on the home page rack
+  const [searchParams] = useSearchParams();
+  const wantedColor = searchParams.get('color');
   const navigate = useNavigate();
   const { settings } = useSiteSettings();
   const brand = settings?.companyName || 'Astitva Creations';
@@ -72,7 +76,8 @@ export default function CustomizePage() {
   // Keep colour / size / prints valid when the garment changes
   useEffect(() => {
     if (!garment) return;
-    setColorHex(c => (garment.colors.some(x => x.hex === c) ? c : garment.colors[0]?.hex ?? '#ffffff'));
+    setColorHex(c => (garment.colors.some(x => x.hex === c) ? c
+      : garment.colors.find(x => x.hex.toLowerCase() === wantedColor?.toLowerCase())?.hex ?? garment.colors[0]?.hex ?? '#ffffff'));
     setSize(s => (garment.sizes.some(x => x.label === s) ? s
       : garment.sizes.find(x => x.label === 'M')?.label ?? garment.sizes[0]?.label ?? ''));
     setDesigns(d => {
@@ -80,7 +85,29 @@ export default function CustomizePage() {
       return Object.fromEntries(Object.entries(d).filter(([k]) => keys.has(k)));
     });
     setActiveKey(k => (k && garment.placements.some(p => p.key === k && p.enabled) ? k : null));
-  }, [garment]);
+  }, [garment, wantedColor]);
+
+  // A logo tried on the home page becomes the front print
+  useEffect(() => {
+    if (!garment) return;
+    const logo = takeTriedLogo();
+    const front = placements.filter(p => p.view === 'front').sort((a, b) => b.w * b.h - a.w * a.h)[0];
+    if (!logo || !front) return;
+    loadImage(logo.src, false).then(img => {
+      setDesigns(d => (d[front.key] ? d : {
+        ...d,
+        [front.key]: {
+          id: newId(),
+          kind: 'image',
+          src: logo.src,
+          file: logo.file,
+          fileName: `${front.key}.${extFor(logo.file.type)}`,
+          transform: { ...DEFAULT_TRANSFORM, scale: fitScale(img.width, img.height, front) },
+        },
+      }));
+      setActiveKey(front.key);
+    }).catch(() => undefined);
+  }, [garment, placements]);
 
   // Default text colour contrasts with the garment
   useEffect(() => {
@@ -344,15 +371,15 @@ export default function CustomizePage() {
                 </div>
                 {show3d && (
                   <Suspense fallback={<div className="grid w-full place-items-center" style={{ aspectRatio: '1000 / 1150' }}><Loader2 className="h-8 w-8 animate-spin text-accent" /></div>}>
-                    <Garment3D garment={garment} colorHex={colorHex} designs={designs} facing={view} />
+                    <Garment3D garment={garment} colorHex={colorHex} designs={designs} facing={view} activeKey={activeKey} onSelect={onCanvasSelect} onTransform={onTransform} />
                   </Suspense>
                 )}
               </div>
             </div>
             <p className="mt-3 flex items-center justify-center gap-2 text-center text-xs text-muted">
               {show3d
-                ? <><Rotate3d className="h-3.5 w-3.5" /> Drag to rotate · pinch or Ctrl + scroll to zoom · switch to Front / Back to move your prints</>
-                : <><Move className="h-3.5 w-3.5" /> Drag to move · pull a corner to resize or rotate · dashed boxes are the print areas</>}
+                ? <><Rotate3d className="h-3.5 w-3.5" /> Drag the garment to rotate · drag a print to move it · pinch or Ctrl + scroll to zoom</>
+                : <><Move className="h-3.5 w-3.5" /> Drag your print anywhere on the garment · pull a corner to resize or rotate</>}
             </p>
           </div>
         </div>
@@ -392,7 +419,7 @@ export default function CustomizePage() {
           {/* Prints */}
           <div className="card p-5 sm:p-6">
             <h3 className="text-sm font-semibold">2. Add your prints</h3>
-            <p className="mt-1 text-xs text-muted">Choose where you want a print. Each placement is priced separately.</p>
+            <p className="mt-1 text-xs text-muted">Add a print, then drag it wherever you like on that side, in 2D or 3D. Each print is priced separately.</p>
             <div className="mt-4 space-y-3">
               {placements.map(p => {
                 const d = designs[p.key];

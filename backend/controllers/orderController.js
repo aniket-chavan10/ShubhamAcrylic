@@ -78,9 +78,10 @@ exports.createOrder = async (req, res) => {
         color: p.kind === 'text' ? String(p.color || '').slice(0, 9) : undefined,
         artworkUrl: fileUrl(artwork),
         transform: {
-          cx: num(t.cx, 0, 1, 0.5),
-          cy: num(t.cy, 0, 1, 0.5),
-          scale: num(t.scale, 0.05, 5, 1),
+          // Relative to the placement's print area; prints may sit anywhere on the garment
+          cx: num(t.cx, -10, 10, 0.5),
+          cy: num(t.cy, -10, 10, 0.5),
+          scale: num(t.scale, 0.05, 20, 1),
           angle: num(t.angle, -360, 360, 0),
         },
       });

@@ -3,7 +3,7 @@ import Seo from '../components/Seo';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, ArrowUpRight, BadgeCheck, Briefcase, CalendarDays, Droplets, Gift, GraduationCap, Layers, MessageCircle,
-  MousePointerClick, Palette, Shirt, Sparkles, Store, Trophy, Truck, Upload, Users,
+  MousePointerClick, Shirt, Sparkles, Store, Trophy, Truck, Upload, Users,
 } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import EnquiryForm from '../components/EnquiryForm';
@@ -13,6 +13,8 @@ import { useSiteSettings } from '../context/SiteSettingsContext';
 import type { Garment, Product } from '../types';
 import { inr, waLink } from '../utils/format';
 import { getImageUrl } from '../utils/imageUtils';
+import HangerRack from '../home/HangerRack';
+import BulkBuilder from '../home/BulkBuilder';
 
 interface Banner {
   id: number;
@@ -33,42 +35,6 @@ const USES = [
   { icon: Gift, title: 'Personal & gifts', text: 'A single custom tee or hoodie with your photo, name or quote.' },
 ];
 
-// Last banner list, so a returning visitor sees the hero photo instantly
-const BANNER_CACHE = 'home-banners';
-const cachedBanners = (): Banner[] => {
-  try { return JSON.parse(localStorage.getItem(BANNER_CACHE) || '[]'); } catch { return []; }
-};
-
-/** The admin's banner photos, cross-fading. A soft placeholder shows until the first one loads. */
-function HeroSlideshow({ banners }: { banners: Banner[] }) {
-  const [index, setIndex] = useState(0);
-  const [loaded, setLoaded] = useState<Record<number, boolean>>({});
-  const slides = banners.slice(0, 5);
-
-  useEffect(() => {
-    if (slides.length < 2) return;
-    const t = setInterval(() => setIndex(i => (i + 1) % slides.length), 5000);
-    return () => clearInterval(t);
-  }, [slides.length]);
-
-  return (
-    <>
-      <div className={`absolute inset-0 bg-paper-deep ${loaded[slides[0]?.id] ? '' : 'animate-pulse'}`} />
-      {slides.map((b, i) => (
-        <img
-          key={b.id}
-          src={getImageUrl(b.imageUrl)}
-          alt={b.title || 'Custom printed apparel'}
-          loading={i === 0 ? 'eager' : 'lazy'}
-          decoding="async"
-          onLoad={() => setLoaded(l => ({ ...l, [b.id]: true }))}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-out ${i === index && loaded[b.id] ? 'opacity-100' : 'opacity-0'}`}
-        />
-      ))}
-    </>
-  );
-}
-
 const STEPS = [
   { icon: Upload, title: 'Share your design', text: 'Send your logo, artwork or text on WhatsApp or the quote form, with the garment, colours and quantity.' },
   { icon: BadgeCheck, title: 'Approve mock-up & price', text: 'We send a preview and a clear quote. Nothing is printed until you say yes.' },
@@ -79,21 +45,19 @@ export default function HomePage() {
   const { settings } = useSiteSettings();
   const [garments, setGarments] = useState<Garment[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [banners, setBanners] = useState<Banner[]>(cachedBanners);
+  const [garmentsReady, setGarmentsReady] = useState(false);
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [quotePrefill, setQuotePrefill] = useState<{ text: string; at: number }>();
   const [catalogue, setCatalogue] = useState<Product[]>([]);
 
   useEffect(() => {
-    getGarments().then(setGarments).catch(() => setGarments([]));
+    getGarments().then(setGarments).catch(() => setGarments([])).finally(() => setGarmentsReady(true));
     getProducts().then(d => {
       const list: Product[] = Array.isArray(d) ? d : d.products || [];
       setCatalogue(list);
       setProducts(list.slice(0, 8));
     }).catch(() => setProducts([]));
-    getBanners().then(d => {
-      const list: Banner[] = Array.isArray(d) ? d : [];
-      setBanners(list);
-      try { localStorage.setItem(BANNER_CACHE, JSON.stringify(list.slice(0, 5))); } catch { /* storage unavailable */ }
-    }).catch(() => undefined);
+    getBanners().then(d => setBanners(Array.isArray(d) ? d : [])).catch(() => undefined);
   }, []);
 
   const showcase = garments[0];
@@ -156,50 +120,43 @@ export default function HomePage() {
       />
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
-        <div className="container-x grid items-center gap-10 pb-16 pt-10 sm:pt-14 lg:grid-cols-12 lg:pb-24">
-          <div className="animate-fade-up lg:col-span-6">
-            <p className="eyebrow"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> Custom t-shirt & hoodie printing</p>
-            <h1 className="mt-5 font-display text-[clamp(2.6rem,7.5vw,5.5rem)] font-extrabold leading-[0.95] tracking-tight">
-              Your design,<br /><span className="relative inline-block text-accent">printed
-                <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none" aria-hidden="true"><path d="M2 9c60-6 180-8 296-3" stroke="currentColor" strokeWidth="4" strokeLinecap="round" /></svg>
-              </span> to last.
-            </h1>
-            <p className="mt-7 max-w-lg text-base leading-relaxed text-muted sm:text-lg">
-              We print your logo, artwork or text on premium t-shirts, hoodies, oversized tees and polos. For teams, colleges, events and brands, from a single piece to bulk orders.
-            </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <a href="#quote" className="btn-accent px-8 py-4 text-base">Get a printing quote <ArrowRight className="h-4 w-4" /></a>
-              <Link to="/shop" className="btn-outline px-8 py-4 text-base">Shop printed apparel</Link>
+        <div className="container-x pb-16 pt-10 sm:pt-14 lg:pb-24">
+          <div className="grid items-end gap-8 lg:grid-cols-12">
+            <div className="animate-fade-up lg:col-span-7">
+              <p className="eyebrow"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> Custom t-shirt & hoodie printing</p>
+              <h1 className="mt-5 font-display text-[clamp(2.6rem,7vw,5rem)] font-extrabold leading-[0.95] tracking-tight">
+                Your design,<br /><span className="relative inline-block text-accent">printed
+                  <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none" aria-hidden="true"><path d="M2 9c60-6 180-8 296-3" stroke="currentColor" strokeWidth="4" strokeLinecap="round" /></svg>
+                </span> to last.
+              </h1>
             </div>
-            <p className="mt-5 text-sm text-muted">
-              Want to see it first?{' '}
-              <Link to="/customize" className="font-semibold text-ink underline decoration-accent decoration-2 underline-offset-4 hover:text-accent">Try your design online</Link>
-            </p>
-            <ul className="mt-10 grid max-w-lg grid-cols-3 gap-4 border-t border-line pt-6 text-sm">
+            <div className="animate-fade-up lg:col-span-5">
+              <p className="max-w-lg text-base leading-relaxed text-muted sm:text-lg">
+                We print your logo, artwork or text on premium t-shirts, hoodies, oversized tees and polos. For teams, colleges, events and brands, from a single piece to bulk orders.
+              </p>
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <a href="#quote" className="btn-accent px-7 py-3.5 text-base">Get a printing quote <ArrowRight className="h-4 w-4" /></a>
+                <Link to="/shop" className="btn-outline px-7 py-3.5 text-base">Shop printed apparel</Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-10 sm:mt-12">
+            {garmentsReady
+              ? <HangerRack garments={garments} />
+              : <div className="h-[560px] animate-pulse rounded-[2rem] bg-paper-deep" />}
+          </div>
+
+          <div className="mt-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <ul className="grid max-w-lg grid-cols-3 gap-6 text-sm">
               <li><p className="font-display text-2xl font-bold">1–500+</p><p className="text-muted">pieces / order</p></li>
               <li><p className="font-display text-2xl font-bold">{garments.length || 3}</p><p className="text-muted">garment styles</p></li>
               <li><p className="font-display text-2xl font-bold">{colourCount}+</p><p className="text-muted">base colours</p></li>
             </ul>
-          </div>
-
-          <div className="relative lg:col-span-6">
-            <div className="absolute inset-x-6 bottom-0 top-10 overflow-hidden rounded-[2.5rem] bg-paper-deep sm:inset-x-10">
-              <div className="absolute -right-10 -top-10 h-64 w-64 rounded-full bg-accent/50 blur-3xl" />
-              <div className="absolute -bottom-16 -left-10 h-56 w-56 rounded-full bg-[#b9a7d6]/50 blur-3xl" />
-            </div>
-            <div className="relative px-6 pt-6 sm:px-10">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-paper-deep shadow-2xl shadow-ink/10 sm:aspect-square lg:aspect-[4/5]">
-                <HeroSlideshow banners={banners} />
-                <div className="absolute inset-0 bg-gradient-to-t from-ink/40 via-transparent to-transparent" />
-              </div>
-            </div>
-            <div className="absolute left-2 top-10 z-20 rounded-2xl bg-white px-4 py-3 shadow-xl ring-1 ring-line sm:left-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Bulk orders welcome</p>
-              <p className="mt-1 text-sm">Teams · colleges · events</p>
-            </div>
-            <div className="absolute bottom-6 right-4 z-20 flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold shadow-xl ring-1 ring-line sm:right-10">
-              <Palette className="h-4 w-4 text-accent" /> {colourCount}+ colours
-            </div>
+            <p className="text-sm text-muted">
+              Want full control?{' '}
+              <Link to="/customize" className="font-semibold text-ink underline decoration-accent decoration-2 underline-offset-4 hover:text-accent">Open the design studio</Link>
+            </p>
           </div>
         </div>
       </section>
@@ -218,6 +175,21 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+
+      {/* ── Bulk order builder ───────────────────────────────────────────── */}
+      {garments.length > 0 && (
+        <section className="container-x pt-20 sm:pt-28">
+          <BulkBuilder
+            garments={garments}
+            whatsappNumber={settings?.whatsappNumber}
+            brand={brand}
+            onQuote={(text) => {
+              setQuotePrefill({ text, at: Date.now() });
+              document.getElementById('quote')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          />
+        </section>
+      )}
 
       {/* ── What we print ────────────────────────────────────────────────── */}
       <section className="container-x py-20 sm:py-28">
@@ -455,7 +427,7 @@ export default function HomePage() {
               </a>
             )}
           </div>
-          <EnquiryForm compact />
+          <EnquiryForm compact prefill={quotePrefill} />
         </div>
       </section>
     </>

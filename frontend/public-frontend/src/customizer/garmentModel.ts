@@ -8,14 +8,14 @@
 //   names starting "Hw_"   – hardware (buttons, cord tips) in a fixed colour
 
 import {
-  BufferGeometry, CanvasTexture, Color, DoubleSide, Euler, Matrix4, Mesh, MeshStandardMaterial, SRGBColorSpace, Vector3,
+  BufferGeometry, Color, DoubleSide, Euler, Matrix4, Mesh, MeshStandardMaterial, Texture, Vector3,
 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DecalGeometry } from 'three/examples/jsm/geometries/DecalGeometry.js';
 import type { Garment, GarmentStyle, Placement, PrintDesign, View } from '../types';
-import { loadImage, luminance, MOCKUP_W, shade } from './mockups';
+import { luminance, MOCKUP_W, shade } from './mockups';
 import { SCENE_SCALE } from './inflate';
-import { zoneRect } from './artwork';
+import { artworkRect } from './artwork';
 
 /**
  * Lines a model up with the 2D drawing of the same style, so print areas
@@ -112,86 +112,76 @@ export const hardwareColor = (colorHex: string) =>
 export const hardwareMaterial = (colorHex: string) =>
   new MeshStandardMaterial({ color: hardwareColor(colorHex), roughness: 0.45, metalness: 0, side: DoubleSide });
 
-const TEXTURE_MAX_PX = 1400;
-
-/** The artwork positioned/rotated/clipped inside its print area, as a texture the size of that area */
-async function zoneTexture(placement: Placement, design: PrintDesign) {
-  const img = await loadImage(design.src, false);
-  const z = zoneRect(placement);
-  const k = Math.min(2, TEXTURE_MAX_PX / Math.max(z.width, z.height));
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(z.width * k));
-  canvas.height = Math.max(1, Math.round(z.height * k));
-  const ctx = canvas.getContext('2d')!;
-  const t = design.transform;
-  const w = t.scale * canvas.width;
-  const h = w * (img.height / img.width);
-  ctx.translate(t.cx * canvas.width, t.cy * canvas.height);
-  ctx.rotate((t.angle * Math.PI) / 180);
-  ctx.drawImage(img, -w / 2, -h / 2, w, h);
-  const map = new CanvasTexture(canvas);
-  map.colorSpace = SRGBColorSpace;
-  map.anisotropy = 8;
-  return map;
-}
-
-/** Decal meshes (world space, identity transform) for every print on the garment */
-export async function buildDecals(
-  garment: Garment,
-  designs: Record<string, PrintDesign>,
-  parts: { front: Mesh; back: Mesh },
-): Promise<Mesh[]> {
-  const spec = MODELS[garment.style];
-  if (!spec) return [];
+/** Model scene units ↔ drawing px (1000×1150) for one style */
+function mapping(spec: ModelSpec) {
   const scale = (spec.px.torsoW * SCENE_SCALE) / spec.torsoW;
   const modelTop = (spec.top - spec.centerY) * scale;
   const modelBottom = (spec.bottom - spec.centerY) * scale;
-  const pxH = spec.px.bottom - spec.px.top;
-  // Drawing px → scene units on the torso
-  const pxToX = (px: number) => (px - MOCKUP_W / 2) * SCENE_SCALE;
-  const pxToY = (py: number) => modelTop + ((py - spec.px.top) / pxH) * (modelBottom - modelTop);
-  const lenToY = (len: number) => (len / pxH) * (modelTop - modelBottom);
-
-  const out: Mesh[] = [];
-  for (const placement of garment.placements) {
-    const design = designs[placement.key];
-    if (!placement.enabled || !design) continue;
-    const view: View = placement.view;
-    const mesh = view === 'front' ? parts.front : parts.back;
-    const z = zoneRect(placement);
-    const cx = z.left + z.width / 2;
-    const cy = z.top + z.height / 2;
-    const mirror = view === 'back' ? -1 : 1;
-    const box = mesh.geometry.boundingBox!;
-    const midZ = (box.min.z + box.max.z) / 2;
-    const depth = (box.max.z - box.min.z) * 3;
-    const position = new Vector3(mirror * pxToX(cx), pxToY(cy), midZ);
-    const orientation = new Euler(0, view === 'back' ? Math.PI : 0, 0);
-    const size = new Vector3(z.width * SCENE_SCALE, Math.abs(lenToY(z.height)), depth);
-
-    const geometry = new DecalGeometry(mesh, position, orientation, size);
-    if (!geometry.getAttribute('position').count) { geometry.dispose(); continue; }
-    const map = await zoneTexture(placement, design);
-    const material = new MeshStandardMaterial({
-      map,
-      transparent: true,
-      roughness: 0.9,
-      metalness: 0,
-      side: DoubleSide,
-      depthWrite: false,
-      polygonOffset: true,
-      polygonOffsetFactor: -4,
-    });
-    out.push(new Mesh(geometry, material));
-  }
-  return out;
+  // Scene units per drawing px, vertically (sideways it is SCENE_SCALE)
+  const ky = (modelTop - modelBottom) / (spec.px.bottom - spec.px.top);
+  const mirror = (view: View) => (view === 'back' ? -1 : 1);
+  return {
+    ky,
+    toScene: (px: number, py: number, view: View) => ({
+      x: mirror(view) * (px - MOCKUP_W / 2) * SCENE_SCALE,
+      y: modelTop - (py - spec.px.top) * ky,
+    }),
+    toPx: (x: number, y: number, view: View) => ({
+      px: (mirror(view) * x) / SCENE_SCALE + MOCKUP_W / 2,
+      py: spec.px.top + (modelTop - y) / ky,
+    }),
+  };
 }
 
-export function disposeDecals(decals: Mesh[]) {
-  decals.forEach(d => {
-    d.geometry.dispose();
-    const m = d.material as MeshStandardMaterial;
-    m.map?.dispose();
-    m.dispose();
+/** Where a point on the model's body sits on the drawing (px), for placing prints by hand */
+export function modelPointToMockup(garment: Garment, point: Vector3, view: View) {
+  const spec = MODELS[garment.style];
+  return spec ? mapping(spec).toPx(point.x, point.y, view) : null;
+}
+
+/**
+ * The print as a decal on the body panel of its side: centred where the
+ * customer put it, sized to the artwork itself and turned by its angle, so it
+ * can go anywhere on the garment (not just inside the admin's print area).
+ */
+export function decalFor(
+  garment: Garment,
+  placement: Placement,
+  design: PrintDesign,
+  texture: Texture,
+  aspect: number,
+  parts: { front: Mesh; back: Mesh },
+): Mesh | null {
+  const spec = MODELS[garment.style];
+  if (!spec) return null;
+  const m = mapping(spec);
+  const r = artworkRect(placement, design.transform, aspect);
+  const view: View = placement.view;
+  const mesh = view === 'front' ? parts.front : parts.back;
+  const box = mesh.geometry.boundingBox!;
+  const { x, y } = m.toScene(r.cx, r.cy, view);
+  const geometry = new DecalGeometry(
+    mesh,
+    new Vector3(x, y, (box.min.z + box.max.z) / 2),
+    new Euler(0, view === 'back' ? Math.PI : 0, (-design.transform.angle * Math.PI) / 180),
+    new Vector3(r.w * SCENE_SCALE, r.h * m.ky, (box.max.z - box.min.z) * 3),
+  );
+  if (!geometry.getAttribute('position').count) { geometry.dispose(); return null; }
+  const material = new MeshStandardMaterial({
+    map: texture,
+    transparent: true,
+    roughness: 0.9,
+    metalness: 0,
+    side: DoubleSide,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -4,
   });
+  return new Mesh(geometry, material);
+}
+
+/** Frees a decal (its texture is shared per artwork and freed by the caller) */
+export function disposeDecal(d: Mesh) {
+  d.geometry.dispose();
+  (d.material as MeshStandardMaterial).dispose();
 }

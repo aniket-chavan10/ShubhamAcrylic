@@ -119,6 +119,32 @@ export const zoneRect = (p: Placement) => ({
 });
 
 /**
+ * Where an artwork sits on the 1000×1150 mockup (centre and size in px). The
+ * transform is stored relative to the placement's print area, but prints can
+ * be moved anywhere on the garment, so cx / cy may fall outside 0–1.
+ */
+export function artworkRect(placement: Placement, t: PrintTransform, aspect: number) {
+  const z = zoneRect(placement);
+  const w = t.scale * z.width;
+  return { cx: z.left + t.cx * z.width, cy: z.top + t.cy * z.height, w, h: w * aspect };
+}
+
+/** Largest scale an artwork may have (about the width of the whole garment) */
+export const maxScale = (placement: Placement) => Math.max(1, (MOCKUP_W * 0.9) / zoneRect(placement).width);
+
+/** Keep a print's centre on the garment canvas and its size sensible */
+export function clampTransform(placement: Placement, t: PrintTransform): PrintTransform {
+  const z = zoneRect(placement);
+  const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+  return {
+    cx: clamp(t.cx, -z.left / z.width, (MOCKUP_W - z.left) / z.width),
+    cy: clamp(t.cy, -z.top / z.height, (MOCKUP_H - z.top) / z.height),
+    scale: clamp(t.scale, 0.05, maxScale(placement)),
+    angle: Math.round((((t.angle % 360) + 540) % 360 - 180) * 10) / 10,
+  };
+}
+
+/**
  * Draw one side of the garment (mockup + all prints) on a transparent
  * 1000×1150 canvas. Used for the order preview and the 3D view's textures.
  */
@@ -135,22 +161,28 @@ export async function renderView(
   const ctx = canvas.getContext('2d')!;
   ctx.drawImage(mockup, 0, 0);
 
+  // Prints go on their own layer, trimmed to the garment's outline
+  const prints = document.createElement('canvas');
+  prints.width = MOCKUP_W;
+  prints.height = MOCKUP_H;
+  const pctx = prints.getContext('2d')!;
+  let any = false;
   for (const placement of garment.placements) {
     const design = designs[placement.key];
     if (placement.view !== view || !placement.enabled || !design) continue;
     const img = await loadImage(design.src, false);
-    const z = zoneRect(placement);
-    const t = design.transform;
-    const w = t.scale * z.width;
-    const h = w * (img.height / img.width);
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(z.left, z.top, z.width, z.height);
-    ctx.clip();
-    ctx.translate(z.left + t.cx * z.width, z.top + t.cy * z.height);
-    ctx.rotate((t.angle * Math.PI) / 180);
-    ctx.drawImage(img, -w / 2, -h / 2, w, h);
-    ctx.restore();
+    const r = artworkRect(placement, design.transform, img.height / img.width);
+    pctx.save();
+    pctx.translate(r.cx, r.cy);
+    pctx.rotate((design.transform.angle * Math.PI) / 180);
+    pctx.drawImage(img, -r.w / 2, -r.h / 2, r.w, r.h);
+    pctx.restore();
+    any = true;
+  }
+  if (any) {
+    pctx.globalCompositeOperation = 'destination-in';
+    pctx.drawImage(mockup, 0, 0);
+    ctx.drawImage(prints, 0, 0);
   }
   return canvas;
 }
